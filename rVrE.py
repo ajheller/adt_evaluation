@@ -22,7 +22,7 @@ import acn_order as acn
 
 import grids
 
-x, y, z, az, el, w = grids.az_el()
+x, y, z, az, el, w = grids.az_el(resolution=72)
 
 
 # sample spherial harmonics at grid points
@@ -35,30 +35,65 @@ el0 = el.ravel()
 test_dirs_Y = np.array([rsh.real_sph_harm_acn(i, az0, el0+np.pi/2)
                         for i in range(max_acn+1)])
 
-M = np.genfromtxt("test_data/" +
+M = np.genfromtxt("/Users/heller/Documents/adt/decoders/" +
                   "CCRMA_Listening_Room_3h3p_allrad_5200_rE_max_2_band-rEmax.csv",
                   dtype=np.float64,
                   delimiter=',')
 
+Su = np.genfromtxt("/Users/heller/Documents/adt/decoders/" +
+                   "ccrma_listening_room.csv",
+                   dtype=np.float64,
+                   delimiter=',')
+
 g = np.matmul(M, test_dirs_Y)
 
-g2 = g * g.conjugate() # if g's might be complex
+g2 = np.real(g * g.conjugate())  # if g's might be complex
 
 # pressure
 P = np.sum(g, 0)
 
+rVxyz = np.real(np.matmul(Su, g) / np.array([P, P, P]))
+rVr = np.linalg.norm(rVxyz, 2, 0)
+rVu = rVxyz / np.array([rVr, rVr, rVr])
 
-# real_sph_harm expects zenith angle, so add pi/2
-#ylm4= rsh.real_sph_harm_acn(4, az, el + np.pi/2)
+E = np.sum(g2, 0)
 
-c = np.reshape(test_dirs_Y[12,:], np.shape(az))
+rExyz = np.matmul(Su, g2) / np.array([E, E, E])
+rEr = np.linalg.norm(rExyz, 2, 0)
+rEu = rExyz / np.array([rEr, rEr, rEr])
+
+
+if False:
+    xyz = rVxyz
+    r = rVr
+else:
+    xyz = rExyz
+    r = rEr
+
+c = np.reshape(r, np.shape(az))
 ca = np.abs(c)
 
-plt.imshow(c)
+plt.imshow(np.reshape(rVr, np.shape(az)).transpose(),
+           extent=(-180, 180, 90, -90))
+ax = plt.gca()
+ax.xaxis.set_ticks(np.linspace(-180, 180, 9))
+ax.yaxis.set_ticks(np.linspace(90, -90, 5))
+plt.xlabel('Azimuth (degrees)')
+plt.ylabel('Elevation (degrees)')
+plt.title('magnitude of rE vs. test direction')
+plt.colorbar()
+plt.show()
 
-data = [go.Surface(x=ca*x, y=ca*y, z=ca*z,
+data = [go.Surface(x=np.reshape(xyz[0, :], np.shape(az)),
+                   y=np.reshape(xyz[1, :], np.shape(az)),
+                   z=np.reshape(xyz[2, :], np.shape(az)),
+                   cmin=0.5,
+                   cmax=1,
                    surfacecolor=c,
-                   colorscale='Jet')]
+                   colorscale='Jet',
+                   contours=dict(z=dict(show=True),
+                                 y=dict(show=True),
+                                 x=dict(show=True)))]
 
 layout = go.Layout(title="Ylm")
 
