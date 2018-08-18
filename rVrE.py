@@ -22,6 +22,10 @@ import acn_order as acn
 
 import grids
 
+import adt_scmd
+Su, C, M = adt_scmd.load('/Users/heller/Documents/adt/examples/' +
+                         'SCMD_brh_spring2017.json')
+
 x, y, z, az, el, w = grids.az_el(resolution=72)
 
 
@@ -32,18 +36,13 @@ max_acn = acn.acn(ambisonic_order, ambisonic_order)
 az0 = az.ravel()  # 1-D view of az, like (:) in MATLAB
 el0 = el.ravel()
 
-test_dirs_Y = np.array([rsh.real_sph_harm_acn(i, az0, el0+np.pi/2)
-                        for i in range(max_acn+1)])
+if False:
+    test_dirs_Y = np.array([rsh.real_sph_harm_acn(i, az0, el0+np.pi/2)
+                            for i in range(max_acn+1)])
 
-M = np.genfromtxt("/Users/heller/Documents/adt/decoders/" +
-                  "CCRMA_Listening_Room_3h3p_allrad_5200_rE_max_2_band-rEmax.csv",
-                  dtype=np.float64,
-                  delimiter=',')
-
-Su = np.genfromtxt("/Users/heller/Documents/adt/decoders/" +
-                   "ccrma_listening_room.csv",
-                   dtype=np.float64,
-                   delimiter=',')
+test_dirs_Y = np.array(
+        [n * rsh.real_sph_harm(m, l, az0, el0+np.pi/2)
+         for l, m, n in zip(C['sh_l'], C['sh_m'], C['norm'])])
 
 g = np.matmul(M, test_dirs_Y)
 
@@ -74,7 +73,8 @@ c = np.reshape(r, np.shape(az))
 ca = np.abs(c)
 
 plt.imshow(np.reshape(rVr, np.shape(az)).transpose(),
-           extent=(-180, 180, 90, -90))
+           extent=(-180, 180, 90, -90),
+           cmap='jet')
 ax = plt.gca()
 ax.xaxis.set_ticks(np.linspace(-180, 180, 9))
 ax.yaxis.set_ticks(np.linspace(90, -90, 5))
@@ -84,7 +84,11 @@ plt.title('magnitude of rE vs. test direction')
 plt.colorbar()
 plt.show()
 
-data = [go.Surface(x=np.reshape(xyz[0, :], np.shape(az)),
+spkr_r = 1.25
+plt_range = (-1.5, 1.5)
+
+data = [# rE
+        go.Surface(x=np.reshape(xyz[0, :], np.shape(az)),
                    y=np.reshape(xyz[1, :], np.shape(az)),
                    z=np.reshape(xyz[2, :], np.shape(az)),
                    cmin=0.5,
@@ -93,9 +97,32 @@ data = [go.Surface(x=np.reshape(xyz[0, :], np.shape(az)),
                    colorscale='Jet',
                    contours=dict(z=dict(show=True),
                                  y=dict(show=True),
-                                 x=dict(show=True)))]
+                                 x=dict(show=True))),
+        # the speakers
+        go.Scatter3d(x=spkr_r*Su[0, :], y=spkr_r*Su[1, :], z=spkr_r*Su[2, :],
+                     mode='markers')
+        ]
 
-layout = go.Layout(title="Ylm")
+layout = go.Layout(scene=dict(
+                    aspectratio=dict(x=1, y=1, z=1),
+                    xaxis=dict(title='front/back', range=plt_range),
+                    yaxis=dict(title='left/right', range=plt_range),
+                    zaxis=dict(title='up/down', range=plt_range),
+                    annotations=[dict(showarrow=True,
+                                      xanchor='center',
+                                      font=dict(color="black", size=18),
+                                      x=xx, y=yy, z=zz, text='<b>'+tt+'</b>')
+                                 for xx, yy, zz, tt in
+                                     ((1, 0, 0, 'front'),
+                                      (-1, 0, 0, 'back'),
+                                      (0, 1, 0, 'left'),
+                                      (0, -1, 0, 'right'),
+                                      (0, 0, 1, 'top'),
+                                      (0, 0, -1, 'bottom'))]))
 
-plotly.offline.plot({'data': data, 'layout': layout},
-                    filename="tmp.html")
+fig = go.Figure(data=data, layout=layout)
+plotly.offline.plot(fig, filename='3d annotations')
+
+if False:
+    plotly.offline.plot({'data': data, 'layout': layout},
+                        filename="tmp.html")
