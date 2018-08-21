@@ -25,4 +25,4 @@ def load(path):
 
     Su = np.array([S['x'],S['y'], S['z']])[:, :, 0]
 
-    return Su, C, M_hf
+    return Su, C, M_hf, scmd
