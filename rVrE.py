@@ -92,8 +92,9 @@ def unravel(M):
 # ---- start of main ----
 
 # load the ADT results
-Su, C, M, scmd = adt_scmd.load('/Users/heller/Documents/adt/examples/' +
-                               'SCMD_brh_spring2017.json')
+Su, C, M, D, scmd = adt_scmd.load('/Users/heller/Documents/adt/examples/' +
+                                  'SCMD_env_asym_tri_oct_4ceil.json')
+#                                 'SCMD_brh_spring2017.json')
 
 x, y, z, az, el, w = grids.az_el(resolution=72)
 
@@ -128,13 +129,16 @@ if __debug:
 #   NumPy * == MATLAB .*
 
 # M is the basic solution
-gamma = np.array(scmd['D']['hf_gains'])
+gamma = np.array(D['hf_gains'])
 
+#  apply gains to tranform to max rE matrix
 Mhf = np.matmul(M, np.diag(gamma[C['sh_l']]))
 
+# pressure gains from each test direciont to each speaker
 g = np.matmul(Mhf, test_dirs_Y)
 #g = np.matmul(M, test_dirs_Y)
 
+# Energy gain from each test direction to each speaker
 g2 = np.real(g * g.conjugate())  # if g's might be complex
 
 # pressure & rV
@@ -143,7 +147,6 @@ rVxyz = np.real(np.matmul(Su, g) / np.array([P, P, P]))
 rVaz, rVel, rVr = cart2sph(rVxyz[0, :], rVxyz[1, :], rVxyz[2, :])
 rVu = rVxyz / np.array([rVr, rVr, rVr])
 
-plot_rX(rVr, 'magnitude of rV vs. test direction', clim=(0.5, 1))
 
 # energy & rE
 E = np.sum(g2, 0)
@@ -151,6 +154,10 @@ rExyz = np.matmul(Su, g2) / np.array([E, E, E])
 rEaz, rEel, rEr = cart2sph(rExyz[0, :], rExyz[1, :], rExyz[2, :])
 rEu = rExyz / np.array([rEr, rEr, rEr])
 
+plot_rX(20*np.log10(E/np.mean(E)), 'Energy gain (dB) vs. test direction',
+        clim=(-6, 6))
+
+plot_rX(rVr, 'magnitude of rV vs. test direction', clim=(0.5, 1))
 plot_rX(rEr, 'magnitude of rE vs. test direction', clim=(0.5, 1))
 
 plot_dir_diff(rVu, rEu, 'rV rE direction diff (degrees)', clim=(0, 10))
@@ -175,7 +182,9 @@ plt_range = (-1.5, 1.5)
 
 data = [
         # rE
-        go.Surface(x=np.reshape(xyz[0, :], np.shape(az)),
+        # Plotly does not support legend entries for Surface for Mesh (sigh)
+        go.Surface(name='rE',
+                   x=np.reshape(xyz[0, :], np.shape(az)),
                    y=np.reshape(xyz[1, :], np.shape(az)),
                    z=np.reshape(xyz[2, :], np.shape(az)),
                    cmin=0.5,
@@ -185,12 +194,13 @@ data = [
                    hoverinfo='text',
                    text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
                                      % (c, u, v))(az*180/np.pi, el*180/np.pi,
-                                       np.reshape(r, np.shape(az))),
+                                                  np.reshape(r, np.shape(az))),
                    contours=dict(z=dict(show=True),
                                  y=dict(show=True),
                                  x=dict(show=True))),
         # the speakers
-        go.Scatter3d(x=spkr_r*Su[0, :], y=spkr_r*Su[1, :], z=spkr_r*Su[2, :],
+        go.Scatter3d(name='Speakers',
+                     x=spkr_r*Su[0, :], y=spkr_r*Su[1, :], z=spkr_r*Su[2, :],
                      mode='markers',
                      hoverinfo='text',
                      text=np.squeeze(scmd['S']['id']))
@@ -198,6 +208,8 @@ data = [
 
 name = scmd['S']['name'] + "(%d, %d)" % (C['h_order'], C['v_order'])
 layout = go.Layout(title=name,
+                   showlegend=True,
+                   legend=dict(orientation="h"),
                    scene=dict(
                     aspectratio=dict(x=1, y=1, z=1),
                     xaxis=dict(title='front/back', range=plt_range),

@@ -17,12 +17,13 @@ def load(path):
     S = scmd['S']
     C = scmd['C']
     M = scmd['M']
+    D = scmd['D']
 
     try:
         M_hf = np.array(M['hf'])
     except KeyError:
         M_hf = np.array(M)
 
-    Su = np.array([S['x'],S['y'], S['z']])[:, :, 0]
+    Su = np.squeeze([S['x'],S['y'], S['z']])
 
-    return Su, C, M_hf, scmd
+    return Su, C, M_hf, D, scmd
