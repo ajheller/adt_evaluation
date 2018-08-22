@@ -178,17 +178,26 @@ c = np.reshape(r, np.shape(az))
 ca = np.abs(c)
 
 spkr_r = 1.25  # np.squeeze(scmd['S']['r'])
-plt_range = (-1.5, 1.5)
+spkr_rr = np.squeeze(scmd['S']['r'])
+spkr_az = np.squeeze(scmd['S']['az'])
+spkr_el = np.squeeze(scmd['S']['el'])
+spkr_id = np.squeeze(scmd['S']['id'])
+
+
+max_rr = np.max(spkr_rr)
+plt_range = (-max_rr, max_rr)
+
 
 data = [
         # rE
         # Plotly does not support legend entries for Surface for Mesh (sigh)
+        #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
         go.Surface(name='rE',
                    x=np.reshape(xyz[0, :], np.shape(az)),
                    y=np.reshape(xyz[1, :], np.shape(az)),
                    z=np.reshape(xyz[2, :], np.shape(az)),
-                   cmin=0.5,
-                   cmax=1,
+                   cmin=0.7,
+                   cmax=np.ceil(np.max(rEr)*10)/10,
                    surfacecolor=c,
                    colorscale='Jet',
                    hoverinfo='text',
@@ -199,14 +208,33 @@ data = [
                                  y=dict(show=True),
                                  x=dict(show=True))),
         # the speakers
-        go.Scatter3d(name='Speakers',
-                     x=spkr_r*Su[0, :], y=spkr_r*Su[1, :], z=spkr_r*Su[2, :],
+        go.Scatter3d(name='Speakers (unit sphere)',
+                     x=spkr_r*Su[0, :],
+                     y=spkr_r*Su[1, :],
+                     z=spkr_r*Su[2, :],
                      mode='markers',
                      hoverinfo='text',
-                     text=np.squeeze(scmd['S']['id']))
+                     visible='legendonly',
+                     text=np.squeeze(scmd['S']['id'])),
+
+        go.Scatter3d(name='Speakers (actual locations)',
+                     x=spkr_rr*Su[0, :],
+                     y=spkr_rr*Su[1, :],
+                     z=spkr_rr*Su[2, :],
+                     mode='markers',
+                     hoverinfo='text',
+                     visible=True,
+                     text=np.vectorize(
+                             lambda a, e, r, c:
+                                 "%s<br>az: %.1f<br>el: %.1f<br> r: %.1f"
+                                 % (c, a, e, r))
+                             (spkr_az * 180/np.pi, spkr_el * 180/np.pi,
+                              spkr_rr, spkr_id))
         ]
 
-name = scmd['S']['name'] + "(%d, %d)" % (C['h_order'], C['v_order'])
+name = "Loudspeaker array: " + \
+        scmd['S']['name'] + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) + \
+        "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
 layout = go.Layout(title=name,
                    showlegend=True,
                    legend=dict(orientation="h"),
@@ -215,10 +243,10 @@ layout = go.Layout(title=name,
                     xaxis=dict(title='front/back', range=plt_range),
                     yaxis=dict(title='left/right', range=plt_range),
                     zaxis=dict(title='up/down', range=plt_range),
-                    annotations=[dict(showarrow=True,
+                    annotations=[dict(showarrow=False,
                                       xanchor='center',
-                                      font=dict(color="black", size=20),
-                                      x=xx, y=yy, z=zz, text='<b>'+tt+'</b>')
+                                      font=dict(color="black", size=16),
+                                      x=xx, y=yy, z=zz, text=tt)
                                  for xx, yy, zz, tt in
                                      ((1, 0, 0, 'front'),
                                       (-1, 0, 0, 'back'),
