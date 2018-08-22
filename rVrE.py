@@ -92,9 +92,11 @@ def unravel(M):
 # ---- start of main ----
 
 # load the ADT results
-Su, C, M, D, scmd = adt_scmd.load('/Users/heller/Documents/adt/examples/' +
-                                  'SCMD_env_asym_tri_oct_4ceil.json')
-#                                 'SCMD_brh_spring2017.json')
+smcd_dir = "examples/"
+#smcd_dir = "/Users/heller/Documents/adt/examples/"
+Su, C, M, D, scmd = adt_scmd.load(smcd_dir +
+                                  #'SCMD_env_asym_tri_oct_4ceil.json'
+                                  'SCMD_brh_spring2017.json')
 
 x, y, z, az, el, w = grids.az_el(resolution=72)
 
@@ -240,20 +242,23 @@ layout = go.Layout(title=name,
                    legend=dict(orientation="h"),
                    scene=dict(
                     aspectratio=dict(x=1, y=1, z=1),
-                    xaxis=dict(title='front/back', range=plt_range),
-                    yaxis=dict(title='left/right', range=plt_range),
-                    zaxis=dict(title='up/down', range=plt_range),
+                    xaxis=dict(title='front/back', range=plt_range,
+                               showbackground=True, backgroundcolor='rgb(230, 230,230)'),
+                    yaxis=dict(title='left/right', range=plt_range,
+                               showbackground=True, backgroundcolor='rgb(230, 230,230)'),
+                    zaxis=dict(title='up/down', range=plt_range,
+                               showbackground=True, backgroundcolor='rgb(230, 230,230)'),
                     annotations=[dict(showarrow=False,
                                       xanchor='center',
                                       font=dict(color="black", size=16),
                                       x=xx, y=yy, z=zz, text=tt)
                                  for xx, yy, zz, tt in
-                                     ((1, 0, 0, 'front'),
-                                      (-1, 0, 0, 'back'),
-                                      (0, 1, 0, 'left'),
-                                      (0, -1, 0, 'right'),
-                                      (0, 0, 1, 'top'),
-                                      (0, 0, -1, 'bottom'))]))
+                                     ((max_rr, 0, 0, 'front'),
+                                      (-max_rr, 0, 0, 'back'),
+                                      (0, max_rr, 0, 'left'),
+                                      (0, -max_rr, 0, 'right'),
+                                      (0, 0, max_rr, 'top'),
+                                      (0, 0, -max_rr, 'bottom'))]))
 
 fig = go.Figure(data=data, layout=layout)
 plotly.offline.plot(fig, filename='3d annotations')
