@@ -6,6 +6,7 @@ Created on Sun Aug 12 17:26:45 2018
 @author: heller
 """
 
+import os.path as path
 import numpy as np
 
 # plotly is not available via conda
@@ -20,8 +21,8 @@ import matplotlib.pyplot as plt
 import real_spherical_harmonics as rsh
 import acn_order as acn
 
-import grids
-from grids import cart2sph, sph2cart
+import spherical_grids as grids
+from spherical_grids import cart2sph, sph2cart
 
 import adt_scmd
 
@@ -92,11 +93,13 @@ def unravel(M):
 # ---- start of main ----
 
 # load the ADT results
-smcd_dir = "examples/"
-#smcd_dir = "/Users/heller/Documents/adt/examples/"
-Su, C, M, D, scmd = adt_scmd.load(smcd_dir +
-                                  #'SCMD_env_asym_tri_oct_4ceil.json'
-                                  'SCMD_brh_spring2017.json')
+smcd_dir = "examples"
+# smcd_dir = "/Users/heller/Documents/adt/examples/"
+
+scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
+             "SCMD_brh_spring2017.json")[1]
+Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
+
 
 x, y, z, az, el, w = grids.az_el(resolution=72)
 
@@ -228,7 +231,7 @@ data = [
                      visible=True,
                      text=np.vectorize(
                              lambda a, e, r, c:
-                                 "%s<br>az: %.1f<br>el: %.1f<br> r: %.1f"
+                                 "<b>%s</b><br>az: %.1f&deg;<br>el: %.1f&deg;<br> r: %.1f m"
                                  % (c, a, e, r))
                              (spkr_az * 180/np.pi, spkr_el * 180/np.pi,
                               spkr_rr, spkr_id))
