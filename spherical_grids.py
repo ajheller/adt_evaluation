@@ -6,6 +6,7 @@ Created on Sun Aug 12 17:29:51 2018
 @author: heller
 """
 
+from __future__ import division
 import numpy as np
 
 
@@ -33,6 +34,19 @@ def az_el(resolution=180):
     el, az = np.meshgrid(v, u)
 
     x, y, z = sph2cart(az, el)
-    w = np.cos(el)  # quadrature weight
+
+    # quadrature weights (sum to 4pi, area of a unit sphere)
+    du = np.abs(u[1]-u[0])
+    dv = np.abs(v[1]-v[0])
+    w = np.cos(el) * du * dv
+    # the last row overlaps the first so set it's weights to zero
+    w[-1, :] = 0
 
     return x, y, z, az, el, w
+
+
+def az_el_unit_test(resolution=1000):
+    x, y, z, az, el, w = az_el(resolution)
+    sw = np.sum((x**2 + y**2 + z**2) * w) / (4 * np.pi)
+    sx = np.sum(x**2 * w) / (1/3) / (4 * np.pi)
+    return sw, sx  # both should be 1
