@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import real_spherical_harmonics as rsh
 import acn_order as acn
 
-import grids
+import spherical_grids as grids
 from grids import cart2sph, sph2cart
 
 import adt_scmd
@@ -44,7 +44,7 @@ flat_trace = go.Surface(
         hoverinfo='text',
         text=np.vectorize(
                 lambda a, e, c:
-                "az: %.1f<br>el: %.1f<br> r<sub>E</sub>: %.2f" % (a, e, c))
+                "az: %.1f<br>el: %.1f<br>dir diff: %.2f" % (a, e, c))
                 (az * 180/np.pi,
                  el * 180/np.pi,
                  np.reshape(rX, np.shape(az))))
@@ -60,7 +60,7 @@ speakers = go.Scatter3d(
         visible=True,
         text=np.vectorize(
                 lambda a, e, r, c:
-                "%s<br>az: %.1f<br>el: %.1f<br> r: %.1f" % (c, a, e, r))
+                "<B>%s</B><br>az: %.1f<br>el: %.1f<br> r: %.1f" % (c, a, e, r))
                 (spkr_az * 180/np.pi, spkr_el * 180/np.pi, spkr_rr, spkr_id))
 
 camera = dict(
@@ -69,6 +69,7 @@ camera = dict(
     eye=dict(x=0, y=0, z=-2))
 
 flat_layout = go.Layout(
+        title=name,
         showlegend=True,
         legend=dict(orientation="h"),
         scene=dict(
