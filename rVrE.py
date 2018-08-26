@@ -28,6 +28,8 @@ import adt_scmd
 
 __debug = True
 
+__colormap = 'jet'
+
 
 #
 def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
@@ -59,7 +61,7 @@ def plot_rX(rX, title, clim=None):
     ax = fig.add_subplot(111)
     plt.imshow(np.fliplr(np.flipud(np.reshape(rX, np.shape(az)).transpose())),
                extent=(180, -180, -90, 90),
-               cmap='jet')
+               cmap=__colormap)
     if clim:
         plt.clim(clim)
     ax.xaxis.set_ticks(np.linspace(180, -180, 9))
@@ -97,7 +99,7 @@ smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
-             "SCMD_brh_spring2017.json")[1]
+             "SCMD_brh_spring2017.json")[0]
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
 
@@ -109,6 +111,7 @@ el0 = el.ravel()
 x0 = x.ravel()
 y0 = y.ravel()
 z0 = z.ravel()
+w0 = w.ravel()
 xyz0 = np.array([x0, y0, z0])
 
 if False:
@@ -159,16 +162,17 @@ rExyz = np.matmul(Su, g2) / np.array([E, E, E])
 rEaz, rEel, rEr = cart2sph(rExyz[0, :], rExyz[1, :], rExyz[2, :])
 rEu = rExyz / np.array([rEr, rEr, rEr])
 
-plot_rX(20*np.log10(E/np.mean(E)), 'Energy gain (dB) vs. test direction',
-        clim=(-6, 6))
+if False:
+    plot_rX(20*np.log10(E/np.mean(E)), 'Energy gain (dB) vs. test direction',
+            clim=(-6, 6))
 
-plot_rX(rVr, 'magnitude of rV vs. test direction', clim=(0.5, 1))
-plot_rX(rEr, 'magnitude of rE vs. test direction', clim=(0.5, 1))
+    plot_rX(rVr, 'magnitude of rV vs. test direction', clim=(0.5, 1))
+    plot_rX(rEr, 'magnitude of rE vs. test direction', clim=(0.5, 1))
 
-plot_dir_diff(rVu, rEu, 'rV rE direction diff (degrees)', clim=(0, 10))
+    plot_dir_diff(rVu, rEu, 'rV rE direction diff (degrees)', clim=(0, 10))
 
-plot_dir_diff(rVu, xyz0, 'rV direction error (degrees)', clim=(0, 10))
-plot_dir_diff(rEu, xyz0, 'rE direction error (degrees)', clim=(0, 10))
+    plot_dir_diff(rVu, xyz0, 'rV direction error (degrees)', clim=(0, 10))
+    plot_dir_diff(rEu, xyz0, 'rE direction error (degrees)', clim=(0, 10))
 
 
 if False:
@@ -204,7 +208,7 @@ data = [
                    cmin=0.7,
                    cmax=np.ceil(np.max(rEr)*10)/10,
                    surfacecolor=c,
-                   colorscale='Jet',
+                   colorscale='Portland', # __colormap,
                    hoverinfo='text',
                    text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
                                      % (c, u, v))(az*180/np.pi, el*180/np.pi,
