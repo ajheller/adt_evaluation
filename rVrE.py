@@ -57,7 +57,7 @@ def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
 
 
 def plot_rX(rX, title, clim=None):
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
     plt.imshow(np.fliplr(np.flipud(np.reshape(rX, np.shape(az)).transpose())),
                extent=(180, -180, -90, 90),
@@ -125,7 +125,7 @@ test_dirs_Y = np.array(
         [np.sqrt(4 * np.pi) * n * rsh.real_sph_harm(m, l, az0, np.pi/2 - el0)
          for l, m, n in zip(C['sh_l'], C['sh_m'], C['norm'])])
 
-if __debug:
+if False:
     #  plot the first few SH's test plot_rX and the SH's themselvesss
     for i in range(4):
         plot_rX(np.reshape(test_dirs_Y[i, :], np.shape(az)),
@@ -162,6 +162,11 @@ rExyz = np.matmul(Su, g2) / np.array([E, E, E])
 rEaz, rEel, rEr = cart2sph(rExyz[0, :], rExyz[1, :], rExyz[2, :])
 rEu = rExyz / np.array([rEr, rEr, rEr])
 
+decoder_gain = np.sqrt(np.sum(E * w0) / (4*np.pi))
+
+print "decoder diffuse gain = %f, (%f db)\n" % (decoder_gain, 20 * np.log10(decoder_gain))
+print "decoder peak gain", np.max(g)
+
 if False:
     plot_rX(20*np.log10(E/np.mean(E)), 'Energy gain (dB) vs. test direction',
             clim=(-6, 6))
@@ -191,10 +196,25 @@ spkr_rr = np.squeeze(scmd['S']['r'])
 spkr_az = np.squeeze(scmd['S']['az'])
 spkr_el = np.squeeze(scmd['S']['el'])
 spkr_id = np.squeeze(scmd['S']['id'])
+spkr_x  = spkr_rr * np.squeeze(scmd['S']['x'])
+spkr_y  = spkr_rr * np.squeeze(scmd['S']['y'])
+spkr_z  = spkr_rr * np.squeeze(scmd['S']['z'])
+spkr_floor = np.min(spkr_z) - 0.5 # 1/2-meter below lowest spkr
 
 
 max_rr = np.max(spkr_rr)
 plt_range = (-max_rr, max_rr)
+
+
+spkr_stands = go.Scatter3d(name="Speaker Stands",
+                           x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
+                           y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
+                           z=np.array([[spkr_z[i], spkr_floor, spkr_floor, np.NaN] for i in range(len(spkr_x))]).ravel(),
+                           mode='lines',
+                           line=dict(color='black'),
+                           visible=True,
+                           connectgaps=False
+                              )
 
 
 data = [
@@ -227,9 +247,9 @@ data = [
                      text=np.squeeze(scmd['S']['id'])),
 
         go.Scatter3d(name='Speakers (actual locations)',
-                     x=spkr_rr*Su[0, :],
-                     y=spkr_rr*Su[1, :],
-                     z=spkr_rr*Su[2, :],
+                     x=spkr_x,
+                     y=spkr_y,
+                     z=spkr_z,
                      mode='markers',
                      hoverinfo='text',
                      visible=True,
@@ -238,8 +258,8 @@ data = [
                                  "<b>%s</b><br>az: %.1f&deg;<br>el: %.1f&deg;<br> r: %.1f m"
                                  % (c, a, e, r))
                              (spkr_az * 180/np.pi, spkr_el * 180/np.pi,
-                              spkr_rr, spkr_id))
-        ]
+                              spkr_rr, spkr_id)),
+        spkr_stands]
 
 name = "Loudspeaker array: " + \
         scmd['S']['name'] + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) + \
