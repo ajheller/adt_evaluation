@@ -21,7 +21,7 @@ def load(path):
 
     try:
         M_hf = np.array(M['hf'])
-    except KeyError:
+    except TypeError:
         M_hf = np.array(M)
 
     Su = np.squeeze([S['x'],S['y'], S['z']])
