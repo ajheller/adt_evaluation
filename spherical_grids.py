@@ -8,7 +8,7 @@ Created on Sun Aug 12 17:29:51 2018
 
 from __future__ import division
 import numpy as np
-
+import csv
 
 # these follow the MATLAB convention for spherical coordinates
 
@@ -50,3 +50,15 @@ def az_el_unit_test(resolution=1000):
     sw = np.sum((x**2 + y**2 + z**2) * w) / (4 * np.pi)
     sx = np.sum(x**2 * w) / (1/3) / (4 * np.pi)
     return sw, sx  # both should be 1
+
+
+def t_design():
+    with open("data/des.3.240.21.txt", 'r') as f:
+        t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 3)
+        x = t[:, 0]
+        y = t[:, 1]
+        z = t[:, 2]
+        az, el, w = cart2sph(x, y, z)
+        w /= np.shape(x)[0]
+
+    return x, y, z, az, el, w
