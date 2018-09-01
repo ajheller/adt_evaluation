@@ -309,7 +309,7 @@
 	"D": {
 		"decoder_type": 2,
 		"freq_bands": 2,
-		"hf_gains": [1,0.8611363116,0.6123336207,0.304746985],
+		"hf_gains": [1.668184271,1.43653405,1.021485315,0.5083741269],
 		"lf_gains": [1,1,1,1],
 		"description": "ENV_3h3v_allrad_5200_rE_max_2_band",
 		"delay_comp": "on",
@@ -319,6 +319,9 @@
 		"coeff_order": "acn",
 		"coeff_scale": "SN3D",
 		"input_scale": "SN3D",
-		"neff_comp": "output"
+		"neff_comp": "output",
+		"g0_type": "rms",
+		"g0": 1.668184271,
+		"name": "ENV_3h3v_allrad_5200_rE_max"
 	}
 }
