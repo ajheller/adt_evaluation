@@ -24,6 +24,8 @@ import acn_order as acn
 import spherical_grids as grids
 from spherical_grids import cart2sph, sph2cart
 
+from scipy.spatial import Delaunay
+
 import adt_scmd
 
 __debug = True
@@ -101,6 +103,8 @@ smcd_dir = "examples"
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
              "SCMD_brh_spring2017.json")[0]
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
+
+tri = Delaunay(Su.transpose())
 
 
 x, y, z, az, el, w = grids.az_el(resolution=72)
@@ -201,6 +205,9 @@ spkr_y  = spkr_rr * np.squeeze(scmd['S']['y'])
 spkr_z  = spkr_rr * np.squeeze(scmd['S']['z'])
 spkr_floor = np.min(spkr_z) - 0.5 # 1/2-meter below lowest spkr
 
+spkr_ux = 0.9 * np.min(spkr_rr)*Su[0, :]
+spkr_uy = 0.9 * np.min(spkr_rr)*Su[1, :]
+spkr_uz = 0.9 * np.min(spkr_rr)*Su[2, :]
 
 max_rr = np.max(spkr_rr)
 plt_range = (-max_rr, max_rr)
@@ -216,34 +223,64 @@ spkr_stands = go.Scatter3d(name="Speaker Stands",
                            connectgaps=False
                               )
 
+cvhull = tri.convex_hull
+cve_x = []
+cve_y = []
+cve_z = []
+for j in range(len(cvhull)):
+    v = cvhull[j]
+    for i in [0,1,2,0]:
+         cve_x.append(spkr_ux[v[i]])
+         cve_y.append(spkr_uy[v[i]])
+         cve_z.append(spkr_uz[v[i]])
+    cve_x.append(None)
+    cve_y.append(None)
+    cve_z.append(None)
+
+cvedges = go.Scatter3d(name="cv edges",
+                       x=cve_x,
+                       y=cve_y,
+                       z=cve_z,
+                       mode='lines',
+                       line=dict(color='white', width=6),
+                       visible=True,
+                       connectgaps=False)
+
+
 
 data = [
         # rE
-        # Plotly does not support legend entries for Surface for Mesh (sigh)
+        # Plotly does not support legend entries for Surface or Mesh (sigh)
         #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
-        go.Surface(name='rE',
-                   x=np.reshape(xyz[0, :], np.shape(az)),
-                   y=np.reshape(xyz[1, :], np.shape(az)),
-                   z=np.reshape(xyz[2, :], np.shape(az)),
-                   cmin=0.7,
-                   cmax=np.ceil(np.max(rEr)*10)/10,
-                   surfacecolor=c,
-                   colorscale='Portland', # __colormap,
-                   hoverinfo='text',
-                   text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
-                                     % (c, u, v))(az*180/np.pi, el*180/np.pi,
-                                                  np.reshape(r, np.shape(az))),
-                   contours=dict(z=dict(show=True),
-                                 y=dict(show=True),
-                                 x=dict(show=True))),
+#        go.Surface(name='rE',
+#                   x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], np.shape(az)),
+#                   y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], np.shape(az)),
+#                   z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], np.shape(az)),
+#                   cmin=0.7,
+#                   cmax=np.ceil(np.max(rEr)*10)/10,
+#                   surfacecolor=c,
+#                   colorscale='Portland', # __colormap,
+#                   hoverinfo='text',
+#                   text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
+#                                     % (c, u, v))(az*180/np.pi, el*180/np.pi,
+#                                                  np.reshape(r, np.shape(az))),
+#                   contours=dict(z=dict(show=True),
+#                                 y=dict(show=True),
+#                                 x=dict(show=True))),
         # the speakers
-        go.Scatter3d(name='Speakers (unit sphere)',
-                     x=spkr_r*Su[0, :],
-                     y=spkr_r*Su[1, :],
-                     z=spkr_r*Su[2, :],
-                     mode='markers',
+        go.Mesh3d(name='Speakers (unit sphere)',
+                  alphahull=0,
+                     x=spkr_ux,
+                     y=spkr_uy,
+                     z=spkr_uz,
                      hoverinfo='text',
-                     visible='legendonly',
+                     visible=True,
+                     opacity=0.7,
+                     #markers=dict(color='orange', size=15),
+                     #plot_edges=True,
+                     #vertexcolor='red',
+                     showlegend=True,
+                     flatshading=True,
                      text=np.squeeze(scmd['S']['id'])),
 
         go.Scatter3d(name='Speakers (actual locations)',
@@ -251,6 +288,7 @@ data = [
                      y=spkr_y,
                      z=spkr_z,
                      mode='markers',
+                     marker=dict(color='orange', size=10),
                      hoverinfo='text',
                      visible=True,
                      text=np.vectorize(
@@ -259,7 +297,8 @@ data = [
                                  % (c, a, e, r))
                              (spkr_az * 180/np.pi, spkr_el * 180/np.pi,
                               spkr_rr, spkr_id)),
-        spkr_stands]
+        spkr_stands,
+        cvedges]
 
 name = "Loudspeaker array: " + \
         scmd['S']['name'] + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) + \
@@ -288,7 +327,7 @@ layout = go.Layout(title=name,
                                       (0, 0, -max_rr, 'bottom'))]))
 
 fig = go.Figure(data=data, layout=layout)
-plotly.offline.plot(fig, filename='3d annotations')
+plotly.offline.plot(fig, filename='speaker-array.html')
 
 if False:
     plotly.offline.plot({'data': data, 'layout': layout},
