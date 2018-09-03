@@ -51,7 +51,7 @@ def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
     ax.plot(rEaz, rEel)
     ax.hold(True)
     ax.plot(rEaz.transpose(), rEel.transpose())
-    ax.plot(scmd['S']['az'], scmd['S']['el'], '*k')
+    ax.plot(S['az'], S['el'], '*k')
     ax.hold(False)
 
     plotly_fig = tls.mpl_to_plotly(fig)
@@ -195,15 +195,16 @@ else:
 c = np.reshape(r, np.shape(az))
 ca = np.abs(c)
 
-spkr_r = 1.25  # np.squeeze(scmd['S']['r'])
-spkr_rr = np.squeeze(scmd['S']['r'])
-spkr_az = np.squeeze(scmd['S']['az'])
-spkr_el = np.squeeze(scmd['S']['el'])
-spkr_id = np.squeeze(scmd['S']['id'])
-spkr_x  = spkr_rr * np.squeeze(scmd['S']['x'])
-spkr_y  = spkr_rr * np.squeeze(scmd['S']['y'])
-spkr_z  = spkr_rr * np.squeeze(scmd['S']['z'])
-spkr_floor = np.min(spkr_z) - 0.5 # 1/2-meter below lowest spkr
+S = scmd['S']
+spkr_r = 1.25  # np.squeeze(S['r'])
+spkr_rr = np.squeeze(S['r'])
+spkr_az = np.squeeze(S['az'])
+spkr_el = np.squeeze(S['el'])
+spkr_id = np.squeeze(S['id'])
+spkr_x  = spkr_rr * np.squeeze(S['x'])
+spkr_y  = spkr_rr * np.squeeze(S['y'])
+spkr_z  = spkr_rr * np.squeeze(S['z'])
+spkr_floor = np.min(spkr_z) - 0.5  # 1/2-meter below lowest spkr
 
 spkr_ux = 0.9 * np.min(spkr_rr)*Su[0, :]
 spkr_uy = 0.9 * np.min(spkr_rr)*Su[1, :]
@@ -213,77 +214,101 @@ max_rr = np.max(spkr_rr)
 plt_range = (-max_rr, max_rr)
 
 
-spkr_stands = go.Scatter3d(name="Speaker Stands",
-                           x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
-                           y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
-                           z=np.array([[spkr_z[i], spkr_floor, spkr_floor, np.NaN] for i in range(len(spkr_x))]).ravel(),
-                           mode='lines',
-                           line=dict(color='black'),
-                           visible=True,
-                           connectgaps=False
-                              )
+#  https://plot.ly/python/reference/#scatter3d
+spkr_stands = go.Scatter3d(
+        name="Speaker Stands",
+        x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
+        y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
+        z=np.array([[spkr_z[i], spkr_floor, spkr_floor, np.NaN] for i in range(len(spkr_x))]).ravel(),
+        mode='lines',
+        hoverinfo='none',
+        line=dict(color='black'),
+        visible=True,
+        connectgaps=False)
 
-cvhull = tri.convex_hull
+#  https://plot.ly/python/reference/#scatter3d
+spkr_vector = go.Scatter3d(
+        name="Speaker Vector",
+        x=np.array([[spkr_x[i], spkr_ux[i], np.NaN] for i in range(len(spkr_x))]).ravel(),
+        y=np.array([[spkr_y[i], spkr_uy[i], np.NaN] for i in range(len(spkr_x))]).ravel(),
+        z=np.array([[spkr_z[i], spkr_uz[i], np.NaN] for i in range(len(spkr_x))]).ravel(),
+        mode='lines',
+        hoverinfo='none',
+        line=dict(color='blue', dash='dot'),
+        visible=True,
+        connectgaps=False)
+
+#  https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.spatial.Delaunay.html
+#  tri = Delaunay(Su.transpose())
 cve_x = []
 cve_y = []
 cve_z = []
-for j in range(len(cvhull)):
-    v = cvhull[j]
-    for i in [0,1,2,0]:
-         cve_x.append(spkr_ux[v[i]])
-         cve_y.append(spkr_uy[v[i]])
-         cve_z.append(spkr_uz[v[i]])
+for face in tri.convex_hull:
+    for i in [0, 1, 2, 0]:
+        cve_x.append(spkr_ux[face[i]])
+        cve_y.append(spkr_uy[face[i]])
+        cve_z.append(spkr_uz[face[i]])
     cve_x.append(None)
     cve_y.append(None)
     cve_z.append(None)
 
-cvedges = go.Scatter3d(name="cv edges",
-                       x=cve_x,
-                       y=cve_y,
-                       z=cve_z,
-                       mode='lines',
-                       line=dict(color='white', width=6),
-                       visible=True,
-                       connectgaps=False)
 
+#  https://plot.ly/python/reference/#scatter3d
+cvedges = go.Scatter3d(
+        name="Convex Hull edges",
+        x=cve_x,
+        y=cve_y,
+        z=cve_z,
+        mode='lines+markers',
+        hoverinfo='none',
+        line=dict(color='white', width=6),
+        visible=True,
+        connectgaps=False)
 
+# rE
+# Plotly does not support legend entries for Surface or Mesh (sigh)
+#  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
+rE_plot = go.Surface(
+        name='rE',
+        x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], np.shape(az)),
+        y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], np.shape(az)),
+        z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], np.shape(az)),
+        cmin=0.7,
+        cmax=np.ceil(np.max(rEr)*10)/10,
+        surfacecolor=c,
+        colorscale='Portland',
+        hoverinfo='text',
+        text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
+                          % (c, u, v))
+             (az*180/np.pi, el*180/np.pi, np.reshape(r, np.shape(az))),
+        contours=dict(z=dict(show=True),
+                      y=dict(show=True),
+                      x=dict(show=True)))
 
 data = [
-        # rE
-        # Plotly does not support legend entries for Surface or Mesh (sigh)
-        #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
-#        go.Surface(name='rE',
-#                   x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], np.shape(az)),
-#                   y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], np.shape(az)),
-#                   z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], np.shape(az)),
-#                   cmin=0.7,
-#                   cmax=np.ceil(np.max(rEr)*10)/10,
-#                   surfacecolor=c,
-#                   colorscale='Portland', # __colormap,
-#                   hoverinfo='text',
-#                   text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
-#                                     % (c, u, v))(az*180/np.pi, el*180/np.pi,
-#                                                  np.reshape(r, np.shape(az))),
-#                   contours=dict(z=dict(show=True),
-#                                 y=dict(show=True),
-#                                 x=dict(show=True))),
-        # the speakers
-        go.Mesh3d(name='Speakers (unit sphere)',
-                  alphahull=0,
-                     x=spkr_ux,
-                     y=spkr_uy,
-                     z=spkr_uz,
-                     hoverinfo='text',
-                     visible=True,
-                     opacity=0.7,
-                     #markers=dict(color='orange', size=15),
-                     #plot_edges=True,
-                     #vertexcolor='red',
-                     showlegend=True,
-                     flatshading=True,
-                     text=np.squeeze(scmd['S']['id'])),
+        # rE_plot,
 
-        go.Scatter3d(name='Speakers (actual locations)',
+        # the speakers
+        # https://plot.ly/python/alpha-shapes/
+        # https://plot.ly/python/reference/#mesh3d
+        go.Mesh3d(
+                name='Speakers (unit sphere)',
+                alphahull=0,  # 0 to compute convex hull
+                x=spkr_ux,
+                y=spkr_uy,
+                z=spkr_uz,
+                hoverinfo='text',
+                visible=True,
+                opacity=0.7,
+                # markers=dict(color='orange', size=15),
+                # plot_edges=True,
+                # vertexcolor='red',
+                showlegend=True,
+                # flatshading=True,
+                text=np.squeeze(S['id'])),
+
+        #  https://plot.ly/python/reference/#scatter3d
+        go.Scatter3d(name='Loudspeakers',
                      x=spkr_x,
                      y=spkr_y,
                      z=spkr_z,
@@ -298,37 +323,46 @@ data = [
                              (spkr_az * 180/np.pi, spkr_el * 180/np.pi,
                               spkr_rr, spkr_id)),
         spkr_stands,
+        spkr_vector,
         cvedges]
 
-name = "Loudspeaker array: " + \
-        scmd['S']['name'] + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) + \
-        "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
-layout = go.Layout(title=name,
-                   showlegend=True,
-                   legend=dict(orientation="h"),
-                   scene=dict(
-                    aspectratio=dict(x=1, y=1, z=1),
-                    xaxis=dict(title='front/back', range=plt_range,
-                               showbackground=True, backgroundcolor='rgb(230, 230,230)'),
-                    yaxis=dict(title='left/right', range=plt_range,
-                               showbackground=True, backgroundcolor='rgb(230, 230,230)'),
-                    zaxis=dict(title='up/down', range=plt_range,
-                               showbackground=True, backgroundcolor='rgb(230, 230,230)'),
-                    annotations=[dict(showarrow=False,
-                                      xanchor='center',
-                                      font=dict(color="black", size=16),
-                                      x=xx, y=yy, z=zz, text=tt)
-                                 for xx, yy, zz, tt in
-                                     ((max_rr, 0, 0, 'front'),
-                                      (-max_rr, 0, 0, 'back'),
-                                      (0, max_rr, 0, 'left'),
-                                      (0, -max_rr, 0, 'right'),
-                                      (0, 0, max_rr, 'top'),
-                                      (0, 0, -max_rr, 'bottom'))]))
+name = "Loudspeaker array: " + S['name'] \
+        # + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) \
+        # + "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
 
+#  https://plot.ly/python/user-guide/#layout
+layout = go.Layout(
+        title=name,
+        showlegend=True,
+        legend=dict(orientation="h"),
+        scene=dict(
+                aspectratio=dict(x=1, y=1, z=1),
+
+                xaxis=dict(title='front/back', range=plt_range,
+                           showbackground=True,
+                           backgroundcolor='rgb(230, 230,230)'),
+                yaxis=dict(title='left/right', range=plt_range,
+                           showbackground=True,
+                           backgroundcolor='rgb(230, 230,230)'),
+                zaxis=dict(title='up/down', range=plt_range,
+                           showbackground=True,
+                           backgroundcolor='rgb(230, 230,230)'),
+
+                annotations=[dict(showarrow=False,
+                                  xanchor='center',
+                                  font=dict(color="black", size=16),
+                                  x=xx, y=yy, z=zz, text=tt)
+                             for xx, yy, zz, tt in
+                             ((max_rr, 0, 0, 'front'),
+                              (-max_rr, 0, 0, 'back'),
+                              (0, max_rr, 0, 'left'),
+                              (0, -max_rr, 0, 'right'),
+                              (0, 0, max_rr, 'top'),
+                              (0, 0, -max_rr, 'bottom'))]))
+
+#  https://plot.ly/python/user-guide/#figure
 fig = go.Figure(data=data, layout=layout)
-plotly.offline.plot(fig, filename='speaker-array.html')
 
-if False:
-    plotly.offline.plot({'data': data, 'layout': layout},
-                        filename="tmp.html")
+#  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
+plotly.offline.plot(fig, filename='speaker-array-%s.html' % S['name'])
+
