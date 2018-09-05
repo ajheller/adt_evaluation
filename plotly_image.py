@@ -5,7 +5,7 @@ Created on Tue Aug 21 15:38:30 2018
 
 @author: heller
 """
-
+import os
 import numpy as np
 
 # plotly is not available via conda
@@ -28,10 +28,11 @@ import adt_scmd
 # workspace (I know this is bad, but I'm just doing some experiments)
 #   az, el,
 
-#rX = rEr; cmin=0.7; cmax=1
-rX = 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)); cmin=0; cmax=10;
+rX = rEr; cmin=0.7; cmax=1
+rX2 = 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)); cmin2=0; cmax2=10;
 
-flat_trace = go.Surface(
+if False:
+    flat_trace = go.Surface(
         name='rE',
         x=az * 180/np.pi,
         y=el * 180/np.pi,
@@ -49,15 +50,54 @@ flat_trace = go.Surface(
                  el * 180/np.pi,
                  np.reshape(rX, np.shape(az))))
 
-speakers = go.Scatter3d(
+# https://plot.ly/python/reference/#heatmap
+rE_trace = go.Heatmap(
+        name='rE magnitude vs. test direction',
+        x=az[:,0] * 180/np.pi,
+        y=el[0,:] * 180/np.pi,
+        z=np.clip(np.reshape(rX, np.shape(az)).transpose(), cmin, cmax),
+        visible=True,
+        showlegend=True,
+        #cmin=cmin,
+        #cmax=cmax,
+        colorscale='Jet',
+        #lighting=dict(ambient=1.0),
+        hoverinfo='text',
+        text=(np.vectorize(
+                lambda a, e, c:
+                "az: %.1f<br>el: %.1f<br>r<sub>E</sub>: %.2f" % (a, e, c))
+                (az * 180/np.pi,
+                 el * 180/np.pi,
+                 np.reshape(rX, np.shape(az)))).transpose())
+
+dd_trace = go.Heatmap(
+        name='rE Direction Error vs. test direction',
+        x=az[:,0] * 180/np.pi,
+        y=el[0,:] * 180/np.pi,
+        z=np.clip(np.reshape(rX2, np.shape(az)).transpose(), cmin2, cmax2),
+        visible=False,
+        showlegend=True,
+        #cmin=cmin,
+        #cmax=cmax,
+        colorscale='Jet',
+        #lighting=dict(ambient=1.0),
+        hoverinfo='text',
+        text=(np.vectorize(
+                lambda a, e, c:
+                "az: %.1f<br>el: %.1f<br>Derr</sub>: %.2f" % (a, e, c))
+                (az * 180/np.pi,
+                 el * 180/np.pi,
+                 np.reshape(rX2, np.shape(az)))).transpose())
+
+speakers = go.Scatter(
         name='Speakers',
         x=spkr_az * 180/np.pi,
         y=spkr_el * 180/np.pi,
-        z=-0.01 + np.zeros(np.shape(spkr_az)),
         mode='markers',
-        marker=dict(color='blue'),
+        marker=dict(color='black', size=10),
         hoverinfo='text',
         visible=True,
+        showlegend=True,
         text=np.vectorize(
                 lambda a, e, r, c:
                 "<B>%s</B><br>az: %.1f<br>el: %.1f<br> r: %.1f" % (c, a, e, r))
@@ -68,17 +108,46 @@ camera = dict(
     center=dict(x=0, y=0, z=0),
     eye=dict(x=0, y=0, z=-2))
 
+updatemenus = list([
+    dict(type="buttons",
+         active=-1,
+         buttons=list([
+            dict(label = 'rE',
+                 method = 'update',
+                 args = [{'visible': [True, False, True]},
+                         {'title': name + "-%dH%dV"%(C['h_order'],C['v_order'])
+                          + "<br>" + rE_trace['name']
+                          #, 'annotations': high_annotations
+                          }]),
+            dict(label = 'Error',
+                 method = 'update',
+                 args = [{'visible': [False, True, True]},
+                         {'title': name + "-%dH%dV"%(C['h_order'],C['v_order'])
+                         + "<br>" + dd_trace['name']
+                          #, 'annotations': low_annotations
+                          }])
+    ]))])
+
 flat_layout = go.Layout(
-        title=name,
+        title="name" + u"-%dH%dV"%(C['h_order'],C['v_order'])
+                + u"<br>" + rE_trace['name'],
         showlegend=True,
+        hovermode='closest',
         legend=dict(orientation="h"),
-        scene=dict(
-                xaxis=dict(title='azimuth (degrees)'),
-                yaxis=dict(title='elevation (degrees)'),
-                camera=camera,
-                aspectratio=dict(x=2, y=1, z=0.1),
-                zaxis=dict(range=(-0.1, 0.1))))
+        xaxis=dict(title='azimuth (degrees)', range=(185, -185)),
+        yaxis=dict(title='elevation (degrees)', scaleanchor='x', scaleratio=1),
+        scene=dict(aspectratio=dict(x=2, y=1)),
+        updatemenus=updatemenus
+        )
 
+#fig = tls.make_subplots(rows=2, cols=1)
 
-plotly.offline.plot({'data': [flat_trace, speakers], 'layout': flat_layout},
-                    filename='flat.html')
+fig = go.Figure(data=[rE_trace, dd_trace, speakers],
+                layout=flat_layout)
+
+out_dir = "plotly"
+
+plotly.offline.plot(fig,
+                    filename= os.path.join(out_dir, S['name']
+                    + "-" + ("%dH%dV"%(C['h_order'], C['v_order']))
+                    + "_rE.html"))

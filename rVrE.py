@@ -102,7 +102,10 @@ smcd_dir = "examples"
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
              "SCMD_brh_spring2017.json")[0]
+
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
+
+print "read: " + path.join(smcd_dir, scmd_file)
 
 tri = Delaunay(Su.transpose())
 
@@ -364,5 +367,5 @@ layout = go.Layout(
 fig = go.Figure(data=data, layout=layout)
 
 #  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
-plotly.offline.plot(fig, filename='speaker-array-%s.html' % S['name'])
+plotly.offline.plot(fig, filename='plotly/%s-speaker-array.html' % S['name'])
 
