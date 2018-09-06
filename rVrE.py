@@ -105,7 +105,7 @@ scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
-print "read: " + path.join(smcd_dir, scmd_file)
+print "\n\nread: %s\n" % path.join(smcd_dir, scmd_file)
 
 tri = Delaunay(Su.transpose())
 
@@ -143,15 +143,16 @@ if False:
 #   NumPy matmul == MATLAB *
 #   NumPy * == MATLAB .*
 
-# M is the basic solution
-gamma = np.array(D['hf_gains'])
 
-#  apply gains to tranform to max rE matrix
-Mhf = np.matmul(M, np.diag(gamma[C['sh_l']]))
-
-# pressure gains from each test direciont to each speaker
-g = np.matmul(Mhf, test_dirs_Y)
-#g = np.matmul(M, test_dirs_Y)
+# pressure gains, g,  from each test direciont to each speaker
+if True:
+    # M is the basic solution
+    gamma = np.array(D['hf_gains'])
+    #  apply gains to tranform to max rE matrix
+    Mhf = np.matmul(M, np.diag(gamma[C['sh_l']]))
+    g = np.matmul(Mhf, test_dirs_Y)
+else:
+    g = np.matmul(M, test_dirs_Y)
 
 # Energy gain from each test direction to each speaker
 g2 = np.real(g * g.conjugate())  # if g's might be complex
@@ -162,18 +163,20 @@ rVxyz = np.real(np.matmul(Su, g) / np.array([P, P, P]))
 rVaz, rVel, rVr = cart2sph(rVxyz[0, :], rVxyz[1, :], rVxyz[2, :])
 rVu = rVxyz / np.array([rVr, rVr, rVr])
 
-
 # energy & rE
 E = np.sum(g2, 0)
 rExyz = np.matmul(Su, g2) / np.array([E, E, E])
 rEaz, rEel, rEr = cart2sph(rExyz[0, :], rExyz[1, :], rExyz[2, :])
 rEu = rExyz / np.array([rEr, rEr, rEr])
 
+# decoder gains
 decoder_gain = np.sqrt(np.sum(E * w0) / (4*np.pi))
 
-print "decoder diffuse gain = %f, (%f db)\n" % (decoder_gain, 20 * np.log10(decoder_gain))
-print "decoder peak gain", np.max(g)
+print "decoder diffuse gain = %f, (%f db)\n" \
+        % (decoder_gain, 20 * np.log10(decoder_gain))
+print "decoder peak gain = %f\n" % np.max(g)
 
+# matplotlib plots
 if False:
     plot_rX(20*np.log10(E/np.mean(E)), 'Energy gain (dB) vs. test direction',
             clim=(-6, 6))
@@ -204,9 +207,9 @@ spkr_rr = np.squeeze(S['r'])
 spkr_az = np.squeeze(S['az'])
 spkr_el = np.squeeze(S['el'])
 spkr_id = np.squeeze(S['id'])
-spkr_x  = spkr_rr * np.squeeze(S['x'])
-spkr_y  = spkr_rr * np.squeeze(S['y'])
-spkr_z  = spkr_rr * np.squeeze(S['z'])
+spkr_x = spkr_rr * np.squeeze(S['x'])
+spkr_y = spkr_rr * np.squeeze(S['y'])
+spkr_z = spkr_rr * np.squeeze(S['z'])
 spkr_floor = np.min(spkr_z) - 0.5  # 1/2-meter below lowest spkr
 
 spkr_ux = 0.9 * np.min(spkr_rr)*Su[0, :]
@@ -220,9 +223,12 @@ plt_range = (-max_rr, max_rr)
 #  https://plot.ly/python/reference/#scatter3d
 spkr_stands = go.Scatter3d(
         name="Speaker Stands",
-        x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
-        y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
-        z=np.array([[spkr_z[i], spkr_floor, spkr_floor, np.NaN] for i in range(len(spkr_x))]).ravel(),
+        x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN]
+                    for i in range(len(spkr_x))]).ravel(),
+        y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN]
+                    for i in range(len(spkr_x))]).ravel(),
+        z=np.array([[spkr_z[i], spkr_floor, spkr_floor, np.NaN]
+                    for i in range(len(spkr_x))]).ravel(),
         mode='lines',
         hoverinfo='none',
         line=dict(color='black'),
@@ -232,9 +238,12 @@ spkr_stands = go.Scatter3d(
 #  https://plot.ly/python/reference/#scatter3d
 spkr_vector = go.Scatter3d(
         name="Speaker Vector",
-        x=np.array([[spkr_x[i], spkr_ux[i], np.NaN] for i in range(len(spkr_x))]).ravel(),
-        y=np.array([[spkr_y[i], spkr_uy[i], np.NaN] for i in range(len(spkr_x))]).ravel(),
-        z=np.array([[spkr_z[i], spkr_uz[i], np.NaN] for i in range(len(spkr_x))]).ravel(),
+        x=np.array([[spkr_x[i], spkr_ux[i], np.NaN]
+                    for i in range(len(spkr_x))]).ravel(),
+        y=np.array([[spkr_y[i], spkr_uy[i], np.NaN]
+                    for i in range(len(spkr_x))]).ravel(),
+        z=np.array([[spkr_z[i], spkr_uz[i], np.NaN]
+                    for i in range(len(spkr_x))]).ravel(),
         mode='lines',
         hoverinfo='none',
         line=dict(color='blue', dash='dot'),
