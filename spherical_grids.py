@@ -8,9 +8,10 @@ Created on Sun Aug 12 17:29:51 2018
 
 from __future__ import division
 import numpy as np
-import csv
+
 
 # these follow the MATLAB convention for spherical coordinates
+
 
 def cart2sph(x, y, z):
     r_xy = np.hypot(x, y)
@@ -21,7 +22,7 @@ def cart2sph(x, y, z):
 
 
 def sph2cart(az, el, r=1):
-    z = np.sin(el)
+    z = r * np.sin(el)
     r_cos_el = r * np.cos(el)
     x = r_cos_el * np.cos(az)
     y = r_cos_el * np.sin(az)
