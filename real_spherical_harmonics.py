@@ -157,8 +157,8 @@ def ortho_test_real(max_degree=3):
 
 def ortho_test_real_acn(max_degree=3):
     all_ok = True
-    for a1 in range(acn(max_degree,max_degree)+1):
-        for a2 in range(acn(max_degree,max_degree)+1):
+    for a1 in range(acn(max_degree, max_degree)+1):
+        for a2 in range(acn(max_degree, max_degree)+1):
             z, e = check_real_sph_ortho_acn(a1, a2)
             ok = test_ortho_acn(a1, a2, z)
             all_ok &= ok
