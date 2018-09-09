@@ -13,6 +13,10 @@ from plotly import tools as tls
 import plotly.plotly as py
 import numpy as np
 
+
+# from
+#  https://plot.ly/python/sliders/
+
 data = [dict(
         visible = False,
         line=dict(color='#00CED1', width=6),
