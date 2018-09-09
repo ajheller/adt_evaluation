@@ -100,8 +100,11 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
+example = 1  # <<<<<---------- change this to change datasets
+interior_view = False
+
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
-             "SCMD_brh_spring2017.json")[0]
+             "SCMD_brh_spring2017.json")[example]
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
@@ -144,7 +147,7 @@ if False:
 #   NumPy * == MATLAB .*
 
 
-# pressure gains, g,  from each test direciont to each speaker
+# pressure gains, g,  from each test direction to each speaker
 if True:
     # M is the basic solution
     gamma = np.array(D['hf_gains'])
@@ -290,6 +293,8 @@ rE_plot = go.Surface(
         surfacecolor=c,
         colorscale='Portland',
         hoverinfo='text',
+        visible=False,
+        opacity=0.9,
         text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
                           % (c, u, v))
              (az*180/np.pi, el*180/np.pi, np.reshape(r, np.shape(az))),
@@ -297,50 +302,82 @@ rE_plot = go.Surface(
                       y=dict(show=True),
                       x=dict(show=True)))
 
+# the speakers
+# https://plot.ly/python/alpha-shapes/
+# https://plot.ly/python/reference/#mesh3d
+spkr_cv_hull = go.Mesh3d(
+        name='Speakers (unit sphere)',
+        alphahull=0,  # 0 to compute convex hull
+        x=spkr_ux,
+        y=spkr_uy,
+        z=spkr_uz,
+        hoverinfo='text',
+        visible=True,
+        opacity=0.7,
+        color='rgb(31,120,180)',
+        # markers=dict(color='orange', size=15),
+        # plot_edges=True,
+        # vertexcolor='red',
+        showlegend=True,
+        # flatshading=True,
+        text=np.squeeze(S['id']))
+
+#  https://plot.ly/python/reference/#scatter3d
+spkr_locs = go.Scatter3d(
+        name='Loudspeakers',
+        x=spkr_x,
+        y=spkr_y,
+        z=spkr_z,
+        mode='markers',
+        marker=dict(color='orange', size=10),
+        hoverinfo='text',
+        visible=True,
+        text=np.vectorize(
+                lambda a, e, r, c:
+                     "<b>%s</b><br>az: %.1f&deg;<br>el: %.1f&deg;<br> r: %.1f m"
+                     % (c, a, e, r))
+                     (spkr_az * 180/np.pi,
+                      spkr_el * 180/np.pi,
+                      spkr_rr,
+                      spkr_id))
+
 data = [
-        # rE_plot,
-
-        # the speakers
-        # https://plot.ly/python/alpha-shapes/
-        # https://plot.ly/python/reference/#mesh3d
-        go.Mesh3d(
-                name='Speakers (unit sphere)',
-                alphahull=0,  # 0 to compute convex hull
-                x=spkr_ux,
-                y=spkr_uy,
-                z=spkr_uz,
-                hoverinfo='text',
-                visible=True,
-                opacity=0.7,
-                # markers=dict(color='orange', size=15),
-                # plot_edges=True,
-                # vertexcolor='red',
-                showlegend=True,
-                # flatshading=True,
-                text=np.squeeze(S['id'])),
-
-        #  https://plot.ly/python/reference/#scatter3d
-        go.Scatter3d(name='Loudspeakers',
-                     x=spkr_x,
-                     y=spkr_y,
-                     z=spkr_z,
-                     mode='markers',
-                     marker=dict(color='orange', size=10),
-                     hoverinfo='text',
-                     visible=True,
-                     text=np.vectorize(
-                             lambda a, e, r, c:
-                                 "<b>%s</b><br>az: %.1f&deg;<br>el: %.1f&deg;<br> r: %.1f m"
-                                 % (c, a, e, r))
-                             (spkr_az * 180/np.pi, spkr_el * 180/np.pi,
-                              spkr_rr, spkr_id)),
+        spkr_locs,
+        spkr_cv_hull,
         spkr_stands,
         spkr_vector,
-        cvedges]
+        cvedges,
+        rE_plot
+        ]
 
 name = "Loudspeaker array: " + S['name'] \
         # + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) \
         # + "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
+
+
+# cut and paste from plotly_image needs to be updated
+if False:
+    updatemenus = list([
+            dict(type="buttons",
+                 active=-1,
+                 buttons=list([
+                    dict(label='rE',
+                         method='update',
+                         args=[{'visible': [True, False, True]},
+                               {'title': name + "-%dH%dV" % (C['h_order'],
+                                                             C['v_order'])
+                                + "<br>" + rE_trace['name']
+                                #, 'annotations': high_annotations
+                                }]),
+                    dict(label='Error',
+                         method='update',
+                         args=[{'visible': [False, True, True]},
+                               {'title': name + "-%dH%dV" % (C['h_order'],
+                                                             C['v_order'])
+                               + "<br>" + dd_trace['name']
+                               #, 'annotations': low_annotations
+                               }])]))])
+
 
 #  https://plot.ly/python/user-guide/#layout
 layout = go.Layout(
@@ -348,6 +385,14 @@ layout = go.Layout(
         showlegend=True,
         legend=dict(orientation="h"),
         scene=dict(
+                camera=dict(
+                        up=dict(x=0, y=0, z=1),
+                        center=dict(x=0, y=0, z=0),
+                        eye=(dict(x=0, y=0, z=0.5) if interior_view
+                             else
+                             dict(x=1.25, y=1.25, z=1.25))
+                        ),
+
                 aspectratio=dict(x=1, y=1, z=1),
 
                 xaxis=dict(title='front/back', range=plt_range,
@@ -377,4 +422,3 @@ fig = go.Figure(data=data, layout=layout)
 
 #  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
 plotly.offline.plot(fig, filename='plotly/%s-speaker-array.html' % S['name'])
-
