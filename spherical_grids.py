@@ -63,3 +63,15 @@ def t_design():
         w /= np.shape(x)[0]
 
     return x, y, z, az, el, w
+
+
+def t_design5200():
+    with open("data/Design_5200_100_random.dat.txt", 'r') as f:
+        t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 2)
+        az = t[:, 0]
+        # convert from zenith angle to elevation
+        el = np.pi/2 - t[:, 1]
+        x, y, z = sph2cart(az, el)
+        w = np.ones(x.shape) / x.shape[0]
+        return x, y, z, az, el, w
+
