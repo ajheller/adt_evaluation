@@ -6,8 +6,10 @@ Created on Sun Aug 12 17:29:51 2018
 @author: heller
 """
 
-from __future__ import division, print_function
+from __future__ import division
 import numpy as np
+
+import cPickle as pickle
 
 
 # these follow the MATLAB convention for spherical coordinates
@@ -22,7 +24,7 @@ def cart2sph(x, y, z):
 
 
 def sph2cart(az, el, r=1):
-    z = r * np.sin(el)
+    z = r * np.sin(el) * np.ones_like(az)
     r_cos_el = r * np.cos(el)
     x = r_cos_el * np.cos(az)
     y = r_cos_el * np.sin(az)
@@ -61,24 +63,28 @@ def t_design(four_pi=True):
     y = t[:, 1]
     z = t[:, 2]
     az, el, w = cart2sph(x, y, z)
-    w /= np.shape(x)[0]
+    w /= x.shape[0]
     if four_pi:
         w *= 4 * np.pi
     return x, y, z, az, el, w
 
 
 # https://www-user.tu-chemnitz.de/~potts/workgroup/graef/computations/pointsS2.php.en
-def t_design5200(four_pi=True):
+def t_design5200(four_pi=True, ret_dict=False):
     with open("data/Design_5200_100_random.dat.txt", 'r') as f:
         t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 2)
     az = t[:, 0]
     # convert from zenith angle to elevation
     el = np.pi/2 - t[:, 1]
     x, y, z = sph2cart(az, el)
+    u = np.vstack((x, y, z))
     w = np.ones(x.shape) / x.shape[0]
     if four_pi:
         w *= 4 * np.pi
-    return x, y, z, az, el, w
 
-# http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html
+    if ret_dict:
+        return dict(x=x, y=y, z=z, u=u, az=az, el=el, w=w)
+    else:
+        return x, y, z, az, el, w
 
+# also http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html
