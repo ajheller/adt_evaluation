@@ -8,6 +8,7 @@ Created on Sun Aug 12 17:26:45 2018
 
 import os.path as path
 import numpy as np
+from numpy import pi  # cause np.pi is messy
 
 # plotly is not available via conda
 # use pip install plotly to install
@@ -35,16 +36,16 @@ __colormap = 'jet'
 
 #
 def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
-    rEaz = np.reshape(rEaz, np.shape(az))
-    rEel = np.reshape(rEel, np.shape(el))
+    rEaz = np.reshape(rEaz, az.shape)
+    rEel = np.reshape(rEel, el.shape)
 
     # unwrap rEaz
-    # fixup = np.logical_and((rEaz - az) > np.pi, az > -np.pi*0.9)
-    fixup = np.logical_and((rEaz - az) > np.pi, True)
-    rEaz[fixup] = rEaz[fixup] - (2 * np.pi)
-    # fixup = np.logical_and((rEaz - az) < -np.pi, az < np.pi*0.9)
-    fixup = np.logical_and((rEaz - az) < -np.pi, True)
-    rEaz[fixup] = rEaz[fixup] + (2 * np.pi)
+    # fixup = np.logical_and((rEaz - az) > pi, az > -pi*0.9)
+    fixup = np.logical_and((rEaz - az) > pi, True)
+    rEaz[fixup] = rEaz[fixup] - (2 * pi)
+    # fixup = np.logical_and((rEaz - az) < -pi, az < pi*0.9)
+    fixup = np.logical_and((rEaz - az) < -pi, True)
+    rEaz[fixup] = rEaz[fixup] + (2 * pi)
 
     fig = plt.figure(figsize=(15, 10))
     ax = fig.add_subplot(111)
@@ -61,7 +62,7 @@ def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
 def plot_rX(rX, title, clim=None):
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
-    plt.imshow(np.fliplr(np.flipud(np.reshape(rX, np.shape(az)).transpose())),
+    plt.imshow(np.fliplr(np.flipud(np.reshape(rX, az.shape).transpose())),
                extent=(180, -180, -90, 90),
                cmap=__colormap)
     if clim:
@@ -83,7 +84,7 @@ def plot_rX(rX, title, clim=None):
 def plot_dir_diff(u1, u2, title='Diff (degrees)', clim=None):
     # we assume u1 and u2 are unit vectors
     angle_diff = np.arccos(np.sum(u1 * u2, 0))
-    plot_rX(angle_diff * 180/np.pi, title, clim)
+    plot_rX(angle_diff * 180/pi, title, clim)
 
 
 def ravel(M):
@@ -91,7 +92,7 @@ def ravel(M):
 
 
 def unravel(M):
-    return np.reshape(M, np.shape(az))
+    return np.reshape(M, az.shape)
 
 
 # ---- start of main ----
@@ -100,7 +101,7 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 1  # <<<<<---------- change this to change datasets
+example = 0  # <<<<<---------- change this to change datasets
 interior_view = False
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
@@ -128,17 +129,17 @@ if False:
     # sample spherial harmonics at grid points
     ambisonic_order = 3
     max_acn = acn.acn(ambisonic_order, ambisonic_order)
-    test_dirs_Y = np.array([rsh.real_sph_harm_acn(i, az0, np.pi/1 - el0)
+    test_dirs_Y = np.array([rsh.real_sph_harm_acn(i, az0, pi/1 - el0)
                             for i in range(max_acn+1)])
 
 test_dirs_Y = np.array(
-        [np.sqrt(4 * np.pi) * n * rsh.real_sph_harm(m, l, az0, np.pi/2 - el0)
+        [np.sqrt(4 * pi) * n * rsh.real_sph_harm(m, l, az0, pi/2 - el0)
          for l, m, n in zip(C['sh_l'], C['sh_m'], C['norm'])])
 
 if False:
     #  plot the first few SH's test plot_rX and the SH's themselvesss
     for i in range(4):
-        plot_rX(np.reshape(test_dirs_Y[i, :], np.shape(az)),
+        plot_rX(np.reshape(test_dirs_Y[i, :], az.shape),
                 'ACN%d %s' % (i, acn.acn2fuma_name(i)))
 
 #
@@ -173,7 +174,7 @@ rEaz, rEel, rEr = cart2sph(rExyz[0, :], rExyz[1, :], rExyz[2, :])
 rEu = rExyz / np.array([rEr, rEr, rEr])
 
 # decoder gains
-decoder_gain = np.sqrt(np.sum(E * w0) / (4*np.pi))
+decoder_gain = np.sqrt(np.sum(E * w0) / (4*pi))
 
 print "decoder diffuse gain = %f, (%f db)\n" \
         % (decoder_gain, 20 * np.log10(decoder_gain))
@@ -201,7 +202,7 @@ else:
     r = rEr
 
 
-c = np.reshape(r, np.shape(az))
+c = np.reshape(r, az.shape)
 ca = np.abs(c)
 
 S = scmd['S']
@@ -221,6 +222,9 @@ spkr_uz = 0.9 * np.min(spkr_rr)*Su[2, :]
 
 max_rr = np.max(spkr_rr)
 plt_range = (-max_rr, max_rr)
+
+# matplotlib named colors
+#   https://matplotlib.org/examples/color/named_colors.html
 
 
 #  https://plot.ly/python/reference/#scatter3d
@@ -285,9 +289,9 @@ cvedges = go.Scatter3d(
 #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
 rE_plot = go.Surface(
         name='rE',
-        x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], np.shape(az)),
-        y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], np.shape(az)),
-        z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], np.shape(az)),
+        x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], az.shape),
+        y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], az.shape),
+        z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], az.shape),
         cmin=0.7,
         cmax=np.ceil(np.max(rEr)*10)/10,
         surfacecolor=c,
@@ -297,7 +301,7 @@ rE_plot = go.Surface(
         opacity=0.9,
         text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
                           % (c, u, v))
-             (az*180/np.pi, el*180/np.pi, np.reshape(r, np.shape(az))),
+             (az*180/pi, el*180/pi, np.reshape(r, az.shape)),
         contours=dict(z=dict(show=True),
                       y=dict(show=True),
                       x=dict(show=True)))
@@ -314,7 +318,7 @@ spkr_cv_hull = go.Mesh3d(
         hoverinfo='text',
         visible=True,
         opacity=0.7,
-        color='rgb(31,120,180)',
+        color='#1f77b4',
         # markers=dict(color='orange', size=15),
         # plot_edges=True,
         # vertexcolor='red',
@@ -336,8 +340,8 @@ spkr_locs = go.Scatter3d(
                 lambda a, e, r, c:
                      "<b>%s</b><br>az: %.1f&deg;<br>el: %.1f&deg;<br> r: %.1f m"
                      % (c, a, e, r))
-                     (spkr_az * 180/np.pi,
-                      spkr_el * 180/np.pi,
+                     (spkr_az * 180/pi,
+                      spkr_el * 180/pi,
                       spkr_rr,
                       spkr_id))
 
@@ -421,4 +425,17 @@ layout = go.Layout(
 fig = go.Figure(data=data, layout=layout)
 
 #  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
-plotly.offline.plot(fig, filename='plotly/%s-speaker-array.html' % S['name'])
+if True:
+    plotly.offline.plot(fig,
+                        filename='plotly/%s-speaker-array.html' % S['name'],
+                        include_plotlyjs=True,
+                        output_type='file')
+else:
+    div = plotly.offline.plot(fig,
+                              filename='plotly/%s-speaker-array.html' % S['name'],
+                              include_plotlyjs=False,
+                              output_type='div')
+
+    with open("plotly/div" + S['name'] + ".html", 'w') as f:
+        f.write(div)
+
