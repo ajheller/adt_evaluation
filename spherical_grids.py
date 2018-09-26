@@ -6,7 +6,7 @@ Created on Sun Aug 12 17:29:51 2018
 @author: heller
 """
 
-from __future__ import division
+from __future__ import division, print_function
 import numpy as np
 
 
@@ -53,25 +53,32 @@ def az_el_unit_test(resolution=1000):
     return sw, sx  # both should be 1
 
 
-def t_design():
+# http://neilsloane.com/sphdesigns/
+def t_design(four_pi=True):
     with open("data/des.3.240.21.txt", 'r') as f:
         t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 3)
-        x = t[:, 0]
-        y = t[:, 1]
-        z = t[:, 2]
-        az, el, w = cart2sph(x, y, z)
-        w /= np.shape(x)[0]
-
+    x = t[:, 0]
+    y = t[:, 1]
+    z = t[:, 2]
+    az, el, w = cart2sph(x, y, z)
+    w /= np.shape(x)[0]
+    if four_pi:
+        w *= 4 * np.pi
     return x, y, z, az, el, w
 
 
-def t_design5200():
+# https://www-user.tu-chemnitz.de/~potts/workgroup/graef/computations/pointsS2.php.en
+def t_design5200(four_pi=True):
     with open("data/Design_5200_100_random.dat.txt", 'r') as f:
         t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 2)
-        az = t[:, 0]
-        # convert from zenith angle to elevation
-        el = np.pi/2 - t[:, 1]
-        x, y, z = sph2cart(az, el)
-        w = np.ones(x.shape) / x.shape[0]
-        return x, y, z, az, el, w
+    az = t[:, 0]
+    # convert from zenith angle to elevation
+    el = np.pi/2 - t[:, 1]
+    x, y, z = sph2cart(az, el)
+    w = np.ones(x.shape) / x.shape[0]
+    if four_pi:
+        w *= 4 * np.pi
+    return x, y, z, az, el, w
+
+# http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html
 
