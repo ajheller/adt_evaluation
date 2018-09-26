@@ -69,10 +69,11 @@ def ray_triangle_intersection_p(o, d, p0, p1, p2, epsilon=1e-5):
     #   the basic idea is to carry the conditional ahead in flag
     e1 = p1 - p0
     e2 = p2 - p0
+    # the scalar triple product, the volume of the parrallelpiped e1, e2, d
     q = np.cross(d, e2)
     a = dot1(e1, q)
 
-    # test if a and d are parallel
+    # test if e1, e2, and d are coplanar
     flag = np.abs(a) > epsilon
     f[flag] = 1 / a[flag]
     s[flag, :] = o - p0[flag, :]
@@ -121,11 +122,6 @@ def testp():
 
     return flag, u, v, t
 
-# assemble the list of face vertices
-p0 = Su[:, H[:,0]].transpose()
-p1 = Su[:, H[:,1]].transpose()
-p2 = Su[:, H[:,2]].transpose()
-origin = np.array([0,0,0])
 
 
 def test2(i):
@@ -139,13 +135,21 @@ if False:
 
 
 def test3():
+    # assemble the list of face vertices
+    p0 = tri.points[H[:, 0], :]
+    p1 = tri.points[H[:, 1], :]
+    p2 = tri.points[H[:, 2], :]
+
+    origin = np.array([0, 0, 0])
     a = []
     Hr = np.arange(len(H))
     for i in range(5200):
-        flag, u, v, t = test2(i)
+        flag, u, v, t = ray_triangle_intersection_p(origin, Vu[:, i],
+                                                    p0, p1, p2)
         valid = np.logical_and(flag, t > 0)
         face = Hr[valid][0]
-        ur = u[valid]
-        vr = u[valid]
-        tr = t[valid]
-
+        ur = u[valid][0]
+        vr = u[valid][0]
+        tr = t[valid][0]
+        a.append((face, ur, vr, tr))
+    return a
