@@ -5,6 +5,7 @@ Created on Sat Sep  1 22:06:32 2018
 
 @author: heller
 """
+from __future__ import division, print_function
 import numpy as np
 
 # plotly is not available via conda

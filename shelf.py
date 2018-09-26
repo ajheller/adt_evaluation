@@ -6,6 +6,8 @@ Created on Fri Aug 24 23:09:48 2018
 @author: heller
 """
 
+from __future__ import division, print_function
+
 import numpy as np
 import sympy as sp
 
