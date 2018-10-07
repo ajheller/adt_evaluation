@@ -38,7 +38,7 @@ from rVrE import T, C, S, \
 #rX2 = 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)); cmin2=0; cmax2=10;
 
 
-def plotly_image(T, X, Xmin=None, Xmax=None,
+def plotly_image(T, X, Xmin=-np.inf, Xmax=+np.inf,
                  name="",
                  hovertext_format="az: %.1f<br>el: %.1f<br>X: %.2f",
                  visible=True,
@@ -46,17 +46,13 @@ def plotly_image(T, X, Xmin=None, Xmax=None,
                  colorscale='Jet'):
 
     XX = np.reshape(X, T.shape)
-    if Xmin and Xmax:
-        XX_clip = np.clip(XX, Xmin, Xmax)
-    else:
-        XX_clip = XX
 
     # https://plot.ly/python/reference/#heatmap
     trace = go.Heatmap(
             name=name,
             x=T.az[:, 0] * 180/np.pi,
             y=T.el[0, :] * 180/np.pi,
-            z=XX_clip.transpose(),
+            z=np.clip(XX, Xmin, Xmax).transpose(),
             visible=visible,
             colorscale=colorscale,
             hoverinfo='text',
@@ -71,7 +67,7 @@ def plotly_image(T, X, Xmin=None, Xmax=None,
 
 rE_trace = \
     plotly_image(T, rEr,
-                 cmin=0.7, cmax=1.0,
+                 Xmin=0.7, Xmax=1.0,
                  name='rE magnitude vs. test direction',
                  hovertext_format="az: %.1f<br>el: %.1f<br>r<sub>E</sub>: %.2f",
                  visible=True,
@@ -79,7 +75,7 @@ rE_trace = \
 
 dd_trace = \
     plotly_image(T, 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)),
-                 cmin=0, cmax=10,
+                 Xmin=0.0, Xmax=15.0,
                  name='rE magnitude vs. test direction',
                  hovertext_format="az: %.1f<br>el: %.1f<br>Derr: %.2f",
                  visible=False,
