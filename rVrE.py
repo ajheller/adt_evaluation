@@ -92,7 +92,7 @@ def ravel(M):
 
 
 def unravel(M):
-    return np.reshape(M, az.shape)
+    return np.reshape(M, T.shape)
 
 
 # ---- start of main ----
@@ -101,7 +101,7 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 0  # <<<<<---------- change this to change datasets
+example = 1  # <<<<<---------- change this to change datasets
 interior_view = False
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
@@ -114,23 +114,18 @@ print "\n\nread: %s\n" % path.join(smcd_dir, scmd_file)
 tri = Delaunay(Su.transpose())
 
 
-x, y, z, az, el, w = grids.az_el(resolution=72)
+#x, y, z, az, el, w = grids.az_el(resolution=72)
+T = grids.az_el(resolution=72)
 
 # I use 0 to indicate a flattened version of a grid
-az0 = az.ravel()  # 1-D view of az, like (:) in MATLAB
-el0 = el.ravel()
-x0 = x.ravel()
-y0 = y.ravel()
-z0 = z.ravel()
-w0 = w.ravel()
-xyz0 = np.array([x0, y0, z0])
+az0 = T.az.ravel()  # 1-D view of az, like (:) in MATLAB
+el0 = T.el.ravel()
+x0 = T.ux.ravel()
+y0 = T.uy.ravel()
+z0 = T.uz.ravel()
+w0 = T.w.ravel()
+xyz0 = T.u
 
-if False:
-    # sample spherial harmonics at grid points
-    ambisonic_order = 3
-    max_acn = acn.acn(ambisonic_order, ambisonic_order)
-    test_dirs_Y = np.array([rsh.real_sph_harm_acn(i, az0, pi/1 - el0)
-                            for i in range(max_acn+1)])
 
 test_dirs_Y = np.array(
         [np.sqrt(4 * pi) * n * rsh.real_sph_harm(m, l, az0, pi/2 - el0)
@@ -139,7 +134,7 @@ test_dirs_Y = np.array(
 if False:
     #  plot the first few SH's test plot_rX and the SH's themselvesss
     for i in range(4):
-        plot_rX(np.reshape(test_dirs_Y[i, :], az.shape),
+        plot_rX(np.reshape(test_dirs_Y[i, :], T.shape),
                 'ACN%d %s' % (i, acn.acn2fuma_name(i)))
 
 #
@@ -202,7 +197,7 @@ else:
     r = rEr
 
 
-c = np.reshape(r, az.shape)
+c = np.reshape(r, T.shape)
 ca = np.abs(c)
 
 S = scmd['S']
@@ -289,19 +284,19 @@ cvedges = go.Scatter3d(
 #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
 rE_plot = go.Surface(
         name='rE',
-        x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], az.shape),
-        y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], az.shape),
-        z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], az.shape),
+        x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], T.shape),
+        y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], T.shape),
+        z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], T.shape),
         cmin=0.7,
         cmax=np.ceil(np.max(rEr)*10)/10,
         surfacecolor=c,
         colorscale='Portland',
         hoverinfo='text',
         visible=False,
-        opacity=0.9,
+        opacity=1.0,
         text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
                           % (c, u, v))
-             (az*180/pi, el*180/pi, np.reshape(r, az.shape)),
+             (T.az*180/pi, T.el*180/pi, np.reshape(r, T.shape)),
         contours=dict(z=dict(show=True),
                       y=dict(show=True),
                       x=dict(show=True)))
@@ -333,7 +328,7 @@ spkr_locs = go.Scatter3d(
         y=spkr_y,
         z=spkr_z,
         mode='markers',
-        marker=dict(color='orange', size=10),
+        marker=dict(color='orange', size=10, line=dict(color='gray', width=4)),
         hoverinfo='text',
         visible=True,
         text=np.vectorize(
@@ -346,41 +341,43 @@ spkr_locs = go.Scatter3d(
                       spkr_id))
 
 data = [
-        spkr_locs,
+        rE_plot,
         spkr_cv_hull,
-        spkr_stands,
-        spkr_vector,
         cvedges,
-        rE_plot
+        spkr_locs,
+        spkr_stands,
+        spkr_vector
         ]
 
 name = "Loudspeaker array: " + S['name'] \
-        # + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) \
+        + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) \
         # + "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
 
 
 # cut and paste from plotly_image needs to be updated
-if False:
+if True:
     updatemenus = list([
             dict(type="buttons",
                  active=-1,
                  buttons=list([
-                    dict(label='rE',
+                    dict(label='Convex Hull',
                          method='update',
-                         args=[{'visible': [True, False, True]},
+                         args=[{'visible': [False, True, True,
+                                            True, True, True]},
                                {'title': name + "-%dH%dV" % (C['h_order'],
                                                              C['v_order'])
-                                + "<br>" + rE_trace['name']
-                                #, 'annotations': high_annotations
+                                + "<br>" + spkr_cv_hull['name']
+                                # , 'annotations': low_annotations
                                 }]),
-                    dict(label='Error',
+                    dict(label='rE vector',
                          method='update',
-                         args=[{'visible': [False, True, True]},
+                         args=[{'visible': [True, False, False,
+                                            True, True, True]},
                                {'title': name + "-%dH%dV" % (C['h_order'],
                                                              C['v_order'])
-                               + "<br>" + dd_trace['name']
-                               #, 'annotations': low_annotations
-                               }])]))])
+                                + "<br>" + rE_plot['name']
+                                # , 'annotations': high_annotations
+                                }])]))])
 
 
 #  https://plot.ly/python/user-guide/#layout
@@ -388,14 +385,15 @@ layout = go.Layout(
         title=name,
         showlegend=True,
         legend=dict(orientation="h"),
+        updatemenus=updatemenus,
         scene=dict(
-                camera=dict(
-                        up=dict(x=0, y=0, z=1),
-                        center=dict(x=0, y=0, z=0),
-                        eye=(dict(x=0, y=0, z=0.5) if interior_view
-                             else
-                             dict(x=1.25, y=1.25, z=1.25))
-                        ),
+#                camera=dict(
+#                        up=dict(x=0, y=0, z=1),
+#                        center=dict(x=0, y=0, z=0),
+#                        eye=(dict(x=0, y=0, z=0.5) if interior_view
+#                             else
+#                             dict(x=1.25, y=1.25, z=1.25))
+#                        ),
 
                 aspectratio=dict(x=1, y=1, z=1),
 
@@ -427,7 +425,7 @@ fig = go.Figure(data=data, layout=layout)
 #  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
 if True:
     plotly.offline.plot(fig,
-                        filename='plotly/%s-speaker-array.html' % S['name'],
+                        filename='plotly/%s-speaker-array-rE.html' % S['name'],
                         include_plotlyjs=True,
                         output_type='file')
 else:

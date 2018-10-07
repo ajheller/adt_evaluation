@@ -8,6 +8,9 @@ Created on Sun Aug 12 17:29:51 2018
 
 from __future__ import division
 import numpy as np
+from numpy import pi
+
+from collections import namedtuple
 
 import cPickle as pickle
 
@@ -31,12 +34,15 @@ def sph2cart(az, el, r=1):
     return x, y, z
 
 
+Grid = namedtuple('Grid', ('ux', 'uy', 'uz', 'u', 'az', 'el', 'w', 'shape'))
+
+
 def az_el(resolution=180):
-    u = np.linspace(-np.pi, np.pi, (2 * resolution) + 1)
-    v = np.linspace(-np.pi/2, np.pi/2, resolution + 1)
+    u = np.linspace(-pi, pi, (2 * resolution) + 1)
+    v = np.linspace(-pi/2, pi/2, resolution + 1)
     el, az = np.meshgrid(v, u)
 
-    x, y, z = sph2cart(az, el)
+    ux, uy, uz = sph2cart(az, el)
 
     # quadrature weights (sum to 4pi, area of a unit sphere)
     du = np.abs(u[1]-u[0])
@@ -45,13 +51,18 @@ def az_el(resolution=180):
     # the last row overlaps the first so set it's weights to zero
     w[-1, :] = 0
 
-    return x, y, z, az, el, w
+    return Grid(ux, uy, uz,
+                np.vstack([x.ravel() for x in (ux, uy, uz)]),
+                az, el,
+                w, el.shape)
+
+    #return x, y, z, az, el, w
 
 
 def az_el_unit_test(resolution=1000):
-    x, y, z, az, el, w = az_el(resolution)
-    sw = np.sum((x**2 + y**2 + z**2) * w) / (4 * np.pi)
-    sx = np.sum(x**2 * w) / (1/3) / (4 * np.pi)
+    g = az_el(resolution)
+    sw = np.sum((g.ux**2 + g.uy**2 + g.uz**2) * g.w) / (4 * pi)
+    sx = np.sum(g.ux**2 * g.w) / (1/3) / (4 * pi)
     return sw, sx  # both should be 1
 
 
@@ -65,26 +76,29 @@ def t_design(four_pi=True):
     az, el, w = cart2sph(x, y, z)
     w /= x.shape[0]
     if four_pi:
-        w *= 4 * np.pi
-    return x, y, z, az, el, w
+        w *= 4 * pi
+    #return x, y, z, az, el, w
+    return Grid(x, y, z,
+                np.vstack([q.ravel() for q in (x, y, z)]),
+                az, el,
+                w, w.shape)
 
 
 # https://www-user.tu-chemnitz.de/~potts/workgroup/graef/computations/pointsS2.php.en
-def t_design5200(four_pi=True, ret_dict=False):
+def t_design5200(four_pi=True):
     with open("data/Design_5200_100_random.dat.txt", 'r') as f:
         t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 2)
     az = t[:, 0]
     # convert from zenith angle to elevation
-    el = np.pi/2 - t[:, 1]
+    el = pi/2 - t[:, 1]
     x, y, z = sph2cart(az, el)
-    u = np.vstack((x, y, z))
     w = np.ones(x.shape) / x.shape[0]
     if four_pi:
-        w *= 4 * np.pi
+        w *= 4 * pi
 
-    if ret_dict:
-        return dict(x=x, y=y, z=z, u=u, az=az, el=el, w=w)
-    else:
-        return x, y, z, az, el, w
+    return Grid(x, y, z,
+                np.vstack((x, y, z)),
+                az, el,
+                w, w.shape)
 
 # also http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html

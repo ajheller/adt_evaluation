@@ -134,7 +134,10 @@ if False:
     print testp()
 
 
-def test3():
+def test3(tri=None):
+    if not tri:
+        tri = tri
+    H = tri.convex_hull
     # assemble the list of face vertices
     p0 = tri.points[H[:, 0], :]
     p1 = tri.points[H[:, 1], :]
@@ -144,7 +147,7 @@ def test3():
     a = []
     Hr = np.arange(len(H))
     for i in range(5200):
-        flag, u, v, t = ray_triangle_intersection_p(origin, Vu[:, i],
+        flag, u, v, t = ray_triangle_intersection_p(origin, V.u[:, i],
                                                     p0, p1, p2)
         valid = np.logical_and(flag, t > 0)
         face = Hr[valid][0]

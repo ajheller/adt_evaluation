@@ -20,7 +20,7 @@ import real_spherical_harmonics as rsh
 import acn_order as acn
 
 import spherical_grids as grids
-from grids import cart2sph, sph2cart
+from spherical_grids import cart2sph, sph2cart
 
 import adt_scmd
 
@@ -28,66 +28,70 @@ import adt_scmd
 # workspace (I know this is bad, but I'm just doing some experiments)
 #   az, el,
 
-rX = rEr; cmin=0.7; cmax=1
-rX2 = 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)); cmin2=0; cmax2=10;
+from rVrE import T, C, S, \
+                 P, E, rEr, rEu, xyz0, \
+                 spkr_az, spkr_el, spkr_rr, spkr_id, \
+                 name
 
-if False:
-    flat_trace = go.Surface(
-        name='rE',
-        x=az * 180/np.pi,
-        y=el * 180/np.pi,
-        z=np.zeros(np.shape(az)),
-        cmin=cmin,
-        cmax=cmax,
-        surfacecolor=np.reshape(rX, np.shape(az)),
-        colorscale='Jet',
-        lighting=dict(ambient=1.0),
-        hoverinfo='text',
-        text=np.vectorize(
-                lambda a, e, c:
-                "az: %.1f<br>el: %.1f<br>dir diff: %.2f" % (a, e, c))
-                (az * 180/np.pi,
-                 el * 180/np.pi,
-                 np.reshape(rX, np.shape(az))))
 
-# https://plot.ly/python/reference/#heatmap
-rE_trace = go.Heatmap(
-        name='rE magnitude vs. test direction',
-        x=az[:,0] * 180/np.pi,
-        y=el[0,:] * 180/np.pi,
-        z=np.clip(np.reshape(rX, np.shape(az)).transpose(), cmin, cmax),
-        visible=True,
-        showlegend=True,
-        #cmin=cmin,
-        #cmax=cmax,
-        colorscale='Jet',
-        #lighting=dict(ambient=1.0),
-        hoverinfo='text',
-        text=(np.vectorize(
-                lambda a, e, c:
-                "az: %.1f<br>el: %.1f<br>r<sub>E</sub>: %.2f" % (a, e, c))
-                (az * 180/np.pi,
-                 el * 180/np.pi,
-                 np.reshape(rX, np.shape(az)))).transpose())
+#rX = rEr; cmin=0.7; cmax=1
+#rX2 = 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)); cmin2=0; cmax2=10;
 
-dd_trace = go.Heatmap(
-        name='rE Direction Error vs. test direction',
-        x=az[:,0] * 180/np.pi,
-        y=el[0,:] * 180/np.pi,
-        z=np.clip(np.reshape(rX2, np.shape(az)).transpose(), cmin2, cmax2),
-        visible=False,
-        showlegend=True,
-        #cmin=cmin,
-        #cmax=cmax,
-        colorscale='Jet',
-        #lighting=dict(ambient=1.0),
-        hoverinfo='text',
-        text=(np.vectorize(
+
+def plotly_image(T, X, Xmin=None, Xmax=None,
+                 name="",
+                 hovertext_format="az: %.1f<br>el: %.1f<br>X: %.2f",
+                 visible=True,
+                 showlegend=True,
+                 colorscale='Jet'):
+
+    XX = np.reshape(X, T.shape)
+    if Xmin and Xmax:
+        XX_clip = np.clip(XX, Xmin, Xmax)
+    else:
+        XX_clip = XX
+
+    # https://plot.ly/python/reference/#heatmap
+    trace = go.Heatmap(
+            name=name,
+            x=T.az[:, 0] * 180/np.pi,
+            y=T.el[0, :] * 180/np.pi,
+            z=XX_clip.transpose(),
+            visible=visible,
+            colorscale=colorscale,
+            hoverinfo='text',
+            text=(np.vectorize(
                 lambda a, e, c:
-                "az: %.1f<br>el: %.1f<br>Derr</sub>: %.2f" % (a, e, c))
-                (az * 180/np.pi,
-                 el * 180/np.pi,
-                 np.reshape(rX2, np.shape(az)))).transpose())
+                hovertext_format % (a, e, c))
+                (T.az * 180/np.pi,
+                 T.el * 180/np.pi,
+                 XX)).transpose())
+    return trace
+
+
+rE_trace = \
+    plotly_image(T, rEr,
+                 cmin=0.7, cmax=1.0,
+                 name='rE magnitude vs. test direction',
+                 hovertext_format="az: %.1f<br>el: %.1f<br>r<sub>E</sub>: %.2f",
+                 visible=True,
+                 showlegend=True)
+
+dd_trace = \
+    plotly_image(T, 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)),
+                 cmin=0, cmax=10,
+                 name='rE magnitude vs. test direction',
+                 hovertext_format="az: %.1f<br>el: %.1f<br>Derr: %.2f",
+                 visible=False,
+                 showlegend=True)
+
+E_trace = \
+    plotly_image(T, 10*np.log10(E),
+                 name="Energy gain (dB) vs. test direction",
+                 hovertext_format="az: %.1f<br>el: %.1f<br>E: %.2f dB",
+                 visible=False,
+                 showlegend=True)
+
 
 speakers = go.Scatter(
         name='Speakers',
@@ -112,25 +116,32 @@ updatemenus = list([
     dict(type="buttons",
          active=-1,
          buttons=list([
-            dict(label = 'rE',
-                 method = 'update',
-                 args = [{'visible': [True, False, True]},
-                         {'title': name + "-%dH%dV"%(C['h_order'],C['v_order'])
-                          + "<br>" + rE_trace['name']
-                          #, 'annotations': high_annotations
-                          }]),
-            dict(label = 'Error',
-                 method = 'update',
-                 args = [{'visible': [False, True, True]},
-                         {'title': name + "-%dH%dV"%(C['h_order'],C['v_order'])
-                         + "<br>" + dd_trace['name']
-                          #, 'annotations': low_annotations
-                          }])
-    ]))])
+            dict(label='Magnitude rE',
+                 method='update',
+                 args=[{'visible': [True, False, False, True]},
+                       {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
+                        + "<br>" + rE_trace['name']
+                          # , 'annotations': high_annotations
+                        }]),
+            dict(label='Direction Error',
+                 method='update',
+                 args=[{'visible': [False, True, False, True]},
+                       {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
+                        + "<br>" + dd_trace['name']
+                        # , 'annotations': low_annotations
+                        }]),
+            dict(label='Energy Gain',
+                 method='update',
+                 args=[{'visible': [False, False, True, True]},
+                       {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
+                        + "<br>" + E_trace['name']
+                        # , 'annotations': low_annotations
+                        }])
+                    ]))])
 
 flat_layout = go.Layout(
-        title="name" + u"-%dH%dV"%(C['h_order'],C['v_order'])
-                + u"<br>" + rE_trace['name'],
+        title=name + u"-%dH%dV" % (C['h_order'], C['v_order'])
+            + u"<br>" + rE_trace['name'],
         showlegend=True,
         hovermode='closest',
         legend=dict(orientation="h"),
@@ -140,14 +151,14 @@ flat_layout = go.Layout(
         updatemenus=updatemenus
         )
 
-#fig = tls.make_subplots(rows=2, cols=1)
+# fig = tls.make_subplots(rows=2, cols=1)
 
-fig = go.Figure(data=[rE_trace, dd_trace, speakers],
+fig = go.Figure(data=[rE_trace, dd_trace, E_trace, speakers],
                 layout=flat_layout)
 
 out_dir = "plotly"
 
 plotly.offline.plot(fig,
-                    filename= os.path.join(out_dir, S['name']
-                    + "-" + ("%dH%dV"%(C['h_order'], C['v_order']))
-                    + "_rE.html"))
+                    filename=os.path.join(out_dir, S['name']
+                        + "-" + ("%dH%dV" % (C['h_order'], C['v_order']))
+                        + "_rE.html"))
