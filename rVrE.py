@@ -102,7 +102,7 @@ smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
 example = 1  # <<<<<---------- change this to change datasets
-interior_view = False
+interior_view = True
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
              "SCMD_brh_spring2017.json")[example]
@@ -114,7 +114,7 @@ print "\n\nread: %s\n" % path.join(smcd_dir, scmd_file)
 tri = Delaunay(Su.transpose())
 
 
-#x, y, z, az, el, w = grids.az_el(resolution=72)
+# x, y, z, az, el, w = grids.az_el(resolution=72)
 T = grids.az_el(resolution=72)
 
 # I use 0 to indicate a flattened version of a grid
@@ -387,14 +387,6 @@ layout = go.Layout(
         legend=dict(orientation="h"),
         updatemenus=updatemenus,
         scene=dict(
-#                camera=dict(
-#                        up=dict(x=0, y=0, z=1),
-#                        center=dict(x=0, y=0, z=0),
-#                        eye=(dict(x=0, y=0, z=0.5) if interior_view
-#                             else
-#                             dict(x=1.25, y=1.25, z=1.25))
-#                        ),
-
                 aspectratio=dict(x=1, y=1, z=1),
 
                 xaxis=dict(title='front/back', range=plt_range,
@@ -419,21 +411,30 @@ layout = go.Layout(
                               (0, 0, max_rr, 'top'),
                               (0, 0, -max_rr, 'bottom'))]))
 
+if False:
+    layout['scene']['camera'] = \
+        dict(up=dict(x=0, y=0, z=1),
+             center=dict(x=0, y=0, z=0),
+             eye=(dict(x=0, y=0, z=0.5) if interior_view
+                  else
+                  dict(x=1.25, y=1.25, z=1.25)))
+
 #  https://plot.ly/python/user-guide/#figure
 fig = go.Figure(data=data, layout=layout)
 
-#  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
-if True:
-    plotly.offline.plot(fig,
-                        filename='plotly/%s-speaker-array-rE.html' % S['name'],
-                        include_plotlyjs=True,
-                        output_type='file')
-else:
-    div = plotly.offline.plot(fig,
-                              filename='plotly/%s-speaker-array.html' % S['name'],
-                              include_plotlyjs=False,
-                              output_type='div')
+if __name__ == '__main__':
+    #  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
+    if True:
+        plotly.offline.plot(fig,
+                            filename='plotly/%s-speaker-array-rE.html' % S['name'],
+                            include_plotlyjs=True,
+                            output_type='file')
+    else:
+        div = plotly.offline.plot(fig,
+                                  filename='plotly/%s-speaker-array.html' % S['name'],
+                                  include_plotlyjs=False,
+                                  output_type='div')
 
-    with open("plotly/div" + S['name'] + ".html", 'w') as f:
-        f.write(div)
+        with open("plotly/div" + S['name'] + ".html", 'w') as f:
+            f.write(div)
 

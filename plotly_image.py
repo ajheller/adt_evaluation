@@ -34,8 +34,6 @@ from rVrE import T, C, S, \
                  name
 
 
-#rX = rEr; cmin=0.7; cmax=1
-#rX2 = 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)); cmin2=0; cmax2=10;
 
 
 def plotly_image(T, X, Xmin=-np.inf, Xmax=+np.inf,
@@ -73,10 +71,10 @@ rE_trace = \
                  visible=True,
                  showlegend=True)
 
-dd_trace = \
+Derr_trace = \
     plotly_image(T, 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)),
                  Xmin=0.0, Xmax=15.0,
-                 name='rE magnitude vs. test direction',
+                 name='rE direction error vs. test direction',
                  hovertext_format="az: %.1f<br>el: %.1f<br>Derr: %.2f",
                  visible=False,
                  showlegend=True)
@@ -89,6 +87,13 @@ E_trace = \
                  showlegend=True)
 
 
+def speaker_hovertext(az, el, rr, id):
+    def ht(az, el, rr, id):
+        return ("<B>%s</B><br>az: %.1f<br>el: %.1f<br> r: %.1f"
+                % (id, az, el, rr))
+    return np.vectorize(ht, otypes=[str])(az, el, rr, id)
+
+
 speakers = go.Scatter(
         name='Speakers',
         x=spkr_az * 180/np.pi,
@@ -98,10 +103,10 @@ speakers = go.Scatter(
         hoverinfo='text',
         visible=True,
         showlegend=True,
-        text=np.vectorize(
-                lambda a, e, r, c:
-                "<B>%s</B><br>az: %.1f<br>el: %.1f<br> r: %.1f" % (c, a, e, r))
-                (spkr_az * 180/np.pi, spkr_el * 180/np.pi, spkr_rr, spkr_id))
+        text=speaker_hovertext(spkr_az * 180/np.pi,
+                               spkr_el * 180/np.pi,
+                               spkr_rr, spkr_id)
+        )
 
 camera = dict(
     up=dict(x=1, y=0, z=0),
@@ -135,7 +140,7 @@ updatemenus = list([
                         }])
                     ]))])
 
-flat_layout = go.Layout(
+layout = go.Layout(
         title=name + u"-%dH%dV" % (C['h_order'], C['v_order'])
             + u"<br>" + rE_trace['name'],
         showlegend=True,
@@ -149,12 +154,14 @@ flat_layout = go.Layout(
 
 # fig = tls.make_subplots(rows=2, cols=1)
 
-fig = go.Figure(data=[rE_trace, dd_trace, E_trace, speakers],
-                layout=flat_layout)
+fig = go.Figure(data=[rE_trace, Derr_trace, E_trace, speakers],
+                layout=layout)
 
 out_dir = "plotly"
 
-plotly.offline.plot(fig,
-                    filename=os.path.join(out_dir, S['name']
-                        + "-" + ("%dH%dV" % (C['h_order'], C['v_order']))
-                        + "_rE.html"))
+if __name__ == '__main__':
+
+    plotly.offline.plot(fig,
+                        filename=os.path.join(out_dir, S['name']
+                            + "-" + ("%dH%dV" % (C['h_order'], C['v_order']))
+                            + "_rE.html"))
