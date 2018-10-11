@@ -102,3 +102,27 @@ def t_design5200(four_pi=True):
                 w, w.shape)
 
 # also http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html
+
+
+def spherical_cap(T, u, angle):
+    """return boolean array of points in T within angle of unit vector u
+
+    Inputs:
+        T - a spherical grid object
+        u - unit vector for center of cap
+        a - angular extent of cap
+    Outputs:
+        boolean array of points in the cap
+        index of point closest to u
+        error of point
+    """
+
+    p = np.dot(u, T.u).squeeze()
+
+    c_max = np.argmax(p)
+
+    a_err = u - T.u[:, c_max]
+
+    c = p > np.arccos(angle)
+
+    return c, c_max, a_err, 2*np.arcsin(np.linalg.norm(a_err)/2)
