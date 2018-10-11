@@ -128,7 +128,7 @@ updatemenus = list([
                  method='update',
                  args=[{'visible': [False, True, False, True]},
                        {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
-                        + "<br>" + dd_trace['name']
+                        + "<br>" + Derr_trace['name']
                         # , 'annotations': low_annotations
                         }]),
             dict(label='Energy Gain',
