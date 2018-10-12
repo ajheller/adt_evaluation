@@ -62,7 +62,7 @@ def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
 def plot_rX(rX, title, clim=None):
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
-    plt.imshow(np.fliplr(np.flipud(np.reshape(rX, az.shape).transpose())),
+    plt.imshow(np.fliplr(np.flipud(np.reshape(rX, T.shape).transpose())),
                extent=(180, -180, -90, 90),
                cmap=__colormap)
     if clim:
