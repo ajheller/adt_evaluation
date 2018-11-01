@@ -12,7 +12,7 @@ from numba import jit
 from scipy import special, pi, sin, cos, sqrt
 from scipy.integrate import dblquad
 
-from numpy import conj, real, imag, floor
+from numpy import conj, real, imag, floor, array
 
 from acn_order import *
 
@@ -184,3 +184,6 @@ def check_condon_shortley_phase_real(l, m, delta=1e-4):
     return ok
 
 
+def real_sph_harm_transform(l, m, az, el):
+    return array([real_sph_harm(mm, ll, az, pi/2-el)
+                  for ll, mm in zip(l, m)])
