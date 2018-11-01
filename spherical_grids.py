@@ -33,6 +33,10 @@ def sph2cart(az, el, r=1):
     y = r_cos_el * np.sin(az)
     return x, y, z
 
+# these follow the physics convention of zenith angle, azimuth
+
+def sphz2cart(zen, az, r=1):
+    return sph2cart(az, pi/2-zen, r)
 
 Grid = namedtuple('Grid', ('ux', 'uy', 'uz', 'u', 'az', 'el', 'w', 'shape'))
 
