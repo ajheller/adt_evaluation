@@ -10,7 +10,6 @@ from __future__ import division
 
 import numpy as np
 
-
 def ray_triangle_intersection(o, d, p0, p1, p2, epsilon=1e-5):
 
     e1 = p1 - p0
@@ -48,6 +47,49 @@ def ray_triangle_intersection(o, d, p0, p1, p2, epsilon=1e-5):
 def dot1(a, b):
     "dot product of vectors in a and b"
     return np.sum(a * b, 1)
+
+# this version depends on numpy.true_division to return nan and inf, so we can
+#  do all the tests at the end
+def ray_triangle_intersection_p1(o, d, p0, p1, p2, epsilon=1e-5):
+
+    #
+    # Moller and Trumbore
+    #   https://en.wikipedia.org/wiki/Möller–Trumbore_intersection_algorithm
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        e1 = p1 - p0
+        e2 = p2 - p0
+        s = o - p0
+
+        q = np.cross(d, e2)
+        a = dot1(e1, q)
+
+        f = 1 / a
+
+        # if a is close to 0, d is parallel to the triangle
+        f[np.isclose(a, 0, atol=epsilon)] = np.inf
+
+        u = f * dot1(s, q)
+
+        r = np.cross(s, e1)
+        v = f * dot1(d, r)
+        # w = 1 - u - v
+
+        # distance from origin to intersection
+        t = f * dot1(e2, r)
+
+        # take care of any nan's
+        u[np.isnan(u)] = np.inf
+        v[np.isnan(v)] = np.inf
+
+        # if intersection is inside the triangle
+        valid = np.logical_and(u >= 0, v >= 0)
+        valid = np.logical_and(valid, u + v <= 1)
+        # we get two intersections, one with t positive, one with t negative
+        #  we want the positive one
+        valid = np.logical_and(valid, t > 0)
+
+    return valid, u, v, t
 
 
 # this version is about 20x faster than the preceeding one
@@ -117,7 +159,7 @@ def testp():
     origin = np.array([10, 10, 10])
     direction = np.array([-0.3, -0.5, -0.7])
 
-    flag, u, v, t = ray_triangle_intersection_p(
+    flag, u, v, t = ray_triangle_intersection_p1(
             origin, direction, v0, v1, v2)
 
     return flag, u, v, t
@@ -133,26 +175,50 @@ if False:
     print
     print testp()
 
+import spherical_grids as sg
+from scipy.spatial import Delaunay
+from numpy import pi
 
-def test3(tri=None):
-    if not tri:
-        tri = tri
+
+def test3(case=1):
+
+    if case is 1:
+        rti_fun = ray_triangle_intersection_p1
+    elif case is 2:
+        rti_fun = ray_triangle_intersection_p
+    else:
+        print('unknown case ' + str(case))
+
+    if False:
+        s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
+        s_el = (0, 0, 0, 0, pi/2, -pi/2)
+    else:
+        s = sg.t_design()
+        s_az = s.az
+        s_el = s.el
+
+    Su = np.array(sg.sph2cart(s_az, s_el))
+
+    tri = Delaunay(Su.transpose())
     H = tri.convex_hull
+
     # assemble the list of face vertices
     p0 = tri.points[H[:, 0], :]
     p1 = tri.points[H[:, 1], :]
     p2 = tri.points[H[:, 2], :]
 
+    V = sg.t_design5200()
+
     origin = np.array([0, 0, 0])
     a = []
     Hr = np.arange(len(H))
     for i in range(5200):
-        flag, u, v, t = ray_triangle_intersection_p(origin, V.u[:, i],
-                                                    p0, p1, p2)
+        flag, u, v, t = rti_fun(origin, V.u[:, i],
+                                p0, p1, p2)
         valid = np.logical_and(flag, t > 0)
         face = Hr[valid][0]
         ur = u[valid][0]
-        vr = u[valid][0]
+        vr = v[valid][0]
         tr = t[valid][0]
         a.append((face, ur, vr, tr))
     return a

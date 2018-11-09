@@ -18,8 +18,37 @@ import spherical_grids as sg
 import ray_triangle_intersection as rti
 
 
+def channel_spec(degree, order, norm=1, cs_phase=None):
+    def cs(l, m, n=1): return (l, m, n)
+    return [cs(l, m) for l in range(degree+1) for m in range(-l, l+1)]
+
+
 def projection(degree, order,
                spkrs_az, spkrs_el):
+    """Decoder by projection method.
+
+    Parameters
+    ----------
+        degree: int or array-like collection of ints
+            degree (l) of each spherical harmonic.
+        order: int or array-like collectin of ints
+            order (m) of each sperical harmonic.
+        spkrs_az, spkrs_el: array-like collection of floats:
+            speaker azimuths and elevations in radians.
+
+    Returns
+    -------
+        numpy.ndarray
+            Basic decoder matrix
+
+    Note
+    ----
+        Optimal for platonic solids, and more generally, spherical designs only.
+        This is here mostly for comparison to other method.
+    """
+
+    if np.isscalar(degree):
+        degree, order = zip(*channel_spec(degree, order))
 
     M = rsh.real_sph_harm_transform(degree, order,
                                     np.array(spkrs_az).ravel(),
@@ -29,6 +58,22 @@ def projection(degree, order,
 
 def inversion(degree, order,
               spkrs_az, spkrs_el):
+    """Decoder by inversion method (aka, mode matching).
+
+    Args:
+        degree (array-like): degree (l) of each spherical harmonic.
+        order (array-like): order (m) of each sperical harmonic.
+        spkrs_az (array-like): speaker azimuths in radians.
+        spkrs_el (array-like): speaker elevations in radians.
+
+    Returns:
+        Basic decoder matrix
+
+    Note:
+        Optimal for uniform arrays only.
+
+    """
+
     Y_spkrs = rsh.real_sph_harm_transform(degree, order,
                                           np.array(spkrs_az).ravel(),
                                           np.array(spkrs_el).ravel())
@@ -39,20 +84,54 @@ def inversion(degree, order,
 
 def allrad(degree, order,
            spkrs_az, spkrs_el,
-           v_az=None, v_el=None):
+           v_az=None, v_el=None,
+           vbap_norm=True):
     # defaults
     if v_az is None:
         td = sg.t_design5200()
         v_az = td.az
         v_el = td.el
 
-    V2R, Vtri, Vxyz = allrad_v2r(np.array(sg.sph2cart(spkrs_az, spkrs_el)),
-                                 np.array(sg.sph2cart(v_az, v_el)))
+    V2R, Vtri, Vxyz = allrad_v2rp(np.array(sg.sph2cart(spkrs_az, spkrs_el)),
+                                  np.array(sg.sph2cart(v_az, v_el)),
+                                  vbap_norm=vbap_norm)
 
     Mv = inversion(degree, order, v_az, v_el)
     M = np.matmul(V2R, Mv)
 
     return M
+
+
+def allrad_v2rp(Su, Vu, vbap_norm=True):
+    tri = Delaunay(Su.transpose())
+    H = tri.convex_hull
+
+    p0 = tri.points[H[:, 0], :]
+    p1 = tri.points[H[:, 1], :]
+    p2 = tri.points[H[:, 2], :]
+
+    origin = np.array([0, 0, 0])
+    a = []
+    Hr = np.arange(len(H))
+
+    V2R = np.zeros((Su.shape[1], Vu.shape[1]))
+    for i in range(5200):
+        flag, u, v, t = rti.ray_triangle_intersection_p1(origin, Vu[:, i],
+                                                         p0, p1, p2)
+        valid = np.logical_and(flag, t > 0)
+        face = Hr[valid][0]
+        ur = u[valid][0]
+        vr = v[valid][0]
+        tr = t[valid][0]
+        a.append((face, ur, vr, tr))
+
+        b = np.array([1 - ur - vr, ur, vr])
+        if vbap_norm:
+            b = b / np.linalg.norm(b)
+
+        V2R[H[face, :], i] = b
+
+    return V2R, a, tri
 
 
 def allrad_v2r(Su, Vu):
@@ -67,7 +146,7 @@ def allrad_v2r(Su, Vu):
 
     # the discretization matrix
     V2R = np.zeros((Su.shape[1], Vu.shape[1]))
-
+    a = []
     for i in range(Vu.shape[1]):  # iterate over the virtual loudspeakers
         d = Vu[:, i]
         for j in range(len(H)):
@@ -78,6 +157,7 @@ def allrad_v2r(Su, Vu):
             bw = 1 - bu - bv
 
             if flag and bt > 0:
+                a.append((j, bu, bv, bt))
                 # virtual speaker i intersects face j
                 Vtri[i] = j
                 # coordinates of intersection for plotting
@@ -88,7 +168,7 @@ def allrad_v2r(Su, Vu):
                 V2R[H[j, :], i] = b / np.linalg.norm(b)
 
                 break
-    return V2R, Vtri, Vxyz
+    return V2R, a, tri #Vtri, Vxyz
 
 
 # unit tests
@@ -99,17 +179,14 @@ def unit_test():
     l = (0, 1, 1)
     m = (0, 1, -1)
 
-    #l = (0,)
-    #m = (0,)
-
     M_pinv = inversion(l, m, s_az, s_el)
     M_proj = projection(l, m, s_az, s_el)
 
-    return M_pinv, M_proj, np.matmul(M_proj, M_pinv )
+    return M_pinv, M_proj, np.matmul(M_proj, M_pinv)
 
 
 def unit_test2(order=3):
-    if False:
+    if True:
         s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
         s_el = (0, 0, 0, 0, pi/2, -pi/2)
     else:
@@ -138,3 +215,6 @@ def unit_test2(order=3):
     M_allrad = allrad(l, m, s_az, s_el)
 
     return M_pinv, M_proj, p, M_allrad
+
+
+#v2rp, ap, trip = allrad_v2rp(Su, Vu)

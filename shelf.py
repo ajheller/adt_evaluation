@@ -20,9 +20,9 @@ def max_rE_gains_2d(order):
     return [sp.chebyshevt(n, max_rE) for n in range(order+1)]
 
 
-def max_rE_gains_3d(order):
+def max_rE_gains_3d(order, numeric=False):
     x = sp.symbols('x')
-    if order < 5:
+    if order < 5 and not numeric:
         max_rE = np.max(sp.roots(sp.legendre_poly(order+1, x)).keys())
     else:
         max_rE = np.max(sp.nroots(sp.legendre_poly(order+1, x)))
