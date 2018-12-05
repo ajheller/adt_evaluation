@@ -101,7 +101,7 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 1  # <<<<<---------- change this to change datasets
+example = 0  # <<<<<---------- change this to change datasets
 interior_view = True
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
@@ -223,14 +223,15 @@ plt_range = (-max_rr, max_rr)
 
 
 #  https://plot.ly/python/reference/#scatter3d
+#    NaN ends the line
 spkr_stands = go.Scatter3d(
         name="Speaker Stands",
         x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN]
                     for i in range(len(spkr_x))]).ravel(),
         y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN]
-                    for i in range(len(spkr_x))]).ravel(),
+                    for i in range(len(spkr_y))]).ravel(),
         z=np.array([[spkr_z[i], spkr_floor, spkr_floor, np.NaN]
-                    for i in range(len(spkr_x))]).ravel(),
+                    for i in range(len(spkr_z))]).ravel(),
         mode='lines',
         hoverinfo='none',
         line=dict(color='black'),
@@ -238,19 +239,38 @@ spkr_stands = go.Scatter3d(
         connectgaps=False)
 
 #  https://plot.ly/python/reference/#scatter3d
-spkr_vector = go.Scatter3d(
+#    NaN ends the line
+if False:
+    # draw speaker vectors to unit sphere
+    spkr_vector = go.Scatter3d(
         name="Speaker Vector",
         x=np.array([[spkr_x[i], spkr_ux[i], np.NaN]
                     for i in range(len(spkr_x))]).ravel(),
         y=np.array([[spkr_y[i], spkr_uy[i], np.NaN]
-                    for i in range(len(spkr_x))]).ravel(),
+                    for i in range(len(spkr_y))]).ravel(),
         z=np.array([[spkr_z[i], spkr_uz[i], np.NaN]
-                    for i in range(len(spkr_x))]).ravel(),
+                    for i in range(len(spkr_z))]).ravel(),
         mode='lines',
         hoverinfo='none',
         line=dict(color='blue', dash='dot'),
         visible=True,
         connectgaps=False)
+else:
+    # draw speaker vectors to the origin
+    spkr_vector = go.Scatter3d(
+        name="Speaker Vector",
+        x=np.array([[spkr_x[i], 0, np.NaN]
+                    for i in range(len(spkr_x))]).ravel(),
+        y=np.array([[spkr_y[i], 0, np.NaN]
+                    for i in range(len(spkr_y))]).ravel(),
+        z=np.array([[spkr_z[i], 0, np.NaN]
+                    for i in range(len(spkr_z))]).ravel(),
+        mode='lines',
+        hoverinfo='none',
+        line=dict(color='blue', dash='dot'),
+        visible=True,
+        connectgaps=False)
+
 
 #  https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.spatial.Delaunay.html
 #  tri = Delaunay(Su.transpose())
@@ -283,7 +303,7 @@ cvedges = go.Scatter3d(
 # Plotly does not support legend entries for Surface or Mesh (sigh)
 #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
 rE_plot = go.Surface(
-        name='rE',
+        name='Energy Model Localization Vector (r<sub>E</sub>)',
         x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], T.shape),
         y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], T.shape),
         z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], T.shape),
@@ -354,35 +374,39 @@ name = "Loudspeaker array: " + S['name'] \
         # + "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
 
 
-# cut and paste from plotly_image needs to be updated
-if True:
-    updatemenus = list([
-            dict(type="buttons",
-                 active=-1,
-                 buttons=list([
-                    dict(label='Convex Hull',
-                         method='update',
-                         args=[{'visible': [False, True, True,
-                                            True, True, True]},
-                               {'title': name + "-%dH%dV" % (C['h_order'],
-                                                             C['v_order'])
-                                + "<br>" + spkr_cv_hull['name']
-                                # , 'annotations': low_annotations
-                                }]),
-                    dict(label='rE vector',
-                         method='update',
-                         args=[{'visible': [True, False, False,
-                                            True, True, True]},
-                               {'title': name + "-%dH%dV" % (C['h_order'],
-                                                             C['v_order'])
-                                + "<br>" + rE_plot['name']
-                                # , 'annotations': high_annotations
-                                }])]))])
+updatemenus = list([
+        dict(type="buttons",
+             active=-1,
+             buttons=list([
+                dict(label='Convex Hull',
+                     method='update',
+                     args=[{'visible': [False, True, True,
+                                        True, True, True]},
+                           {'title': name + "<br>-----<br>" +
+                            spkr_cv_hull['name']
+                            # , 'annotations': low_annotations
+                            }]),
+                dict(label='rE vector',
+                     method='update',
+                     args=[{'visible': [True, False, False,
+                                        True, True, True]},
+                           {'title': name + "<br>-----<br>" +
+                            rE_plot['name']
+                            # , 'annotations': high_annotations
+                            }]),
+                dict(label='None',
+                     method='update',
+                     args=[{'visible': [False, False, False,
+                                        True, True, True]},
+                           {'title': name
+                            # , 'annotations': high_annotations
+                            }])
+                    ]))])
 
 
 #  https://plot.ly/python/user-guide/#layout
 layout = go.Layout(
-        title=name,
+        title=name + "<br>-----<br>" + spkr_cv_hull['name'],
         showlegend=True,
         legend=dict(orientation="h"),
         updatemenus=updatemenus,

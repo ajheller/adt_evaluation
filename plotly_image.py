@@ -63,25 +63,35 @@ def plotly_image(T, X, Xmin=-np.inf, Xmax=+np.inf,
     return trace
 
 
+
 rE_trace = \
     plotly_image(T, rEr,
                  Xmin=0.7, Xmax=1.0,
-                 name='rE magnitude vs. test direction',
+                 name='r<sub>E</sub> Magnitude vs. Test Direction',
                  hovertext_format="az: %.1f<br>el: %.1f<br>r<sub>E</sub>: %.2f",
                  visible=True,
+                 showlegend=True)
+
+Angular_spread_trace = \
+    plotly_image(T, np.arccos(rEr) * 180.0/np.pi,
+                 #Xmin=0.0,
+                 Xmax=45.0,
+                 name='Angular Spread (deg) vs. Test Direction',
+                 hovertext_format="az: %.1f<br>el: %.1f<br>AS: %.2f",
+                 visible=False,
                  showlegend=True)
 
 Derr_trace = \
     plotly_image(T, 180/np.pi * np.arccos(np.sum(rEu * xyz0, 0)),
                  Xmin=0.0, Xmax=15.0,
-                 name='rE direction error vs. test direction',
+                 name='r<sub>E</sub> Direction Error (deg) vs. Test Direction',
                  hovertext_format="az: %.1f<br>el: %.1f<br>Derr: %.2f",
                  visible=False,
                  showlegend=True)
 
 E_trace = \
     plotly_image(T, 10*np.log10(E),
-                 name="Energy gain (dB) vs. test direction",
+                 name="Energy gain (dB) vs. Test Direction",
                  hovertext_format="az: %.1f<br>el: %.1f<br>E: %.2f dB",
                  visible=False,
                  showlegend=True)
@@ -119,21 +129,28 @@ updatemenus = list([
          buttons=list([
             dict(label='Magnitude rE',
                  method='update',
-                 args=[{'visible': [True, False, False, True]},
+                 args=[{'visible': [True, False, False, False, True]},
                        {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
                         + "<br>" + rE_trace['name']
                           # , 'annotations': high_annotations
                         }]),
+            dict(label='Angular Spread',
+                 method='update',
+                 args=[{'visible': [False, True, False, False, True]},
+                       {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
+                        + "<br>" + Angular_spread_trace['name']
+                          # , 'annotations': high_annotations
+                        }]),
             dict(label='Direction Error',
                  method='update',
-                 args=[{'visible': [False, True, False, True]},
+                 args=[{'visible': [False, False, True, False, True]},
                        {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
                         + "<br>" + Derr_trace['name']
                         # , 'annotations': low_annotations
                         }]),
             dict(label='Energy Gain',
                  method='update',
-                 args=[{'visible': [False, False, True, True]},
+                 args=[{'visible': [False, False, False, True, True]},
                        {'title': name + "-%dH%dV" % (C['h_order'], C['v_order'])
                         + "<br>" + E_trace['name']
                         # , 'annotations': low_annotations
@@ -154,7 +171,8 @@ layout = go.Layout(
 
 # fig = tls.make_subplots(rows=2, cols=1)
 
-fig = go.Figure(data=[rE_trace, Derr_trace, E_trace, speakers],
+fig = go.Figure(data=[rE_trace, Angular_spread_trace, Derr_trace, E_trace,
+                      speakers],
                 layout=layout)
 
 out_dir = "plotly"
