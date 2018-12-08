@@ -102,6 +102,24 @@ def allrad(degree, order,
     return M
 
 
+def allrad2(degree, order,
+            spkrs_az, spkrs_el,
+            v_az=None, v_el=None,
+            vbap_norm=True):
+    # defaults
+    if v_az is None:
+        td = sg.t_design5200()
+        v_az = td.az
+        v_el = td.el
+
+    # allrad2
+    M_allrad = allrad(degree, order,
+                      spkrs_az, spkrs_el,
+                      v_az=v_az, v_el=v_el,
+                      vbap_norm=vbap_norm)
+    return M_allrad
+
+
 def allrad_v2rp(Su, Vu, vbap_norm=True):
     tri = Delaunay(Su.transpose())
     H = tri.convex_hull
@@ -194,15 +212,7 @@ def unit_test2(order=3):
         s_az = s.az
         s_el = s.el
 
-    if order == 1:
-        l = (0, 1, 1, 1)
-        m = (0, 1, -1, 0)
-    elif order == 2:
-        l = (0, 1, 1, 1, 2, 2, 2, 2, 2)
-        m = (0, 1, -1, 0, -2, -1, 0, 1, 2)
-    elif order == 3:
-        l = (0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3)
-        m = (0, 1, -1, 0, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, 3)
+    l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
 
     M_pinv = inversion(l, m, s_az, s_el)
     # fuzz to zero
@@ -214,7 +224,9 @@ def unit_test2(order=3):
 
     M_allrad = allrad(l, m, s_az, s_el)
 
-    return M_pinv, M_proj, p, M_allrad
+    M_allrad2 = allrad2(l, m, s_az, s_el)
+
+    return M_pinv, M_proj, p, M_allrad, M_allrad2
 
 
 #v2rp, ap, trip = allrad_v2rp(Su, Vu)

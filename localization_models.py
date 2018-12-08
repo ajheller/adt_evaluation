@@ -42,7 +42,7 @@ def compute_rVrE(l, m, M, Su):
 
 
 def test(order=3, decoder=1, ss=True):
-    l, m = zip(*[(l,m) for l in range(order+1) for m in range(-l, l+1)])
+    l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
 
     if ss:
         s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
@@ -54,8 +54,12 @@ def test(order=3, decoder=1, ss=True):
 
     if decoder == 1:
         M = bd.allrad(l, m, s_az, s_el)
-    else:
+    elif decoder == 2:
+        M = bd.allrad2(l, m, s_az, s_el)
+    elif decoder == 3:
         M = bd.inversion(l, m, s_az, s_el)
+    else:
+        raise ValueError("Unknown decoder type: %d" % decoder)
 
     rVr, rEr, = compute_rVrE(l, m, M,
                              np.array(sg.sph2cart(s_az, s_el)))
