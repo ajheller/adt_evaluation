@@ -101,11 +101,12 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 0  # <<<<<---------- change this to change datasets
+example = 2  # <<<<<---------- change this to change datasets
 interior_view = True
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
-             "SCMD_brh_spring2017.json")[example]
+             "SCMD_brh_spring2017.json",
+             "SCMD_stage2017.json")[example]
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 

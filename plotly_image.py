@@ -63,7 +63,7 @@ def plotly_image(T, X, Xmin=-np.inf, Xmax=+np.inf,
     return trace
 
 
-
+#
 rE_trace = \
     plotly_image(T, rEr,
                  Xmin=0.7, Xmax=1.0,
@@ -74,7 +74,7 @@ rE_trace = \
 
 Angular_spread_trace = \
     plotly_image(T, np.arccos(rEr) * 180.0/np.pi,
-                 #Xmin=0.0,
+                 # Xmin=0.0,
                  Xmax=45.0,
                  name='Angular Spread (deg) vs. Test Direction',
                  hovertext_format="az: %.1f<br>el: %.1f<br>AS: %.2f",
