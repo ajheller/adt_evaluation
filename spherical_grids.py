@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sun Aug 12 17:29:51 2018
@@ -6,13 +6,31 @@ Created on Sun Aug 12 17:29:51 2018
 @author: heller
 """
 
+# This file is part of the Ambisonic Decoder Toolbox (ADT)
+# Copyright (C) 2018-19  Aaron J. Heller <heller@ai.sri.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 from __future__ import division
 import numpy as np
 from numpy import pi
 
 from collections import namedtuple
 
-import cPickle as pickle
+#import cPickle as pickle
+import pickle
 
 
 # these follow the MATLAB convention for spherical coordinates
@@ -71,39 +89,50 @@ def az_el_unit_test(resolution=1000):
 
 
 # http://neilsloane.com/sphdesigns/
-def t_design(four_pi=True):
-    with open("data/des.3.240.21.txt", 'r') as f:
+def load_t_design_cart(file, four_pi=True):
+    "load spherical t-designs from a file of unit vectors, x, y, z"
+    with open(file, 'r') as f:
         t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 3)
-    x = t[:, 0]
-    y = t[:, 1]
-    z = t[:, 2]
-    az, el, w = cart2sph(x, y, z)
-    w /= x.shape[0]
+    ux = t[:, 0]
+    uy = t[:, 1]
+    uz = t[:, 2]
+    az, el, _ = cart2sph(ux, uy, uz)  # r is 1
+    w = np.ones(ux.shape) / ux.shape[0]
     if four_pi:
         w *= 4 * pi
-    #return x, y, z, az, el, w
-    return Grid(x, y, z,
-                np.vstack([q.ravel() for q in (x, y, z)]),
+
+    return Grid(ux, uy, uz,
+                np.vstack([q.ravel() for q in (ux, uy, uz)]),
                 az, el,
                 w, w.shape)
 
 
 # https://www-user.tu-chemnitz.de/~potts/workgroup/graef/computations/pointsS2.php.en
-def t_design5200(four_pi=True):
-    with open("data/Design_5200_100_random.dat.txt", 'r') as f:
+def load_t_design_sph(file, four_pi=True):
+    "load spherical t-designs from a file of azimuths and zenith angles"
+    with open(file, 'r') as f:
         t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 2)
     az = t[:, 0]
     # convert from zenith angle to elevation
     el = pi/2 - t[:, 1]
-    x, y, z = sph2cart(az, el)
-    w = np.ones(x.shape) / x.shape[0]
+    ux, uy, uz = sph2cart(az, el)
+    w = np.ones(ux.shape) / ux.shape[0]
     if four_pi:
         w *= 4 * pi
 
-    return Grid(x, y, z,
-                np.vstack((x, y, z)),
+    return Grid(ux, uy, uz,
+                np.vstack((ux, uy, uz)),
                 az, el,
                 w, w.shape)
+
+
+# short cuts for the two spherical designs I use most frequently
+def t_design240(four_pi=True):
+    return load_t_design_cart("data/des.3.240.21.txt", four_pi)
+
+
+def t_design5200(four_pi=True):
+    return load_t_design_sph("data/Design_5200_100_random.dat.txt", four_pi)
 
 # also http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html
 
