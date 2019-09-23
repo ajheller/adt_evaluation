@@ -105,7 +105,7 @@ def plot_dir_diff(u1, u2, title='Diff (degrees)', clim=None):
 
 
 def ravel(M):
-    return M.reshape(M, -1)
+    return M.reshape(-1)  # reshape always returns a view
 
 
 def unravel(M):
@@ -118,7 +118,7 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 3  # <<<<<---------- change this to change datasets
+example = 2  # <<<<<---------- change this to change datasets
 interior_view = True
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
@@ -128,10 +128,10 @@ scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
-print "\n\nread: %s\n" % path.join(smcd_dir, scmd_file)
+print("\n\nread: %s\n" % path.join(smcd_dir, scmd_file))
 
 # add a speaker at the top and bottom
-if True:
+if False:
     Su = np.column_stack((Su, np.array([[0, 0], [0, 0], [+1, -1]])))
 
 tri = Delaunay(Su.transpose())
@@ -151,7 +151,8 @@ xyz0 = T.u
 
 
 test_dirs_Y = np.array(
-        [np.sqrt(4 * pi) * n * rsh.real_sph_harm(m, l, az0, pi/2 - el0)
+        [np.sqrt(4 * pi) * n * rsh.real_sph_harm(l, m, az0, el0,
+                                                 phi_is_elevation=True)
          for l, m, n in zip(C['sh_l'], C['sh_m'], C['norm'])])
 
 if False:
@@ -194,9 +195,9 @@ rEu = rExyz / np.array([rEr, rEr, rEr])
 # decoder gains
 decoder_gain = np.sqrt(np.sum(E * w0) / (4*pi))
 
-print "decoder diffuse gain = %f, (%f db)\n" \
-        % (decoder_gain, 20 * np.log10(decoder_gain))
-print "decoder peak gain = %f\n" % np.max(g)
+print("decoder diffuse gain = %f, (%f db)\n"
+      % (decoder_gain, 20 * np.log10(decoder_gain)))
+print("decoder peak gain = %f\n" % np.max(g))
 
 # matplotlib plots
 if False:
@@ -360,7 +361,7 @@ spkr_cv_hull = go.Mesh3d(
         # markers=dict(color='orange', size=15),
         # plot_edges=True,
         # vertexcolor='red',
-        showlegend=True,
+        #showlegend=True,
         # flatshading=True,
         text=np.squeeze(S['id']))
 
