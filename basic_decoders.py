@@ -1,10 +1,26 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Fri Oct 19 17:57:11 2018
 
 @author: heller
 """
+# This file is part of the Ambisonic Decoder Toolbox (ADT)
+# Copyright (C) 2018-19  Aaron J. Heller <heller@ai.sri.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 
 from __future__ import division, print_function
 import numpy as np
@@ -74,10 +90,8 @@ def inversion(degree, order,
 
     """
 
-    Y_spkrs = rsh.real_sph_harm_transform(degree, order,
-                                          np.array(spkrs_az).ravel(),
-                                          np.array(spkrs_el).ravel())
-    M = np.linalg.pinv(Y_spkrs)
+    M_proj = projection(degree, order, spkrs_az, spkrs_el)
+    M = np.linalg.pinv(M_proj)
 
     return M
 
@@ -200,7 +214,11 @@ def unit_test():
     M_pinv = inversion(l, m, s_az, s_el)
     M_proj = projection(l, m, s_az, s_el)
 
-    return M_pinv, M_proj, np.matmul(M_proj, M_pinv)
+    M_check = np.matmul(M_proj, M_pinv)
+
+    max_error = np.max(np.abs(M_check - np.identity(M_check.shape[0])))
+
+    return M_pinv, M_proj, M_check, max_error
 
 
 def unit_test2(order=3):
