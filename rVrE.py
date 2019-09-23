@@ -1,10 +1,27 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sun Aug 12 17:26:45 2018
 
 @author: heller
 """
+
+# This file is part of the Ambisonic Decoder Toolbox (ADT)
+# Copyright (C) 2018-19  Aaron J. Heller <heller@ai.sri.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 
 import os.path as path
 import numpy as np
@@ -101,16 +118,21 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 2  # <<<<<---------- change this to change datasets
+example = 3  # <<<<<---------- change this to change datasets
 interior_view = True
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
              "SCMD_brh_spring2017.json",
-             "SCMD_stage2017.json")[example]
+             "SCMD_stage2017.json",
+             "SCMD_run_dec_itu.json")[example]
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
 print "\n\nread: %s\n" % path.join(smcd_dir, scmd_file)
+
+# add a speaker at the top and bottom
+if True:
+    Su = np.column_stack((Su, np.array([[0, 0], [0, 0], [+1, -1]])))
 
 tri = Delaunay(Su.transpose())
 

@@ -45,7 +45,7 @@ scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
-print "\n\nread: %s\n" % path.join(smcd_dir, scmd_file)
+print("\n\nread: %s\n" % path.join(smcd_dir, scmd_file))
 
 # assume Su is 3xL array of unit vectors to loudspeakers
 
