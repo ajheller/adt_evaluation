@@ -1,10 +1,27 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Fri Aug 24 23:09:48 2018
 
 @author: heller
 """
+
+# This file is part of the Ambisonic Decoder Toolbox (ADT)
+# Copyright (C) 2018-19  Aaron J. Heller <heller@ai.sri.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 
 from __future__ import division, print_function
 
@@ -20,12 +37,26 @@ def max_rE_gains_2d(order):
     return [sp.chebyshevt(n, max_rE) for n in range(order+1)]
 
 
-def max_rE_gains_3d(order, numeric=False):
+def max_rE_gains_3d(order, numeric=True):
+    """max rE for a given order is the largest root of the order+1 Legendre
+    polynomial"""
+
     x = sp.symbols('x')
+    lp = sp.legendre_poly(order+1, x)
+
+    # there are more efficient methods to find the roots of the Legendre
+    # polynomials, but this is good enough for our purposes
+    # See discussion at:
+    #   https://math.stackexchange.com/questions/12160/roots-of-legendre-polynomial
     if order < 5 and not numeric:
-        max_rE = np.max(sp.roots(sp.legendre_poly(order+1, x)).keys())
+        roots = sp.roots(lp)
     else:
-        max_rE = np.max(sp.nroots(sp.legendre_poly(order+1, x)))
+        roots = sp.nroots(lp)
+
+    # the roots can be in the keys of a dictionary or in a list,
+    # this works for either one
+    max_rE = np.max([*roots])
+
     return [sp.legendre(n, max_rE) for n in range(order+1)]
 
 
@@ -42,4 +73,3 @@ def cardioid_gains_3d(ambisonic_order):
     return [(sp.factorial(l) * sp.factorial(l+1)) /
             (sp.factorial(l+m+1) * sp.factorial(l-m))
             for m in range(l+1)]
-
