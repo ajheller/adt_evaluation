@@ -1,10 +1,27 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sun Nov  4 17:29:18 2018
 
 @author: heller
 """
+
+# This file is part of the Ambisonic Decoder Toolbox (ADT)
+# Copyright (C) 2018-19  Aaron J. Heller <heller@ai.sri.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 
 from __future__ import division, print_function
 import numpy as np
@@ -17,28 +34,40 @@ import basic_decoders as bd
 import matplotlib.pyplot as plt
 
 
-def compute_rVrE(l, m, M, Su):
+def compute_rVrE_fast(M, Su, Y_test_dirs):
+    "this is a fast interface for repeated calls inside an optimizer"
 
-    test_dirs = sg.az_el()
+    # pressure & rV
+    g = np.matmul(M, Y_test_dirs)
+    P = np.sum(g, 0)
+    rVxyz = np.real(np.matmul(Su, g) / np.array([P, P, P]))
+
+    # energy & rE
+    g2 = np.real(g * g.conjugate())  # the g's might be complex
+    E = np.sum(g2, 0)
+    rExyz = np.matmul(Su, g2) / np.array([E, E, E])
+
+    return P, rVxyz, E, rExyz
+
+
+def xyz2aeru(xyz):
+    az, el, r = sg.cart2sph(xyz[0, :], xyz[1, :], xyz[2, :])
+    u = xyz / np.array((r, r, r))
+    return az, el, r, u
+
+
+def compute_rVrE(l, m, M, Su, test_dirs=sg.az_el()):
+
     Y_test_dirs = rsh.real_sph_harm_transform(l, m,
                                               test_dirs.az.ravel(),
                                               test_dirs.el.ravel())
-    g = np.matmul(M, Y_test_dirs)
-    g2 = np.real(g * g.conjugate())  # if g's might be complex
 
-    # pressure & rV
-    P = np.sum(g, 0)
-    rVxyz = np.real(np.matmul(Su, g) / np.array([P, P, P]))
-    rVaz, rVel, rVr = sg.cart2sph(rVxyz[0, :], rVxyz[1, :], rVxyz[2, :])
-    rVu = rVxyz / np.array([rVr, rVr, rVr])
+    P, rVxyz, E, rExyz = compute_rVrE_fast(M, Su, Y_test_dirs)
 
-    # energy & rE
-    E = np.sum(g2, 0)
-    rExyz = np.matmul(Su, g2) / np.array([E, E, E])
-    rEaz, rEel, rEr = sg.cart2sph(rExyz[0, :], rExyz[1, :], rExyz[2, :])
-    rEu = rExyz / np.array([rEr, rEr, rEr])
+    rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
+    rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
 
-    return [np.reshape(rX, test_dirs.shape) for rX in [rVr, rEr]]
+    return rVr.reshape(test_dirs.shape), rEr.reshape(test_dirs.shape)
 
 
 def test(order=3, decoder=1, ss=True):
@@ -48,7 +77,7 @@ def test(order=3, decoder=1, ss=True):
         s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
         s_el = (0, 0, 0, 0, pi/2, -pi/2)
     else:
-        s = sg.t_design()
+        s = sg.t_design240()
         s_az = s.az
         s_el = s.el
 
