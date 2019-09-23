@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Fri Feb  9 22:42:39 2018
@@ -6,7 +6,24 @@ Created on Fri Feb  9 22:42:39 2018
 @author: heller
 """
 
-from __future__ import division
+# This file is part of the Ambisonic Decoder Toolbox (ADT)
+# Copyright (C) 2018-19  Aaron J. Heller <heller@ai.sri.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+from __future__ import division, print_function
 
 import numpy as np
 
@@ -47,6 +64,7 @@ def ray_triangle_intersection(o, d, p0, p1, p2, epsilon=1e-5):
 def dot1(a, b):
     "dot product of vectors in a and b"
     return np.sum(a * b, 1)
+
 
 # this version depends on numpy.true_division to return nan and inf, so we can
 #  do all the tests at the end
@@ -135,11 +153,9 @@ def ray_triangle_intersection_p(o, d, p0, p1, p2, epsilon=1e-5):
     return flag, u, v, t
 
 
-
-
-
-
-
+#
+# ---- tests ----
+#
 def test():
     v0 = np.array([10, 0, 0])
     v1 = np.array([0, 10, 0])
@@ -151,6 +167,7 @@ def test():
             origin, direction, v0, v1, v2)
 
     return flag, u, v, t
+
 
 def testp():
     v0 = np.array([[10, 0, 0] for i in range(4)])
@@ -165,15 +182,14 @@ def testp():
     return flag, u, v, t
 
 
-
 def test2(i):
-    flag, u, v, t = ray_triangle_intersection_p(origin, Vu[:,i], p0, p1, p2)
+    flag, u, v, t = ray_triangle_intersection_p(origin, Vu[:, i], p0, p1, p2)
     return flag, u, v, t
 
 if False:
-    print test()
-    print
-    print testp()
+    print(test())
+    print()
+    print(testp())
 
 import spherical_grids as sg
 from scipy.spatial import Delaunay
