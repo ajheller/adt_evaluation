@@ -32,7 +32,7 @@ flattened (ravel'ed) variable.
 ## NumPy representation of vectors and collections of vectors
 
 I've struggled with the decison on how to represent vectors and
-matricies that are a collection of vectors. By linear algebra
+arrays that are a collection of vectors. By linear algebra
 convention, vectors in an N-dimensional space are written as 1xN
 column vectors, often written in inline text as [x y z]^T (the
 transpose of a row vector).
@@ -61,6 +61,19 @@ result, but the printing is awkward, as it shows row-major.
            [ 2, 20],
            [ 3, 30]])
 
+The use of [N x 1] arrays for vectors is consistent with NumPy and
+SciPy linear algebra writeups, such as:
+
+* <https://docs.scipy.org/doc/scipy/reference/tutorial/linalg.html>
+
+* <http://www2.lawrence.edu/fast/GREGGJ/Python/numpy/numpyLA.html>
+
+There is a NumPy matrix object that has the symantics of MATLAB's
+array, however its use is discouraged and it may be removed in the
+future. 
+
+* <https://docs.scipy.org/doc/numpy/reference/generated/numpy.matrix.html>
+
 
 So far so good... but now when we look at some SciPy functions that
 take collections of vectors as their input, like those found in
@@ -74,4 +87,4 @@ scipy.Delaunay, for example:
 Sigh...
 
 Aaron Heller <heller@ai.sri.com>
-
+23 Sept 2019
