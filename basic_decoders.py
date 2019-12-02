@@ -35,21 +35,21 @@ import ray_triangle_intersection as rti
 
 
 def channel_spec(degree, order, norm=1, cs_phase=None):
-    def cs(l, m, n=1): return (l, m, n)
+    def cs(l, m, n=1): return l, m, n
     return [cs(l, m) for l in range(degree+1) for m in range(-l, l+1)]
 
 
 def projection(degree, order,
-               spkrs_az, spkrs_el):
-    """Decoder by projection method.
+               speakers_azimuth, speakers_elevation):
+    """Compute basic decoder matrix by projection method.
 
     Parameters
     ----------
         degree: int or array-like collection of ints
             degree (l) of each spherical harmonic.
-        order: int or array-like collectin of ints
-            order (m) of each sperical harmonic.
-        spkrs_az, spkrs_el: array-like collection of floats:
+        order: int or array-like collection of ints
+            order (m) of each spherical harmonic.
+        speakers_azimuth, speakers_elevation: array-like collection of floats:
             speaker azimuths and elevations in radians.
 
     Returns
@@ -60,27 +60,28 @@ def projection(degree, order,
     Note
     ----
         Optimal for platonic solids, and more generally, spherical designs only.
-        This is here mostly for comparison to other method.
+        This is here mostly for comparison to other methods.
     """
 
     if np.isscalar(degree):
         degree, order = zip(*channel_spec(degree, order))
 
     M = rsh.real_sph_harm_transform(degree, order,
-                                    np.array(spkrs_az).ravel(),
-                                    np.array(spkrs_el).ravel())
+                                    np.array(speakers_azimuth).ravel(),
+                                    np.array(speakers_elevation).ravel())
     return M
 
 
 def inversion(degree, order,
-              spkrs_az, spkrs_el):
-    """Decoder by inversion method (aka, mode matching).
+              speakers_azimuth, speakers_elevation):
+    """
+    Compute basic decoder matrix by inversion method (aka, mode matching).
 
     Args:
         degree (array-like): degree (l) of each spherical harmonic.
         order (array-like): order (m) of each sperical harmonic.
-        spkrs_az (array-like): speaker azimuths in radians.
-        spkrs_el (array-like): speaker elevations in radians.
+        speakers_azimuth (array-like): speaker azimuths in radians.
+        speakers_elevation (array-like): speaker elevations in radians.
 
     Returns:
         Basic decoder matrix
@@ -90,28 +91,70 @@ def inversion(degree, order,
 
     """
 
-    M_proj = projection(degree, order, spkrs_az, spkrs_el)
+    M_proj = projection(degree, order, speakers_azimuth, speakers_elevation)
     M = np.linalg.pinv(M_proj)
 
     return M
 
 
+def constant_energy_inversion(degree, order,
+                              speakers_azimuth, speakers_elevation,
+                            alpha=1):
+    """Compute basic decoder matrix by Energy-Limited Inversion (aka, energy-limited mode matching)
+
+    :param degree:
+    :param order:
+    :param speakers_azimuth:
+    :param speakers_elevation:
+    :param alpha: alpha=1 -> EL Inversion
+    :return:
+    """
+
+    M_proj = projection(degree, order, speakers_azimuth, speakers_elevation)
+    U, S, V = np.linalg.svd(M_proj, full_matrices=False, compute_uv=True)
+    print("Singular values = ", S)
+
+    # do something clever with the singular values here
+    Sinv = 1/S
+    Sinv[np.isclose(S, 0, atol=1e-5)] = 0
+
+    M = np.matmul(V.T, np.diag(Sinv), U.T)
+
+
 def allrad(degree, order,
-           spkrs_az, spkrs_el,
+           speakers_azimuth, speakers_elevation,
+           speaker_is_imaginary = None,
            v_az=None, v_el=None,
            vbap_norm=True):
+    """Compute basic decoder matrix by the AllRAD method.
+
+    :param speaker_is_imaginary:
+    :param degree:
+    :param order:
+    :param speakers_azimuth:
+    :param speakers_elevation:
+    :param v_az:
+    :param v_el:
+    :param vbap_norm:
+    :return:
+    """
     # defaults
     if v_az is None:
         td = sg.t_design5200()
         v_az = td.az
         v_el = td.el
 
-    V2R, Vtri, Vxyz = allrad_v2rp(np.array(sg.sph2cart(spkrs_az, spkrs_el)),
+    V2R, Vtri, Vxyz = allrad_v2rp(np.array(sg.sph2cart(speakers_azimuth, speakers_elevation)),
                                   np.array(sg.sph2cart(v_az, v_el)),
                                   vbap_norm=vbap_norm)
 
     Mv = inversion(degree, order, v_az, v_el)
     M = np.matmul(V2R, Mv)
+
+    if speaker_is_imaginary:
+        # get rid of rows corresponding to imaginary speakers
+        pass
+
 
     return M
 
@@ -120,6 +163,18 @@ def allrad2(degree, order,
             spkrs_az, spkrs_el,
             v_az=None, v_el=None,
             vbap_norm=True):
+    """
+    Decoder by AllRAD2 method.
+
+    :param degree:
+    :param order:
+    :param spkrs_az:
+    :param spkrs_el:
+    :param v_az:
+    :param v_el:
+    :param vbap_norm:
+    :return:
+    """
     # defaults
     if v_az is None:
         td = sg.t_design5200()

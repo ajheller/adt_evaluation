@@ -32,11 +32,42 @@ from collections import namedtuple
 #import cPickle as pickle
 import pickle
 
+import warnings
+
+"""
+In NumPy and MATLAB, grids create a N-dimensional coordinate space used for
+evaluating functions over the space. These functions
+
+
+Note: there are many different conventions for spherical coordinates and almost
+all writeups found on the web use zenith angle (angle from the Z-axis) for the
+vertical angle.
+
+Ambisonics follows the MATLAB convention using elevation angle (angle from X-Y
+plane) for the vertical angle.  See discussions here:
+    http://mathworld.wolfram.com/SphericalCoordinates.html
+and
+    http://pcfarina.eng.unipr.it/Aurora/HOA_explicit_formulas.htm
+"""
+
 
 # these follow the MATLAB convention for spherical coordinates
-
-
 def cart2sph(x, y, z):
+    """Convert from Cartesian to spherical coordinates, using MATLAB convention
+    for spherical coordinates.
+
+    Parameters
+    ----------
+        x, y, z: array-like
+           Cartesian coordinates
+
+    Returns
+    -------
+        az, el, r: nd-array
+            azimuth, elevation (radians)
+            radius (input units)
+
+    """
     r_xy = np.hypot(x, y)
     r = np.hypot(r_xy, z)
     el = np.arctan2(z, r_xy)
@@ -45,21 +76,92 @@ def cart2sph(x, y, z):
 
 
 def sph2cart(az, el, r=1):
+    """Convert from spherical to Cartesian coordinates, using MATLAB convention
+    for spherical coordinates.
+
+    Parameters
+    ----------
+        az, e, r: ndarray
+            azimuth, elevation (radians)
+            radius (input units), optional (default 1)
+
+    Returns
+    -------
+        x, y, z: ndarray
+           Cartesian coordinates (in input units)
+
+    Notes
+    -----
+        The function is vectorized and return valuew will be the same shape as
+        the inputs.
+
+    """
     z = r * np.sin(el) * np.ones_like(az)
     r_cos_el = r * np.cos(el)
     x = r_cos_el * np.cos(az)
     y = r_cos_el * np.sin(az)
     return x, y, z
 
-# these follow the physics convention of zenith angle, azimuth
 
+# these follow the physics convention of zenith angle, azimuth
 def sphz2cart(zen, az, r=1):
+    "Spherical to cartesian using Physics conventxion, e.g. Arfkin"
     return sph2cart(az, pi/2-zen, r)
 
+
+def cart2sphz(x, y, z):
+    """Cartesian to spherical using Physics convention
+
+    Parameters
+    ----------
+        x, y, z: ndarray
+           Cartesian coordinates (in input units)
+
+
+    Returns
+    -------
+        zentih angle: ndarray
+            angle from +z-axis in radians
+
+        azimuth: ndarray
+            angle from the x-axis in the x-y plane in radians
+
+        radius: ndarray
+           distance from the origin in input units
+    """
+    az, el, r = cart2sph(x, y, z)
+    return (pi/2-el), az, r
+
+
+#  Grid
 Grid = namedtuple('Grid', ('ux', 'uy', 'uz', 'u', 'az', 'el', 'w', 'shape'))
+Grid.__doc__ = """ \
+Immutable collection of points in S^2, the surface of the 3-D unit sphere
+
+    Fields
+    ------
+        ux, uy, uz: ndarray
+            x, y, z components of the unit vectors
+        u: 3xN ndarray
+            the unit vectors as columns of an array
+        az, el: ndarray
+            azimuth and elevations of the unit vectors (radians)
+        w: ndarray
+            quadrature weights of the points
+        shape: tuple
+            shape of the grid
+
+    Note
+    ----
+        The factory functions must fill in all of the fields
+"""
 
 
+#  geodetic
 def az_el(resolution=180):
+    """
+    return a grid with equal sampling in azimuth and elevation
+    """
     u = np.linspace(-pi, pi, (2 * resolution) + 1)
     v = np.linspace(-pi/2, pi/2, resolution + 1)
     el, az = np.meshgrid(v, u)
@@ -78,14 +180,22 @@ def az_el(resolution=180):
                 az, el,
                 w, el.shape)
 
-    #return x, y, z, az, el, w
-
 
 def az_el_unit_test(resolution=1000):
     g = az_el(resolution)
     sw = np.sum((g.ux**2 + g.uy**2 + g.uz**2) * g.w) / (4 * pi)
     sx = np.sum(g.ux**2 * g.w) / (1/3) / (4 * pi)
     return sw, sx  # both should be 1
+
+
+#           -------------- Spherical Designs --------------
+#  Spherical design: a finite set of N points on the d-dimensional unit
+#  d-sphere S^d such that the average value of any polynomial f of degree t or
+#  less on the set equals the average value of f on the whole sphere (that is,
+#  the integral of f over S^d divided by the area or measure of S^d).
+#
+#  https://en.wikipedia.org/wiki/Spherical_design
+#  http://mathworld.wolfram.com/SphericalDesign.html
 
 
 # http://neilsloane.com/sphdesigns/
@@ -96,7 +206,7 @@ def load_t_design_cart(file, four_pi=True):
     ux = t[:, 0]
     uy = t[:, 1]
     uz = t[:, 2]
-    az, el, _ = cart2sph(ux, uy, uz)  # r is 1
+    az, el, _r = cart2sph(ux, uy, uz)  # _r so linters don't flag as unused
     w = np.ones(ux.shape) / ux.shape[0]
     if four_pi:
         w *= 4 * pi
@@ -137,25 +247,78 @@ def t_design5200(four_pi=True):
 # also http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html
 
 
-def spherical_cap(T, u, angle):
+# --------------- Spherical Cap -------------------
+#   http://mathworld.wolfram.com/SphericalCap.html
+#   https://en.wikipedia.org/wiki/Spherical_cap
+
+axis_names = dict(x=(1.0, 0.0, 0.0),
+                  y=(0.0, 1.0, 0.0),
+                  z=(0.0, 0.0, 1.0))
+
+
+def spherical_cap(T, u, angle, min_angle=0):
     """return boolean array of points in T within angle of unit vector u
 
-    Inputs:
-        T - a spherical grid object
-        u - unit vector for center of cap
-        a - angular extent of cap
-    Outputs:
+    Parameters
+    ----------
+
+        T: collection of unit vectors
+            a spherical grid object
+
+        u: vector-like or string
+            unit vector for center of cap or axis name
+
+        angle: float
+            angular extent of cap in radians
+
+        min_angle: float
+            start of cap in radians to create a spherical frustrum
+
+    Returns
+    -------
         boolean array of points in the cap
         index of point closest to u
         error of point
+
+    Example
+    -------
+
+    References
+    ----------
+        http://mathworld.wolfram.com/SphericalCap.html
+
+        https://en.wikipedia.org/wiki/Spherical_cap
     """
 
-    p = np.dot(u, T.u).squeeze()
+    # convert axis name to unit vector
+    try:
+        u = axis_names[u.lower()]
+    except AttributeError or KeyError:
+        pass
 
+    # check that u is a unit vector
+    norm = np.sqrt(np.dot(u, u))
+    if not np.isclose(norm, 1):
+        warnings.warn("u is not a unit vector, normalizing")
+        u = u / norm
+
+    # retrieve unit vectors
+    try:
+        Tu = T.u
+    except AttributeError as ae:
+        Tu = T
+
+    # if Tu is not not compatible with u, try the transpose, still can fail in
+    # np.dot()
+    if len(u) != len(Tu):
+        Tu = Tu.transpose()
+
+    # compute the cap
+    p = np.dot(u, Tu).squeeze()
+    c = (p >= np.cos(angle)) & (p <= np.cos(min_angle))
+
+    # find the index of the element of T closest to u and compute the error
     c_max = np.argmax(p)
-
-    a_err = u - T.u[:, c_max]
-
-    c = p > np.arccos(angle)
+    a_err = u - Tu[:, c_max]
 
     return c, c_max, a_err, 2*np.arcsin(np.linalg.norm(a_err)/2)

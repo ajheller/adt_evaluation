@@ -23,9 +23,8 @@ Created on Mon Aug 27 13:07:28 2018
 
 
 import numpy as np
-from numpy import pi, inf
 
-from attr import attrs, attrib, validators
+from attr import attrs, attrib
 
 """
  NOTE:
@@ -68,10 +67,13 @@ from attr import attrs, attrib, validators
 
 """
 
-# normalization conventions
-# the assumption is that the underlying real spherical harmonic code produces
-# return full orthonormal values, hence these functions give the gains needed
+
+# Normalization Conventions
+# I assume that the underlying real spherical harmonic code produces
+# full orthonormal values, hence these functions give the gains needed
 # to produce the target normalization from those
+# FIXME: this is the inverse of the normaliztion in the MATLAB ADT.
+
 
 def normalization_semi(sh_l, sh_m):
     "gains to produce schmidt semi-normalized values from full orthronormal"
@@ -83,7 +85,7 @@ def normalization_full(sh_l, sh_m):
 
 
 # mixed-order sets
-#  there are two convetions for mixed order sets, HP and HV
+#  there are two conventions for mixed order sets, HP and HV
 #  (get citations)
 
 #    switch upper(scheme)
@@ -108,25 +110,26 @@ def normalization_full(sh_l, sh_m):
 #            error('unknown mixed-order scheme: "%s" ', scheme);
 
 
-#              W   X   Y   Z \  R   S   T   U   V |  K   L   M   N   O   P   Q
-_FuMa_sh_l = np.array(( 0,  1,  1,  1,   2,  2,  2,  2,  2,   3,  3,  3,  3,  3,  3,  3))
-_FuMa_sh_m = np.array(( 0,  1, -1,  0,   0,  1, -1,  2, -2,   0,  1, -1,  2, -2,  3, -3))
-
+#                      W   X   Y   Z |  R   S   T   U   V |  K   L   M   N   O   P   Q
+_FuMa_sh_l = np.array((0,  1,  1,  1,   2,  2,  2,  2,  2,   3,  3,  3,  3,  3,  3,  3))
+_FuMa_sh_m = np.array((0,  1, -1,  0,   0,  1, -1,  2, -2,   0,  1, -1,  2, -2,  3, -3))
+_FuMa_sh_lm = zip(_FuMa_sh_l, _FuMa_sh_m)
+_FuMa_sh_acn = [l**2 + l + m for l, m in _FuMa_sh_lm]
 _FuMa_channel_names = np.array(tuple("W" + "XYZ" + "RSTUV" + "KLMNOPQ"))
 
-_FuMa_channel_normalization = 1/np.sqrt(np.array(
-        ((2,) +             # W
+_FuMa_channel_normalization = 1 / np.sqrt(np.array(
+    ((2,) +  # W
 
-         (3,) * 3 +         # X Y Z
+     (3,) * 3 +  # X Y Z
 
-         (5,) +             # R
-         (5*3/4,) * 4 +     # S T U V
+     (5,) +  # R
+     (5 * 3 / 4,) * 4 +  # S T U V
 
-         (7,) +             # K
-         (7*32/45,) * 2 +   # L M
-         (7*5/9,) * 2 +     # N O
-         (7*5/8,) * 2       # P Q
-         )))
+     (7,) +  # K
+     (7 * 32 / 45,) * 2 +  # L M
+     (7 * 5 / 9,) * 2 +  # N O
+     (7 * 5 / 8,) * 2  # P Q
+     )))
 
 
 #
@@ -155,7 +158,7 @@ def channel_mask_HP(sh_l, sh_m, h_order, v_order):
     if h_order != v_order:
         # sectoral harmonics are the horizontal
         sectoral_sh = is_sectoral_sh(sh_l, sh_m)
-        ch_mask = (( sectoral_sh & (sh_l <= h_order)) |
+        ch_mask = ((sectoral_sh & (sh_l <= h_order)) |
                    (~sectoral_sh & (sh_l <= v_order)))
     else:
         ch_mask = sh_l <= h_order
@@ -174,17 +177,41 @@ def channel_mask_HV(sh_l, sh_m, h_order, v_order):
 
 
 def ambisonic_channels_acn(ambisonic_order):
-    for l in range(ambisonic_order+1):
-        for m in range(-l, l+1):
+    for l in range(ambisonic_order + 1):
+        for m in range(-l, l + 1):
             yield (l, m)
 
 
 def ambisonic_channels_sid(ambisonic_order):
-    for l in range(ambisonic_order+1):
+    for l in range(ambisonic_order + 1):
         for m in range(l, -1, -1):
             yield (l, m)
             if m > 0:
                 yield (l, -m)
+
+
+def ambisonic_channels_fuma(ambisonic_order):
+    for l, m in zip(_FuMa_sh_l, _FuMa_sh_m):
+        if l > ambisonic_order:
+            break
+        else:
+            yield l, m
+
+def ambisonic_channel_name(l, m):
+    try:
+        ret = _FuMa_channel_names[(_FuMa_sh_l==l) & (_FuMa_sh_m == m)][0]
+    except IndexError as ie:
+        ret = "%d.%d%s" %(l, np.abs(m), "C" if m >= 0 else "S")
+    return ret
+
+def ambisonic_channel_names(sh_l, sh_m=None):
+    # if sh_m is none, we assume that sh_l is a list of l,m
+    if sh_m is None:
+        lm = sh_l
+    else:
+        lm = zip(sh_l, sh_m)
+    []
+
 
 
 def h_order_validator(self, attribute, value):
@@ -199,7 +226,6 @@ def v_order_validator(self, attribute, value):
 
 @attrs
 class Channels(object):
-
     h_order = attrib()
     v_order = attrib()
 
@@ -230,7 +256,7 @@ class ChannelsAmbisonic(Channels):
         h_order = int(h_order)
         v_order = int(v_order)
         if v_order > h_order:
-                pass # FIXME raise a domain exception
+            pass  # FIXME raise a domain exception
 
         # make sure they're NumPy arrays
         sh_l = np.array(sh_l)
@@ -238,7 +264,7 @@ class ChannelsAmbisonic(Channels):
         normalization = np.array(normalization)
 
         if cs_phase:
-            pass # FIXME check that it is the same length as sh_l
+            pass  # FIXME check that it is the same length as sh_l
         else:
             cs_phase = np.ones_like(sh_l)
 
@@ -248,14 +274,17 @@ class ChannelsAmbisonic(Channels):
         elif mixed_order_scheme.upper().startswith('HP'):
             channel_mask = channel_mask_HP(sh_l, sh_m,
                                            h_order, v_order)
+        else:
+            raise ValueError("Unknown mixed order scheme, should be 'HV' or 'HP'")
 
         super().__init__(
-                h_order, v_order,
-                sh_l[channel_mask], sh_m[channel_mask],
-                normalization[channel_mask],
-                cs_phase[channel_mask],
-                channel_mask,
-                name)
+            h_order, v_order,
+            sh_l[channel_mask], sh_m[channel_mask],
+            normalization[channel_mask],
+            cs_phase[channel_mask],
+            channel_mask,
+            _FuMa_channel_names[channel_mask],
+            name)
 
 
 class ChannelsAmbiX(ChannelsAmbisonic):
@@ -266,14 +295,15 @@ class ChannelsAmbiX(ChannelsAmbisonic):
         h_order = int(h_order)
         v_order = int(v_order)
 
-        sh_l = np.array([l for l in range(h_order+1) for m in range(-l, l+1)])
-        sh_m = np.array([m for l in range(h_order+1) for m in range(-l, l+1)])
+        sh_l, sh_m = zip(*ambisonic_channels_acn(h_order))
+        #sh_l = np.array([l for l in range(h_order + 1) for m in range(-l, l + 1)])
+        #sh_m = np.array([m for l in range(h_order + 1) for m in range(-l, l + 1)])
         norm = normalization_semi(sh_l, sh_m)
         super().__init__(
-                h_order, v_order,
-                sh_l, sh_m, norm,
-                mixed_order_scheme=mixed_order_scheme,
-                name="AmbiX")
+            h_order, v_order,
+            sh_l, sh_m, norm,
+            mixed_order_scheme=mixed_order_scheme,
+            name="AmbiX")
 
 
 """
@@ -312,17 +342,18 @@ Channels
 16	fff	full-sphere	3	3	WXYZRSTUVKLMNOPQ
 """
 
+
 class ChannelsFuMa(ChannelsAmbisonic):
     def __init__(self, h_order, v_order=None, mixed_order_scheme='HP'):
         if h_order > 3:
-            pass # FIXME: raise domain error
+            pass  # FIXME: raise domain error
         if v_order is None:
             v_order = h_order
 
         norm = _FuMa_channel_normalization
 
         super().__init__(
-                h_order, v_order,
-                _FuMa_sh_l, _FuMa_sh_m, norm,
-                mixed_order_scheme=mixed_order_scheme,
-                name="FuMa")
+            h_order, v_order,
+            _FuMa_sh_l, _FuMa_sh_m, norm,
+            mixed_order_scheme=mixed_order_scheme,
+            name="FuMa")

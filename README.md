@@ -31,7 +31,10 @@ flattened (ravel'ed) variable.
 
 ## NumPy representation of vectors and collections of vectors
 
-I've struggled with the decison on how to represent vectors and
+> *Consistency is the last refuge of the unimaginative.* -- Oscar Wilde
+
+
+I've struggled with the question of how to represent vectors and
 arrays that are a collection of vectors. By linear algebra
 convention, vectors in an N-dimensional space are written as 1xN
 column vectors, often written in inline text as [x y z]^T (the
@@ -39,8 +42,8 @@ transpose of a row vector).
 
 Hence, a collection of M 3D coordinates is written as an [3 x M]
 array. Transforming those coordinates into spherical harmonics results
-in a [rank(Y) x M] array, where rank(Y) is the number of spherical harmonics
-in the basis.
+in a [rank(Y) x M] array, where rank(Y) is the number of spherical
+harmonics in the basis.
 
 In MATLAB, there are no 1-D arrays, so a column vector is a 1x3 and a
 row vector is 3x1. NumPy on the other hand, has 1-D arrays, but if we
@@ -48,14 +51,14 @@ make a list of N of them, and then turn that in into an array with
 np.array, we get an Nx3 array. np.column_stack gives the desired
 result, but the printing is awkward, as it shows row-major. 
 
-    in[107]: v1 = (1,2,3); v2=(10,20,30)
+    In[107]: v1 = (1,2,3); v2=(10,20,30)
 
 	In[108]: np.array((v1, v2))
 	Out[108]: 
 	array([[ 1,  2,  3],
            [10, 20, 30]])
 
-	in[109]: np.column_stack((v1, v2))
+	In[109]: np.column_stack((v1, v2))
 	Out[109]: 
 	array([[ 1, 10],
            [ 2, 20],

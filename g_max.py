@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Wed Aug 29 20:20:45 2018
@@ -36,7 +36,7 @@ for i in range(28):
     ggi = np.abs(gi - np.max(gi)) < 1e-2
     Sgg[ggi] = gi[ggi]
 
-print "max gain for entire array = ", np.max(g), 20*np.log10(np.max(g))
+print("max gain for entire array = ", np.max(g), 20*np.log10(np.max(g)))
 
 plot_rX(Sgg, "max gain for each loudspeaker (dB)")
 plt.show()
