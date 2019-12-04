@@ -59,7 +59,7 @@ def projection(degree, order,
 
     Note
     ----
-        Optimal for platonic solids, and more generally, spherical designs only.
+        Optimal for platonic solids, more generally spherical designs only.
         This is here mostly for comparison to other methods.
     """
 
@@ -99,7 +99,7 @@ def inversion(degree, order,
 
 def constant_energy_inversion(degree, order,
                               speakers_azimuth, speakers_elevation,
-                            alpha=1):
+                              alpha=1):
     """Compute basic decoder matrix by Energy-Limited Inversion (aka, energy-limited mode matching)
 
     :param degree:
@@ -114,16 +114,20 @@ def constant_energy_inversion(degree, order,
     U, S, V = np.linalg.svd(M_proj, full_matrices=False, compute_uv=True)
     print("Singular values = ", S)
 
-    # do something clever with the singular values here
+    # TODO do something clever with the singular values here
+    #  for constant energy set all the singular values to one
+    #  for mode matching PINV
     Sinv = 1/S
     Sinv[np.isclose(S, 0, atol=1e-5)] = 0
 
     M = np.matmul(V.T, np.diag(Sinv), U.T)
 
+    return M
+
 
 def allrad(degree, order,
            speakers_azimuth, speakers_elevation,
-           speaker_is_imaginary = None,
+           speaker_is_imaginary=None,
            v_az=None, v_el=None,
            vbap_norm=True):
     """Compute basic decoder matrix by the AllRAD method.
@@ -144,7 +148,8 @@ def allrad(degree, order,
         v_az = td.az
         v_el = td.el
 
-    V2R, Vtri, Vxyz = allrad_v2rp(np.array(sg.sph2cart(speakers_azimuth, speakers_elevation)),
+    V2R, Vtri, Vxyz = allrad_v2rp(np.array(sg.sph2cart(speakers_azimuth,
+                                                       speakers_elevation)),
                                   np.array(sg.sph2cart(v_az, v_el)),
                                   vbap_norm=vbap_norm)
 
@@ -152,9 +157,8 @@ def allrad(degree, order,
     M = np.matmul(V2R, Mv)
 
     if speaker_is_imaginary:
-        # get rid of rows corresponding to imaginary speakers
+        # TODO get rid of rows corresponding to imaginary speakers
         pass
-
 
     return M
 
@@ -164,7 +168,7 @@ def allrad2(degree, order,
             v_az=None, v_el=None,
             vbap_norm=True):
     """
-    Decoder by AllRAD2 method.
+    Decoder by AllRAD2 method.  Not implemented
 
     :param degree:
     :param order:
@@ -181,15 +185,22 @@ def allrad2(degree, order,
         v_az = td.az
         v_el = td.el
 
-    # allrad2
+    # TODO understand and implement allrad2 :) :)
     M_allrad = allrad(degree, order,
                       spkrs_az, spkrs_el,
                       v_az=v_az, v_el=v_el,
                       vbap_norm=vbap_norm)
+
+    # TODO rest of AllRAD2 method
+
     return M_allrad
 
 
 def allrad_v2rp(Su, Vu, vbap_norm=True):
+
+    n_real_speakers = Su.shape[1]
+    n_virtual_speakers = Vu.shape[1]
+
     tri = Delaunay(Su.transpose())
     H = tri.convex_hull
 
@@ -201,11 +212,11 @@ def allrad_v2rp(Su, Vu, vbap_norm=True):
     a = []
     Hr = np.arange(len(H))
 
-    V2R = np.zeros((Su.shape[1], Vu.shape[1]))
-    for i in range(5200):
+    V2R = np.zeros((n_real_speakers, n_virtual_speakers))
+    for i in range(n_virtual_speakers):
         flag, u, v, t = rti.ray_triangle_intersection_p1(origin, Vu[:, i],
                                                          p0, p1, p2)
-        valid = np.logical_and(flag, t > 0)
+        valid = flag & (t > 0)   # np.logical_and(flag, t > 0)
         face = Hr[valid][0]
         ur = u[valid][0]
         vr = v[valid][0]
