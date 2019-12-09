@@ -64,7 +64,6 @@ def projection(degree, order,
         Optimal for platonic solids, more generally spherical designs only.
         This is here mostly for comparison to other methods.
     """
-
     if np.isscalar(degree):
         degree, order = zip(*channel_spec(degree, order))
 
@@ -92,7 +91,6 @@ def inversion(degree, order,
         Optimal for uniform arrays only.
 
     """
-
     M_proj = projection(degree, order, speakers_azimuth, speakers_elevation)
     M = np.linalg.pinv(M_proj.transpose())
 
@@ -102,14 +100,27 @@ def inversion(degree, order,
 def constant_energy_inversion(degree, order,
                               speakers_azimuth, speakers_elevation,
                               alpha=1):
-    """Compute basic decoder matrix by Energy-Limited Inversion.
+    """
+    Compute basic decoder matrix by Energy-Limited Inversion.
 
-    :param degree:
-    :param order:
-    :param speakers_azimuth:
-    :param speakers_elevation:
-    :param alpha: alpha=1 -> EL Inversion
-    :return:
+    Parameters
+    ----------
+    degree : TYPE
+        DESCRIPTION.
+    order : TYPE
+        DESCRIPTION.
+    speakers_azimuth : TYPE
+        DESCRIPTION.
+    speakers_elevation : TYPE
+        DESCRIPTION.
+    alpha : TYPE, optional
+        DESCRIPTION. The default is 1.
+
+    Returns
+    -------
+    M : TYPE
+        DESCRIPTION.
+
     """
     M_proj = projection(degree, order, speakers_azimuth, speakers_elevation)
     U, S, V = np.linalg.svd(M_proj, full_matrices=False, compute_uv=True)
@@ -131,17 +142,33 @@ def allrad(degree, order,
            speaker_is_imaginary=None,
            v_az=None, v_el=None,
            vbap_norm=True):
-    """Compute basic decoder matrix by the AllRAD method.
+    """
+    Compute basic decoder matrix by the AllRAD method.
 
-    :param speaker_is_imaginary:
-    :param degree:
-    :param order:
-    :param speakers_azimuth:
-    :param speakers_elevation:
-    :param v_az:
-    :param v_el:
-    :param vbap_norm:
-    :return:
+    Parameters
+    ----------
+    degree : TYPE
+        DESCRIPTION.
+    order : TYPE
+        DESCRIPTION.
+    speakers_azimuth : TYPE
+        DESCRIPTION.
+    speakers_elevation : TYPE
+        DESCRIPTION.
+    speaker_is_imaginary : TYPE, optional
+        DESCRIPTION. The default is None.
+    v_az : TYPE, optional
+        DESCRIPTION. The default is None.
+    v_el : TYPE, optional
+        DESCRIPTION. The default is None.
+    vbap_norm : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    M : TYPE
+        DESCRIPTION.
+
     """
     # defaults
     if v_az is None:
@@ -169,16 +196,30 @@ def allrad2(degree, order,
             v_az=None, v_el=None,
             vbap_norm=True):
     """
-    Decoder by AllRAD2 method.  Not implemented
+    Compute decoder by AllRAD2 method.  Not implemented.
 
-    :param degree:
-    :param order:
-    :param spkrs_az:
-    :param spkrs_el:
-    :param v_az:
-    :param v_el:
-    :param vbap_norm:
-    :return:
+    Parameters
+    ----------
+    degree : TYPE
+        DESCRIPTION.
+    order : TYPE
+        DESCRIPTION.
+    spkrs_az : TYPE
+        DESCRIPTION.
+    spkrs_el : TYPE
+        DESCRIPTION.
+    v_az : TYPE, optional
+        DESCRIPTION. The default is None.
+    v_el : TYPE, optional
+        DESCRIPTION. The default is None.
+    vbap_norm : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    M_allrad : TYPE
+        DESCRIPTION.
+
     """
     # defaults
     if v_az is None:
@@ -198,9 +239,26 @@ def allrad2(degree, order,
 
 
 def allrad_v2rp(Su, Vu, vbap_norm=True):
-    """Compute gain matrix for virtual to real speaker array.
+    """
+    Compute gain matrix for virtual to real speaker array. Fast method.
 
-    Su
+    Parameters
+    ----------
+    Su : TYPE
+        DESCRIPTION.
+    Vu : TYPE
+        DESCRIPTION.
+    vbap_norm : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    V2R : TYPE
+        DESCRIPTION.
+    a : TYPE
+        DESCRIPTION.
+    tri : TYPE
+        DESCRIPTION.
 
     """
     n_real_speakers = Su.shape[1]
@@ -244,6 +302,28 @@ def allrad_v2rp(Su, Vu, vbap_norm=True):
 
 
 def allrad_v2r(Su, Vu):
+    """
+    Compute gain matrix for virtual to real speaker array.
+
+    Parameters
+    ----------
+    Su : TYPE
+        DESCRIPTION.
+    Vu : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    V2R : TYPE
+        DESCRIPTION.
+    a : TYPE
+        DESCRIPTION.
+    TYPE
+        DESCRIPTION.
+    Vxyz : TYPE
+        DESCRIPTION.
+
+    """
     tri = Delaunay(Su.transpose())
     H = tri.convex_hull
 
@@ -277,7 +357,7 @@ def allrad_v2r(Su, Vu):
                 V2R[H[j, :], i] = b / np.linalg.norm(b)
 
                 break
-    return V2R, a, tri #Vtri, Vxyz
+    return V2R, a, tri  # Vtri, Vxyz
 
 
 # unit tests
