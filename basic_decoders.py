@@ -33,6 +33,8 @@ import real_spherical_harmonics as rsh
 import spherical_grids as sg
 import ray_triangle_intersection as rti
 
+from localization_models import compute_rVrE, plot_rX
+
 
 def channel_spec(degree, order, norm=1, cs_phase=None):
     def cs(l, m, n=1): return l, m, n
@@ -69,7 +71,7 @@ def projection(degree, order,
     M = rsh.real_sph_harm_transform(degree, order,
                                     np.array(speakers_azimuth).ravel(),
                                     np.array(speakers_elevation).ravel())
-    return M
+    return M.transpose()
 
 
 def inversion(degree, order,
@@ -92,7 +94,7 @@ def inversion(degree, order,
     """
 
     M_proj = projection(degree, order, speakers_azimuth, speakers_elevation)
-    M = np.linalg.pinv(M_proj)
+    M = np.linalg.pinv(M_proj.transpose())
 
     return M
 
@@ -100,7 +102,7 @@ def inversion(degree, order,
 def constant_energy_inversion(degree, order,
                               speakers_azimuth, speakers_elevation,
                               alpha=1):
-    """Compute basic decoder matrix by Energy-Limited Inversion (aka, energy-limited mode matching)
+    """Compute basic decoder matrix by Energy-Limited Inversion.
 
     :param degree:
     :param order:
@@ -109,7 +111,6 @@ def constant_energy_inversion(degree, order,
     :param alpha: alpha=1 -> EL Inversion
     :return:
     """
-
     M_proj = projection(degree, order, speakers_azimuth, speakers_elevation)
     U, S, V = np.linalg.svd(M_proj, full_matrices=False, compute_uv=True)
     print("Singular values = ", S)
@@ -148,10 +149,10 @@ def allrad(degree, order,
         v_az = td.az
         v_el = td.el
 
-    V2R, Vtri, Vxyz = allrad_v2rp(np.array(sg.sph2cart(speakers_azimuth,
-                                                       speakers_elevation)),
-                                  np.array(sg.sph2cart(v_az, v_el)),
-                                  vbap_norm=vbap_norm)
+    Su = np.array(sg.sph2cart(speakers_azimuth, speakers_elevation))
+    Vu = np.array(sg.sph2cart(v_az, v_el))
+
+    V2R, Vtri, Vxyz = allrad_v2rp(Su, Vu, vbap_norm=vbap_norm)
 
     Mv = inversion(degree, order, v_az, v_el)
     M = np.matmul(V2R, Mv)
@@ -197,7 +198,11 @@ def allrad2(degree, order,
 
 
 def allrad_v2rp(Su, Vu, vbap_norm=True):
+    """Compute gain matrix for virtual to real speaker array.
 
+    Su
+
+    """
     n_real_speakers = Su.shape[1]
     n_virtual_speakers = Vu.shape[1]
 
@@ -217,17 +222,23 @@ def allrad_v2rp(Su, Vu, vbap_norm=True):
         flag, u, v, t = rti.ray_triangle_intersection_p1(origin, Vu[:, i],
                                                          p0, p1, p2)
         valid = flag & (t > 0)   # np.logical_and(flag, t > 0)
-        face = Hr[valid][0]
-        ur = u[valid][0]
-        vr = v[valid][0]
-        tr = t[valid][0]
-        a.append((face, ur, vr, tr))
+        if np.sum(valid) == 1:
+            face = Hr[valid][0]
+            ur = u[valid][0]
+            vr = v[valid][0]
+            tr = t[valid][0]
+            a.append((face, ur, vr, tr))
 
-        b = np.array([1 - ur - vr, ur, vr])
-        if vbap_norm:
-            b = b / np.linalg.norm(b)
+            b = np.array([1 - ur - vr, ur, vr])
+            if vbap_norm:
+                b = b / np.linalg.norm(b)
 
-        V2R[H[face, :], i] = b
+            V2R[H[face, :], i] = b
+        else:
+            if np.sum(valid) > 1:
+                print("multiple intersections: " + str(i))
+            else:
+                print("no intersections: " + str(i))
 
     return V2R, a, tri
 
@@ -287,14 +298,52 @@ def unit_test():
     return M_pinv, M_proj, M_check, max_error
 
 
-def unit_test2(order=3):
-    if True:
+def unit_test2(order=3, case=0, debug=True):
+    """
+    Run basic decoders unit tests.
+
+    Parameters
+    ----------
+    order : TYPE, optional
+        DESCRIPTION. The default is 3.
+    case : TYPE, optional
+        DESCRIPTION. The default is 0.
+    debug : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    M_pinv : TYPE
+        DESCRIPTION.
+    M_proj : TYPE
+        DESCRIPTION.
+    p : TYPE
+        DESCRIPTION.
+    M_allrad : TYPE
+        DESCRIPTION.
+    M_allrad2 : TYPE
+        DESCRIPTION.
+
+    """
+    if case == 0:
         s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
         s_el = (0, 0, 0, 0, pi/2, -pi/2)
-    else:
-        s = sg.t_design()
+        order = max(order, 1)
+    elif case == 1:
+        s = sg.t_design240()
         s_az = s.az
         s_el = s.el
+    elif case == 2:
+        s = np.loadtxt('/Users/heller/Documents/adt/examples/directions.csv')
+        s_az = s[:, 0]
+        s_el = s[:, 1]
+    else:
+        print('unknown case')
+        return None
+
+    if debug:
+        print(s_az)
+        print(s_el)
 
     l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
 
@@ -304,13 +353,22 @@ def unit_test2(order=3):
 
     M_proj = projection(l, m, s_az, s_el)
 
-    p = np.allclose(np.matmul(M_proj, M_pinv), np.eye(len(l)))
+    p = np.allclose(np.matmul(M_proj.transpose(), M_pinv), np.eye(len(l)))
 
     M_allrad = allrad(l, m, s_az, s_el)
 
     M_allrad2 = allrad2(l, m, s_az, s_el)
 
+    rV, rE = compute_rVrE(l, m, M_allrad,
+                          np.array(sg.sph2cart(s_az, s_el)))
+
+    plot_rX(rV, 'rVr', [0.5, 1])
+    plot_rX(rE, 'rEr', [0.5, 1])
+
     return M_pinv, M_proj, p, M_allrad, M_allrad2
 
 
 #v2rp, ap, trip = allrad_v2rp(Su, Vu)
+
+if __name__ == '__main__':
+    M_pinv, M_proj, p, M_allrad, M_allrad2 = unit_test2(case=2, debug=False)
