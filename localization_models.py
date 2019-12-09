@@ -29,14 +29,37 @@ from numpy import pi
 
 import spherical_grids as sg
 import real_spherical_harmonics as rsh
-import basic_decoders as bd
+# import basic_decoders as bd
 
 import matplotlib.pyplot as plt
 
 
 def compute_rVrE_fast(M, Su, Y_test_dirs):
-    "this is a fast interface for repeated calls inside an optimizer"
+    """
+    Compute rV and rE via fast interface for use in optimizers.
 
+    Parameters
+    ----------
+    M : TYPE
+        DESCRIPTION.
+    Su : TYPE
+        DESCRIPTION.
+    Y_test_dirs : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    P : TYPE
+        DESCRIPTION.
+    rVxyz : TYPE
+        DESCRIPTION.
+    E : TYPE
+        DESCRIPTION.
+    rExyz : TYPE
+        DESCRIPTION.
+
+    """
+    #
     # pressure & rV
     g = np.matmul(M, Y_test_dirs)
     P = np.sum(g, 0)
@@ -51,13 +74,14 @@ def compute_rVrE_fast(M, Su, Y_test_dirs):
 
 
 def xyz2aeru(xyz):
+    """Cartesian to az, el, radius, unit_vector."""
     az, el, r = sg.cart2sph(xyz[0, :], xyz[1, :], xyz[2, :])
     u = xyz / np.array((r, r, r))
     return az, el, r, u
 
 
 def compute_rVrE(l, m, M, Su, test_dirs=sg.az_el()):
-
+    """Compute rV and rE, single call interface."""
     Y_test_dirs = rsh.real_sph_harm_transform(l, m,
                                               test_dirs.az.ravel(),
                                               test_dirs.el.ravel())
@@ -70,41 +94,32 @@ def compute_rVrE(l, m, M, Su, test_dirs=sg.az_el()):
     return rVr.reshape(test_dirs.shape), rEr.reshape(test_dirs.shape)
 
 
-def test(order=3, decoder=1, ss=True):
-    l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
+def plot_rX(rX, title, clim=None, cmap='jet'):
+    """
+    Plot rV or rE magnitude.
 
-    if ss:
-        s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
-        s_el = (0, 0, 0, 0, pi/2, -pi/2)
-    else:
-        s = sg.t_design240()
-        s_az = s.az
-        s_el = s.el
+    Parameters
+    ----------
+    rX : TYPE
+        DESCRIPTION.
+    title : TYPE
+        DESCRIPTION.
+    clim : TYPE, optional
+        DESCRIPTION. The default is None.
+    cmap : TYPE, optional
+        DESCRIPTION. The default is 'jet'.
 
-    if decoder == 1:
-        M = bd.allrad(l, m, s_az, s_el)
-    elif decoder == 2:
-        M = bd.allrad2(l, m, s_az, s_el)
-    elif decoder == 3:
-        M = bd.inversion(l, m, s_az, s_el)
-    else:
-        raise ValueError("Unknown decoder type: %d" % decoder)
+    Returns
+    -------
+    fig : TYPE
+        DESCRIPTION.
 
-    rVr, rEr, = compute_rVrE(l, m, M,
-                             np.array(sg.sph2cart(s_az, s_el)))
-
-    plot_rX(rVr, "rVr", (0.5, 1))
-    plot_rX(rEr, "rEr", (0.5, 1))
-
-    return rVr, rEr
-
-
-def plot_rX(rX, title, clim=None):
+    """
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
     plt.imshow(np.fliplr(np.flipud(rX.transpose())),
                extent=(180, -180, -90, 90),
-               cmap='jet')
+               cmap=cmap)
     if clim:
         plt.clim(clim)
     ax.xaxis.set_ticks(np.linspace(180, -180, 9))
@@ -119,3 +134,62 @@ def plot_rX(rX, title, clim=None):
         plotly.offline.plot_mpl(fig)
     else:
         plt.show()
+
+    return fig
+
+
+if __name__ == "__main__":
+    import basic_decoders as bd
+
+    def test(order=3, decoder=1, ss=True):
+        """
+        Basic Decoders unit tests.
+
+        Parameters
+        ----------
+        order : TYPE, optional
+            DESCRIPTION. The default is 3.
+        decoder : TYPE, optional
+            DESCRIPTION. The default is 1.
+        ss : TYPE, optional
+            DESCRIPTION. The default is True.
+
+        Raises
+        ------
+        ValueError
+            DESCRIPTION.
+
+        Returns
+        -------
+        rVr : TYPE
+            DESCRIPTION.
+        rEr : TYPE
+            DESCRIPTION.
+
+        """
+        l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
+
+        if ss:
+            s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
+            s_el = (0, 0, 0, 0, pi/2, -pi/2)
+        else:
+            s = sg.t_design240()
+            s_az = s.az
+            s_el = s.el
+
+        if decoder == 1:
+            M = bd.allrad(l, m, s_az, s_el)
+        elif decoder == 2:
+            M = bd.allrad2(l, m, s_az, s_el)
+        elif decoder == 3:
+            M = bd.inversion(l, m, s_az, s_el)
+        else:
+            raise ValueError("Unknown decoder type: %d" % decoder)
+
+        rVr, rEr, = compute_rVrE(l, m, M,
+                                 np.array(sg.sph2cart(s_az, s_el)))
+
+        plot_rX(rVr, "rVr", (0.5, 1))
+        plot_rX(rEr, "rEr", (0.5, 1))
+
+        return rVr, rEr
