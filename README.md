@@ -91,3 +91,8 @@ Sigh...
 
 Aaron Heller <heller@ai.sri.com>
 23 Sept 2019
+
+<a href="https://scan.coverity.com/projects/ajheller-adt_evaluation">
+  <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/20006/badge.svg"/>
+</a>
