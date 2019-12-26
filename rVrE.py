@@ -118,24 +118,20 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 4  # <<<<<---------- change this to change datasets
+example = 6  # <<<<<---------- change this to change datasets
 interior_view = False
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
              "SCMD_brh_spring2017.json",
              "SCMD_stage2017.json",
              "SCMD_run_dec_itu.json",
-             "SCMD-atk-205-MATLAB.json")[example]
+             "SCMD-atk-205-MATLAB.json",
+             "SCMD_gistfile1.json",
+             "SCMD_skatz.json")[example]
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
 print("\n\nread: %s\n" % path.join(smcd_dir, scmd_file))
-
-# add a speaker at the top and bottom
-if False:
-    Su = np.column_stack((Su, np.array([[0, 0], [0, 0], [+1, -1]])))
-
-tri = Delaunay(Su.transpose())
 
 
 # x, y, z, az, el, w = grids.az_el(resolution=72)
@@ -298,41 +294,77 @@ else:
 
 
 #  https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.spatial.Delaunay.html
-#  tri = Delaunay(Su.transpose())
-cve_x = []
-cve_y = []
-cve_z = []
-for face in tri.convex_hull:
-    for i in [0, 1, 2, 0]:
-        cve_x.append(spkr_ux[face[i]])
-        cve_y.append(spkr_uy[face[i]])
-        cve_z.append(spkr_uz[face[i]])
-    cve_x.append(None)
-    cve_y.append(None)
-    cve_z.append(None)
+# add a speaker at the top and bottom
+imaginary_speakers = ((0, 0, -1), (0, 0, +1))
 
+SuT_d = (np.append(Su.T, imaginary_speakers, axis=0) if imaginary_speakers
+         else Su.T)
+
+tri = Delaunay(SuT_d)
+
+face_end = np.array(((None, None, None),))
+
+
+cvh_edges = np.concatenate([np.append(tri.points[f[np.array((0, 1, 2, 0))]],
+                                      face_end, axis=0)
+                            for f in tri.convex_hull], axis=0)
 
 #  https://plot.ly/python/reference/#scatter3d
 cvedges = go.Scatter3d(
         name="Convex Hull edges",
-        x=cve_x,
-        y=cve_y,
-        z=cve_z,
+        x=cvh_edges[:, 0],
+        y=cvh_edges[:, 1],
+        z=cvh_edges[:, 2],
         mode='lines+markers',
         hoverinfo='none',
-        line=dict(color='white', width=6),
+        # line=dict(color='white', width=6),
+        line=dict(color='yellow', width=4),
         visible=True,
         connectgaps=False)
+
+# the convex hull of the speakers on the unit sphere
+# https://plot.ly/python/alpha-shapes/
+# https://plot.ly/python/reference/#mesh3d
+spkr_cv_hull = go.Mesh3d(
+        name='Speakers (unit sphere)',
+        alphahull=0,  # 0 to compute convex hull
+        x=tri.points[:, 0],
+        y=tri.points[:, 1],
+        z=tri.points[:, 2],
+        hoverinfo='text',
+        visible=True,
+        opacity=0.5,
+        color='#1f77b4',
+        # markers=dict(color='orange', size=15),
+        # plot_edges=True,
+        # vertexcolor='red',
+        # showlegend=True,
+        # flatshading=True,
+        text=np.squeeze(S['id'] + ["Imaginary1", "Imaginary2"]))
+
 
 # rE
 # Plotly does not support legend entries for Surface or Mesh (sigh)
 #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
+#  first figure out the minimum value we want to plot
+v_order = C['v_order']
+h_order = C['h_order']
+if v_order > 0:
+    effective_order = min(h_order, v_order)
+else:
+    effective_order = h_order
+
+if effective_order < 3:
+    rE_min = 0.5
+else:
+    rE_min = 0.7
+
 rE_plot = go.Surface(
         name='Energy Model Localization Vector (r<sub>E</sub>)',
         x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], T.shape),
         y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], T.shape),
         z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], T.shape),
-        cmin=0.7,
+        cmin=rE_min,
         cmax=np.ceil(np.max(rEr)*10)/10,
         surfacecolor=c,
         colorscale='Portland',
@@ -346,25 +378,6 @@ rE_plot = go.Surface(
                       y=dict(show=True),
                       x=dict(show=True)))
 
-# the speakers
-# https://plot.ly/python/alpha-shapes/
-# https://plot.ly/python/reference/#mesh3d
-spkr_cv_hull = go.Mesh3d(
-        name='Speakers (unit sphere)',
-        alphahull=0,  # 0 to compute convex hull
-        x=spkr_ux,
-        y=spkr_uy,
-        z=spkr_uz,
-        hoverinfo='text',
-        visible=True,
-        opacity=0.7,
-        color='#1f77b4',
-        # markers=dict(color='orange', size=15),
-        # plot_edges=True,
-        # vertexcolor='red',
-        #showlegend=True,
-        # flatshading=True,
-        text=np.squeeze(S['id']))
 
 #  https://plot.ly/python/reference/#scatter3d
 spkr_locs = go.Scatter3d(
@@ -384,6 +397,7 @@ spkr_locs = go.Scatter3d(
                       spkr_el * 180/pi,
                       spkr_rr,
                       spkr_id))
+
 
 data = [
         rE_plot,

@@ -49,7 +49,7 @@ import adt_scmd
 #   az, el,
 
 from rVrE import T, C, S, \
-                 P, E, rEr, rEu, xyz0, \
+                 P, E, rEr, rEu, rE_min, xyz0, \
                  spkr_az, spkr_el, spkr_rr, spkr_id, \
                  name
 
@@ -83,11 +83,12 @@ def plotly_image(T, X, Xmin=-np.inf, Xmax=+np.inf,
     return trace
 
 
-#
+# ---  rE
+
 rE_trace = \
     plotly_image(T, rEr,
-                 Xmin=0.7, Xmax=1.0,
-                 name='r<sub>E</sub> Magnitude vs. Test Direction',
+                 Xmin=rE_min, Xmax=1.0,
+                 name='Magnitude of r<sub>E</sub> vs. Test Direction',
                  hovertext_format="az: %.1f<br>el: %.1f<br>r<sub>E</sub>: %.2f",
                  visible=True,
                  showlegend=True)
