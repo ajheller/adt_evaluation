@@ -1,0 +1,137 @@
+{
+  "Name": "COMPASS Decoder loudspeaker directions.",
+  "Description": "This configuration file was created with the COMPASS Decoder v1.0.2 plug-in. 9 Feb 2019 3:50:12pm",
+  "LoudspeakerLayout": {
+    "Name": "Loudspeaker Directions",
+    "Loudspeakers": [
+      {
+        "Azimuth": 29.88,
+        "Elevation": 23.58,
+        "Radius": 2.825,
+          "IsImaginary": false,
+        "Channel": 1,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -29.88,
+        "Elevation": 23.58,
+        "Radius": 2.825,
+        "IsImaginary": false,
+        "Channel": 2,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -59.93,
+        "Elevation": 20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 3,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -120.07,
+        "Elevation": 20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 4,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -150.12,
+        "Elevation": 23.58,
+        "Radius": 2.825,
+        "IsImaginary": false,
+        "Channel": 5,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": 150.12,
+        "Elevation": 23.58,
+        "Radius": 2.825,
+        "IsImaginary": false,
+        "Channel": 6,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": 120.07,
+        "Elevation": 20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 7,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": 59.93,
+        "Elevation": 20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 8,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": 29.88,
+        "Elevation": -20.15,
+        "Radius": 2.758,
+        "IsImaginary": false,
+        "Channel": 9,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -29.88,
+        "Elevation": -20.15,
+        "Radius": 2.758,
+        "IsImaginary": false,
+        "Channel": 10,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -59.93,
+        "Elevation": -20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 11,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -120.07,
+        "Elevation": -20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 12,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": -150.12,
+        "Elevation": -20.15,
+        "Radius": 2.758,
+        "IsImaginary": false,
+        "Channel": 13,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": 150.12,
+        "Elevation": -20.15,
+        "Radius": 2.758,
+        "IsImaginary": false,
+        "Channel": 14,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": 120.07,
+        "Elevation": -20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 15,
+        "Gain": 1.00000000000000000000
+      },
+      {
+        "Azimuth": 59.93,
+        "Elevation": -20.62,
+        "Radius": 2.698,
+        "IsImaginary": false,
+        "Channel": 16,
+        "Gain": 1.00000000000000000000
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
 	"S": {
-		"name": "amb",
+		"name": "stage",
 		"az": [
 			[0.471238898],
 			[-0.471238898],
@@ -596,7 +596,7 @@
 		"freq_bands": 2,
 		"hf_gains": [1.781118096,1.690473278,1.516103297,1.27126054,0.9744085427,0.6476655117,0.3149510608],
 		"lf_gains": [1,1,1,1,1,1,1],
-		"description": "amb_6h6p_allrad_5200_rE_max_2_band",
+		"description": "stage_6h6p_allrad_5200_rE_max_2_band",
 		"delay_comp": "on",
 		"level_comp": "on",
 		"xover_freq": 400,
@@ -607,7 +607,7 @@
 		"neff_comp": "output",
 		"g0_type": "rms",
 		"g0": 1.781118096,
-		"name": "amb_6h6p_allrad_5200_rE_max",
+		"name": "stage_6h6p_allrad_5200_rE_max",
 		"C": {
 			"h_order": 6,
 			"v_order": 6,
@@ -674,7 +674,7 @@
 			"mask": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 		},
 		"S": {
-			"name": "amb",
+			"name": "stage",
 			"az": [
 				[0.471238898],
 				[-0.471238898],
