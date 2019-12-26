@@ -134,16 +134,47 @@ _FuMa_channel_normalization = 1 / np.sqrt(np.array(
 
 #
 def is_zonal_sh(sh_l, sh_m):
-    """Return True for zonal spherical harmonics.
-    http://mathworld.wolfram.com/ZonalHarmonic.html"""
+    """
+    Return True for zonal spherical harmonics.
 
+    http://mathworld.wolfram.com/ZonalHarmonic.html
+
+    Parameters
+    ----------
+    sh_l : TYPE
+        DESCRIPTION.
+    sh_m : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
     return sh_m == 0
 
 
 def is_sectoral_sh(sh_l, sh_m):
-    """Return True for sectoral spherical harmonics.
-    http://mathworld.wolfram.com/SectorialHarmonic.html"""
+    """
+    Return True for sectoral spherical harmonics.
 
+    http://mathworld.wolfram.com/SectorialHarmonic.html
+
+
+    Parameters
+    ----------
+    sh_l : TYPE
+        DESCRIPTION.
+    sh_m : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
     return sh_l == np.abs(sh_m)
 
 
@@ -176,18 +207,56 @@ def channel_mask_HV(sh_l, sh_m, h_order, v_order):
     return ch_mask
 
 
+def channel_mask(sh_l, sh_m, h_order, v_order, mixed_order_scheme='HV'):
+    """
+    Return boolean channel_mask according to mixed order scheme.
+
+    Parameters
+    ----------
+    sh_l : TYPE
+        DESCRIPTION.
+    sh_m : TYPE
+        DESCRIPTION.
+    h_order : TYPE
+        DESCRIPTION.
+    v_order : TYPE
+        DESCRIPTION.
+    mixed_order_scheme : TYPE
+        DESCRIPTION.
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+
+    Returns
+    -------
+    ch_mask : TYPE
+        DESCRIPTION.
+
+    """
+    if mixed_order_scheme.upper().startswith('HV'):
+        ch_mask = channel_mask_HV(sh_l, sh_m, h_order, v_order)
+    elif mixed_order_scheme.upper().startswith('HP'):
+        ch_mask = channel_mask_HP(sh_l, sh_m, h_order, v_order)
+    else:
+        raise ValueError("Unknown mixed order scheme, should be 'HV' or 'HP'")
+    return ch_mask
+
+
+
 def ambisonic_channels_acn(ambisonic_order):
     for l in range(ambisonic_order + 1):
         for m in range(-l, l + 1):
-            yield (l, m)
+            yield l, m
 
 
 def ambisonic_channels_sid(ambisonic_order):
     for l in range(ambisonic_order + 1):
         for m in range(l, -1, -1):
-            yield (l, m)
+            yield l, m
             if m > 0:
-                yield (l, -m)
+                yield l, -m
 
 
 def ambisonic_channels_fuma(ambisonic_order):
@@ -197,20 +266,22 @@ def ambisonic_channels_fuma(ambisonic_order):
         else:
             yield l, m
 
+
 def ambisonic_channel_name(l, m):
     try:
-        ret = _FuMa_channel_names[(_FuMa_sh_l==l) & (_FuMa_sh_m == m)][0]
+        ret = _FuMa_channel_names[(_FuMa_sh_l == l) & (_FuMa_sh_m == m)][0]
     except IndexError as ie:
-        ret = "%d.%d%s" %(l, np.abs(m), "C" if m >= 0 else "S")
+        ret = "%d.%d%s" % (l, np.abs(m), "C" if m >= 0 else "S")
     return ret
+
 
 def ambisonic_channel_names(sh_l, sh_m=None):
     # if sh_m is none, we assume that sh_l is a list of l,m
     if sh_m is None:
-        lm = sh_l
+        lms = sh_l
     else:
-        lm = zip(sh_l, sh_m)
-    []
+        lms = zip(sh_l, sh_m)
+    return [ambisonic_channel_name(*lm) for lm in lms]
 
 
 
@@ -268,22 +339,16 @@ class ChannelsAmbisonic(Channels):
         else:
             cs_phase = np.ones_like(sh_l)
 
-        if mixed_order_scheme.upper().startswith('HV'):
-            channel_mask = channel_mask_HV(sh_l, sh_m,
-                                           h_order, v_order)
-        elif mixed_order_scheme.upper().startswith('HP'):
-            channel_mask = channel_mask_HP(sh_l, sh_m,
-                                           h_order, v_order)
-        else:
-            raise ValueError("Unknown mixed order scheme, should be 'HV' or 'HP'")
+        ch_mask = channel_mask(sh_l, sh_m, h_order, v_order,
+                               mixed_order_scheme)
 
         super().__init__(
             h_order, v_order,
-            sh_l[channel_mask], sh_m[channel_mask],
-            normalization[channel_mask],
-            cs_phase[channel_mask],
-            channel_mask,
-            _FuMa_channel_names[channel_mask],
+            sh_l[ch_mask], sh_m[ch_mask],
+            normalization[ch_mask],
+            cs_phase[ch_mask],
+            ch_mask,
+            _FuMa_channel_names[ch_mask],
             name)
 
 
