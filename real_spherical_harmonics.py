@@ -36,7 +36,8 @@ from numpy import conj, real, imag, floor, array, meshgrid
 
 
 def real_sph_harm(l, m, theta, phi, phi_is_elevation=False, cs_phase=False):
-    """Compute real spherical harmonics, Y_lm
+    """
+    Compute real spherical harmonics, Y_lm.
 
     Parameters
     ----------
