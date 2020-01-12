@@ -31,7 +31,7 @@ import sympy as sp
 
 # max rE gains
 #  from Heller, et al. LAC 2012
-def max_rE_gains_2d(order):
+def max_rE_gains_2d(order, numeric=True):
     max_rE = np.max([sp.chebyshevt_root(order + 1, i)
                      for i in range(order + 1)])
     return [sp.chebyshevt(n, max_rE) for n in range(order+1)]
