@@ -327,10 +327,13 @@ cvedges = go.Scatter3d(
 # https://plot.ly/python/reference/#mesh3d
 spkr_cv_hull = go.Mesh3d(
         name='Speakers (unit sphere)',
-        alphahull=0,  # 0 to compute convex hull
+        #alphahull=0,  # 0 to compute convex hull
         x=tri.points[:, 0],
         y=tri.points[:, 1],
         z=tri.points[:, 2],
+        i=tri.convex_hull[:, 0],
+        j=tri.convex_hull[:, 1],
+        k=tri.convex_hull[:, 2],
         hoverinfo='text',
         visible=True,
         opacity=0.5,
