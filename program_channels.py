@@ -68,6 +68,10 @@ from attr import attrs, attrib
 """
 
 
+def np_array(a):
+    return a if isinstance(a, np.ndarray) else np.array(a)
+
+
 # Normalization Conventions
 # I assume that the underlying real spherical harmonic code produces
 # full orthonormal values, hence these functions give the gains needed
@@ -75,13 +79,13 @@ from attr import attrs, attrib
 # FIXME: this is the inverse of the normaliztion in the MATLAB ADT.
 
 
-def normalization_semi(sh_l, sh_m):
+def normalization_semi(sh_l, sh_m=None):
     "gains to produce schmidt semi-normalized values from full orthronormal"
     return np.sqrt(2 * sh_l + 1)
 
 
-def normalization_full(sh_l, sh_m):
-    return 1
+def normalization_full(sh_l, sh_m=None):
+    return np.ones_like(sh_l, dtype=type(np.sqrt(1)))
 
 
 # mixed-order sets
@@ -348,7 +352,7 @@ class ChannelsAmbisonic(Channels):
             normalization[ch_mask],
             cs_phase[ch_mask],
             ch_mask,
-            _FuMa_channel_names[ch_mask],
+            ambisonic_channel_names(sh_l, sh_m),
             name)
 
 
@@ -361,8 +365,8 @@ class ChannelsAmbiX(ChannelsAmbisonic):
         v_order = int(v_order)
 
         sh_l, sh_m = zip(*ambisonic_channels_acn(h_order))
-        #sh_l = np.array([l for l in range(h_order + 1) for m in range(-l, l + 1)])
-        #sh_m = np.array([m for l in range(h_order + 1) for m in range(-l, l + 1)])
+        sh_l = np.array(sh_l)
+        sh_m = np.array(sh_m)
         norm = normalization_semi(sh_l, sh_m)
         super().__init__(
             h_order, v_order,
