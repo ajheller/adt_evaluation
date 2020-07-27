@@ -184,8 +184,9 @@ def is_sectoral_sh(sh_l, sh_m):
 
 def is_tesseral_sh(sh_l, sh_m):
     """Return True for tesseral spherical harmonics.
-    http://mathworld.wolfram.com/TesseralHarmonic.html"""
 
+    http://mathworld.wolfram.com/TesseralHarmonic.html
+    """
     return ~is_sectoral_sh(sh_l, sh_m) & ~is_zonal_sh(sh_l, sh_m)
 
 
@@ -352,7 +353,7 @@ class ChannelsAmbisonic(Channels):
             normalization[ch_mask],
             cs_phase[ch_mask],
             ch_mask,
-            ambisonic_channel_names(sh_l, sh_m),
+            ambisonic_channel_names(sh_l[ch_mask], sh_m[ch_mask]),
             name)
 
 
