@@ -42,7 +42,8 @@ def array2faust_vector(a, prefix=None, suffix=None):
 
     s += np.array2string(a,
                          separator=', ', suppress_small=True,
-                         max_line_width=np.inf, sign='+'
+                         max_line_width=np.inf, sign='+',
+                         threshold=np.inf,
                          ).translate(str.maketrans('[]', '()'))
     if suffix is not None:
         s += suffix
@@ -82,7 +83,8 @@ def bool2faust(a):
     return '1' if a else '0'
 
 
-"""
+def write_faust_decoder_description():
+    s = f"""
 // Faust Decoder Configuration File
 // Written by Ambisonic Decoder Toolbox, version 8.0
 // run by heller on Crean-2.local (MACI64) at 25-Dec-2019 12:13:15
@@ -101,6 +103,7 @@ def bool2faust(a):
 // output speaker order: 3 1 2 5 6 9 10 7 8 11 12 13 14
 //-------
 """
+    return s
 
 
 def write_faust_decoder_configuration(name, nbands=2, decoder_type=2,
@@ -112,8 +115,8 @@ def write_faust_decoder_configuration(name, nbands=2, decoder_type=2,
                                       nfc_output=True, nfc_input=False,
                                       output_gain_muting=True,
                                       nspkrs=24, rspkrs=24*(1,),
-                                      gamma0=(1,1,1,1),
-                                      gamma1=(1,1,1,1)):
+                                      gamma0=(1, 1, 1, 1),
+                                      gamma1=(1, 1, 1, 1)):
     """
     Write the config for the ADT's decoder in FAUST.
 
@@ -159,6 +162,7 @@ def write_faust_decoder_configuration(name, nbands=2, decoder_type=2,
     None.
 
     """
+#
 
     s = f"""
 // start decoder configuration
@@ -185,20 +189,20 @@ decoder_order = {decoder_order};
 co = {co};
 
 // use full or reduced input set
-input_full_set = {bool2faust(input_full_set)};
+input_full_set = {int(input_full_set)};
 
 // delay compensation
-delay_comp = {bool2faust(delay_comp)};
+delay_comp = {int(delay_comp)};
 
 // level compensation
-level_comp = {bool2faust(level_comp)};
+level_comp = {int(level_comp)};
 
 // nfc on input or output
-nfc_output = {bool2faust(nfc_output)};
-nfc_input  = {bool2faust(nfc_input)};
+nfc_output = {int(nfc_output)};
+nfc_input  = {int(nfc_input)};
 
 // enable output gain and muting controls
-output_gain_muting = {bool2faust(output_gain_muting)};
+output_gain_muting = {int(output_gain_muting)};
 
 // number of speakers
 ns = {nspkrs};
