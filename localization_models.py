@@ -63,20 +63,20 @@ def compute_rVrE_fast(M, Su, Y_test_dirs):
     # pressure & rV
     g = np.matmul(M, Y_test_dirs)
     P = np.sum(g, 0)
-    rVxyz = np.real(np.matmul(Su, g) / np.array([P, P, P]))
+    rVxyz = np.real(np.matmul(Su, g) / P) # np.array([P, P, P]))
 
     # energy & rE
     g2 = np.real(g * g.conjugate())  # the g's might be complex
     E = np.sum(g2, 0)
-    rExyz = np.matmul(Su, g2) / np.array([E, E, E])
+    rExyz = np.matmul(Su, g2) / E  #np.array([E, E, E])
 
     return P, rVxyz, E, rExyz
 
 
 def xyz2aeru(xyz):
     """Cartesian to az, el, radius, unit_vector."""
-    az, el, r = sg.cart2sph(xyz[0, :], xyz[1, :], xyz[2, :])
-    u = xyz / np.array((r, r, r))
+    az, el, r = sg.cart2sph(*xyz)
+    u = xyz / r  # np.array((r, r, r))
     return az, el, r, u
 
 
@@ -131,7 +131,7 @@ def plot_rX(rX, title, clim=None, cmap='jet'):
 
     if False:
         # plotly does not work with MPL images (yet)
-        plotly.offline.plot_mpl(fig)
+        pass # plotly.offline.plot_mpl(fig)
     else:
         plt.show()
 
@@ -141,7 +141,7 @@ def plot_rX(rX, title, clim=None, cmap='jet'):
 if __name__ == "__main__":
     import basic_decoders as bd
 
-    def test(order=3, decoder=1, ss=True):
+    def test(order=3, decoder=1, ss=False):
         """
         Basic Decoders unit tests.
 
