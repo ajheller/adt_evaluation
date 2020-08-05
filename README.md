@@ -99,7 +99,7 @@ Sigh...
 Aaron Heller <heller@ai.sri.com>
 23 Sept 2019
 
-3 Jan 2010 Addendum:
+3 Jan 2020 Addendum:
 
 I recently found a good discussion of this on Stack Exchange:
 <https://stats.stackexchange.com/questions/284995/are-1-dimensional-numpy-arrays-equivalent-to-vectors>
