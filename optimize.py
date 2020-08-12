@@ -9,14 +9,21 @@ Created on Tue Dec 31 02:48:26 2019
 # sanbox for optimizer using Jax for AutoGrad
 #   https://github.com/google/jax
 
+# make a conda env for jax, so we can blow it away if we screw up
 #  conda create -n jax --clone base
 
 # jax installation:
 #   https://github.com/google/jax#installation
 
-# install jax with
+# On MacOS 10.13, install jax with
 #   pip install jaxlib==0.1.51  # 0.1.52 won't run on MacOS 10.13
 #   pip install jax
+
+# on cuda0000x.ai.sri.com install jax like this:
+#  PYTHON_VERSION=cp38; CUDA_VERSION=cuda102; PLATFORM=manylinux2010_x86_64
+#  BASE_URL='https://storage.googleapis.com/jax-releases'
+#  pip install --upgrade $BASE_URL/$CUDA_VERSION/jaxlib-0.1.52-$PYTHON_VERSION-none-$PLATFORM.whl
+#  pip install --upgrade jax
 
 # Jax Autograd
 #  https://github.com/google/jax#automatic-differentiation-with-grad
@@ -116,7 +123,7 @@ def o(M):
                                 iprint=50)
     M_opt = x.reshape(M.shape)
 
-    r = rE(M_opt, Su, Y, full=true)
+    r = rE(M_opt, Su, Y, full=True)
 
     return M_opt, f, d, r
 
