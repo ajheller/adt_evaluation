@@ -198,9 +198,9 @@ from numpy import pi
 
 def test3(case=1):
 
-    if case is 1:
+    if case == 1:
         rti_fun = ray_triangle_intersection_p1
-    elif case is 2:
+    elif case == 2:
         rti_fun = ray_triangle_intersection_p
     else:
         print('unknown case ' + str(case))
