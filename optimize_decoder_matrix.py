@@ -34,7 +34,7 @@ Created on Tue Dec 31 02:48:26 2019
 import jax
 import jax.numpy as np  # jax overloads numpy
 import jax.random as random
-# import jax.scipy.optimize as jopt
+import jax.scipy.optimize as jopt
 
 import numpy as onp  # 'original' numpy -- this is a convention
 
@@ -43,6 +43,7 @@ import scipy.optimize as opt
 import spherical_grids as sg
 import real_spherical_harmonics as rsh
 import basic_decoders as bd
+import localization_models as lm
 
 # import localization_models as locm
 
@@ -53,12 +54,16 @@ jax.config.update("jax_enable_x64", True)
 key = random.PRNGKey(1)
 
 # 3rd-order decoding
-l, m = zip(*rsh.lm_generator(3))
+l, m = zip(*rsh.lm_generator(7))
 
 
 # the test directions
 T = sg.t_design5200()
 Y_test = rsh.real_sph_harm_transform(l, m, T.az, T.el)
+
+# directtions for plotting
+T_azel = sg.az_el()
+Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
 
 # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
 S240 = sg.t_design240()
@@ -93,7 +98,7 @@ def xyz2ur(xyz):
 
 def loss(M, M_shape0, M_shape1, Su, Y_test):
     rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
-    return (np.sum((rExyz - T.u * 0.90)**2)
+    return (np.sum((rExyz - T.u * 1.1)**2)
             + np.sum((E-1)**2)/10000
             + np.sum(M**2)/1000  # regularization term
             )
@@ -110,7 +115,7 @@ def loss_grad(M, M_shape0, M_shape1, Su, Y_test):
 
 
 # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
-def o(M=None, Su=Su, Y_test=Y_test, iprint=50):
+def o(M=None, Su=Su, Y_test=Y_test, iprint=50, plot=True):
 
     if M is None:
         # infer M_shape from Su and Y
@@ -128,40 +133,52 @@ def o(M=None, Su=Su, Y_test=Y_test, iprint=50):
                                 iprint=iprint)
     M_opt = x.reshape(M_shape)
 
-    rExyz, E = rE(M_opt, Su, Y_test)
+    if plot:
+        rExyz, E = rE(M_opt, Su, Y_azel)
+        rEu, rEr = xyz2ur(rExyz)
+        lm.plot_rX(rEr.reshape(T_azel.shape), 'rE vs. test direction')
 
-    return M_opt, f, d, rExyz, E, xyz2ur(rExyz)
+    return M_opt, f, d
+
+
+def unit_test():
+    return o()
 
 
 # %% Try to use jax.scipy.optimize.minimize...
-#    sadly, this part of Jax is totally broken
+#    sadly, this part of Jax apprears to be totally broken
+# source code at site-packages/jax/scipy/optimize/_minimize.py, _bfgs.py, _line_search.py
 
-"""
 # this one is for jax.scipy.optimize, which has the args in a different order
-#  x0 comes last (cry)
-def loss2(M_shape0, M_shape1, Su, Y, M):
-    #print("M = ", M, "M_shape0 =", M_shape0, "M_shape1 =", M_shape1)
-    rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y)
-    return (np.sum((rExyz - T.u * 0.90)**2)
-            + np.sum((E-1)**2)/10000
-            + np.sum(M**2)/1000  # regularization term
-            )
+#  x comes last, this is because it does
+#   fun_with_args = partial(fun, *args)  which puts the args first!
+# see https://docs.python.org/3.8/library/functools.html#functools.partial
 
-def o2(M=None, iprint=50):
+
+def loss2(M_shape0, M_shape1, Su, Y, M):
+    return loss(M, M_shape0, M_shape1, Su, Y )
+
+
+def o2(M=None, Su=Su, Y_test=Y_test, iprint=50):
     if M is None:
+        # infer M_shape from Su and Y
+        M_shape = (Su.shape[1],     # number of loudspeakers
+                   Y_test.shape[0], # number of program channels
+                   )
         M = random.uniform(key, shape=M_shape, minval=-0.5, maxval=0.5)
+    else:
+        M_shape = M.shape
 
     x0 = M.ravel()  # optimize needs a vector
 
-    #print(x0)
-
     result = jopt.minimize(fun=loss2, x0=x0,
-                           args=(*M.shape, Su, Y),
+                           args=(*M.shape, Su, Y_test),
                            method='BFGS',  #'L-BFGS-B',
                            #options=dict(disp=True)
                            )
     return result
-"""
+
+# %%
 """
 # more unused code
 def rms_dir_error(M):
@@ -188,3 +205,4 @@ def gv(M):
     return onp.asarray(v), onp.array(g, order='F')
 
 """
+
