@@ -53,8 +53,9 @@ jax.config.update("jax_enable_x64", True)
 # Generate key which is used by JAX to generate random numbers
 key = random.PRNGKey(1)
 
-# 3rd-order decoding
-l, m = zip(*rsh.lm_generator(7))
+# select ambisonic order of decoder
+ambisonic_order = 3
+l, m = zip(*rsh.lm_generator(ambisonic_order))
 
 
 # the test directions
@@ -127,18 +128,24 @@ def o(M=None, Su=Su, Y_test=Y_test, iprint=50, plot=True):
         M_shape = M.shape
 
     x0 = M.ravel()  # inital guess
-    x, f, d = opt.fmin_l_bfgs_b(loss_grad, x0,
-                                args=(*M_shape, Su, Y_test),
-                                fprime=None,
-                                iprint=iprint)
-    M_opt = x.reshape(M_shape)
 
-    if plot:
-        rExyz, E = rE(M_opt, Su, Y_azel)
-        rEu, rEr = xyz2ur(rExyz)
-        lm.plot_rX(rEr.reshape(T_azel.shape), 'rE vs. test direction')
+    res = opt.minimize(loss_grad, x0,
+                       args=(*M_shape, Su, Y_test),
+                       method='L-BFGS-B',
+                       jac=True,
+                       options=dict(disp=iprint)
+                       )
+    if res.status == 0:
+        M_opt = res.x.reshape(M_shape)
 
-    return M_opt, f, d
+        if plot:
+            rExyz, E = rE(M_opt, Su, Y_azel)
+            rEu, rEr = xyz2ur(rExyz)
+            lm.plot_rX(rEr.reshape(T_azel.shape), 'rE vs. test direction')
+    else:
+        print('bummer:', res.message)
+
+    return M_opt, res
 
 
 def unit_test():
