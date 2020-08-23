@@ -137,9 +137,10 @@ def plot_rX(rX, title, clim=None, cmap='jet'):
 
     return fig
 
+
 def plot_performance(M, Su, degree, title=""):
     l, m = zip(*rsh.lm_generator(degree))
-    test_dirs=sg.az_el()
+    test_dirs = sg.az_el()
     Y_test_dirs = rsh.real_sph_harm_transform(l, m,
                                               test_dirs.az.ravel(),
                                               test_dirs.el.ravel())
@@ -151,9 +152,16 @@ def plot_performance(M, Su, degree, title=""):
 
     rE_dir_err = np.arccos(np.sum(rEu * test_dirs.u, axis=0)) * 180/np.pi
 
-    plot_rX(rEr.reshape(test_dirs.shape), '%s\nrE vs. test direction' % title)
-    plot_rX(E.reshape(test_dirs.shape), '%s\nE vs. test_direction' % title)
-    plot_rX(rE_dir_err.reshape(test_dirs.shape), '%s\ndir error' % title)
+    plot_rX(rEr.reshape(test_dirs.shape),
+            title='%s, order=%d\nrE vs. test direction' % (title, degree),
+            clim=(0.5, 1))
+    plot_rX(10*np.log10(E.reshape(test_dirs.shape)),
+            title='%s, order=%d\nE (dB) vs. test_direction' % (title, degree),
+            clim=(-6, 6)
+            )
+    plot_rX(rE_dir_err.reshape(test_dirs.shape),
+            title='%s, order=%d\ndir error' % (title, degree),
+            clim=(0, 20))
 
 
 
