@@ -137,6 +137,26 @@ def plot_rX(rX, title, clim=None, cmap='jet'):
 
     return fig
 
+def plot_performance(M, Su, degree, title=""):
+    l, m = zip(*rsh.lm_generator(degree))
+    test_dirs=sg.az_el()
+    Y_test_dirs = rsh.real_sph_harm_transform(l, m,
+                                              test_dirs.az.ravel(),
+                                              test_dirs.el.ravel())
+
+    P, rVxyz, E, rExyz = compute_rVrE_fast(M, Su, Y_test_dirs)
+
+    rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
+    rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
+
+    rE_dir_err = np.arccos(np.sum(rEu * test_dirs.u, axis=0)) * 180/np.pi
+
+    plot_rX(rEr.reshape(test_dirs.shape), '%s\nrE vs. test direction' % title)
+    plot_rX(E.reshape(test_dirs.shape), '%s\nE vs. test_direction' % title)
+    plot_rX(rE_dir_err.reshape(test_dirs.shape), '%s\ndir error' % title)
+
+
+
 
 if __name__ == "__main__":
     import basic_decoders as bd
