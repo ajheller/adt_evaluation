@@ -98,11 +98,14 @@ M240_allrad = bd.allrad(l, m, S240.az, S240.el)
 
 
 # %%
+cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/8)[0]
+W = np.array([1 if c else 0 for c in cap])
 
+# %%
 def loss(M, M_shape0, M_shape1, Su, Y_test):
     rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
     return (np.sum((rExyz - T.u * 1.1)**2)
-            + np.sum((E-1)**2)/100
+            + np.sum((E-W)**2)/10
             + np.sum(M**2)/1000  # regularization term
             )
 
@@ -139,7 +142,7 @@ def o(M=None, Su=Su, ambisonic_order=3, iprint=50, plot=False):
                        args=(*M_shape, Su, Y_test),
                        method='L-BFGS-B',
                        jac=True,
-                       options=dict(disp=iprint)
+                       options=dict(disp=iprint, gtol=1e-8, ftol=1e-12)
                        )
     if res.status == 0:
         M_opt = res.x.reshape(M_shape)
@@ -161,18 +164,23 @@ def unit_test():
 
 def stage_test(ambisonic_order=3):
     l, m = zip(*rsh.lm_generator(ambisonic_order))
+
     df = pd.read_csv('stage.csv')
-    stage_az = df["Azimuth:Degrees"] / 180 * np.pi
-    stage_el = df["Elevation:Degrees"] / 180 * np.pi
-    stage_u = np.vstack(sg.sph2cart(stage_az, stage_el))
+    S_az = df["Azimuth:Degrees"] / 180 * np.pi
+    S_el = df["Elevation:Degrees"] / 180 * np.pi
+    S_r  = df["Radius:Inches"] * 2.54 / 100
+    S_u = np.vstack(sg.sph2cart(S_az, S_el))
 
-    Mstage_allrad = bd.allrad(l, m, stage_az, stage_el)
-    lm.plot_performance(Mstage_allrad, stage_u, ambisonic_order, 'AllRAD')
+    if True:
+        M_allrad = bd.allrad(l, m, S_az, S_el)
+        lm.plot_performance(M_allrad, S_u, ambisonic_order, 'AllRAD')
+    else:
+        M_allrad = None
 
-    M_opt, res = o(Mstage_allrad, stage_u, ambisonic_order)
-    lm.plot_performance(M_opt, stage_u, ambisonic_order, 'Optimized AllRAD')
+    M_opt, res = o(M_allrad, S_u, ambisonic_order)
+    lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
 
-    return
+    return M_opt, M_allrad
 
 # %% Try to use jax.scipy.optimize.minimize...
 #    sadly, this part of Jax apprears to be totally broken
