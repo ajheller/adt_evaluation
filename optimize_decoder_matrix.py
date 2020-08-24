@@ -183,6 +183,7 @@ def stage_test(ambisonic_order=3):
     lm.plot_matrix(M_opt, title='Optimized')
 
     off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6) # 60dB down
+    print("Using:\n", df["Name:Stage"][~off.copy()].values)
     print("Turned off:\n", df["Name:Stage"][off.copy()].values)
 
     return M_opt, M_allrad, off
