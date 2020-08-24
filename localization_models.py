@@ -164,6 +164,15 @@ def plot_performance(M, Su, degree, title=""):
             clim=(0, 20))
 
 
+def plot_matrix(M, title=""):
+    plt.matshow(20*np.log10(np.abs(M)), cmap='jet')
+    plt.colorbar()
+    plt.clim((-60, 0))
+    plt.title("%s\nMatrix element gains (dB)" % title)
+    plt.xlabel("Program channels (ACN order)")
+    plt.ylabel("Loudspeakers")
+    plt.show()
+    return None
 
 
 if __name__ == "__main__":
