@@ -277,7 +277,9 @@ def spherical_cap(T, u, angle, min_angle=0):
     Returns
     -------
         boolean array of points in the cap
+
         index of point closest to u
+
         error of point
 
     Example
