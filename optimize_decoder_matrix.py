@@ -34,7 +34,6 @@ Created on Tue Dec 31 02:48:26 2019
 import jax
 import jax.numpy as np  # jax overloads numpy
 import jax.random as random
-import jax.scipy.optimize as jopt
 
 import numpy as onp  # 'original' numpy -- this is a convention
 
@@ -102,19 +101,19 @@ cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/8)[0]
 W = np.array([1 if c else 0 for c in cap])
 
 # %%
-def loss(M, M_shape0, M_shape1, Su, Y_test):
+def loss(M, M_shape0, M_shape1, Su, Y_test, W):
     rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
     return (np.sum((rExyz - T.u * 1.1)**2)
-            + np.sum((E-W)**2)/10
+            + np.sum((E - W)**2)/10
             + np.sum(M**2)/1000  # regularization term
             )
 
 
-val_and_grad_fn = jax.jit(jax.value_and_grad(loss), static_argnums=range(1, 5))
+val_and_grad_fn = jax.jit(jax.value_and_grad(loss), static_argnums=range(1, 6))
 
 
-def loss_grad(M, M_shape0, M_shape1, Su, Y_test):
-    v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test)
+def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W=1):
+    v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W)
     # I'm not to happy about having to copy g but L-BGFS needs it in fortran
     # order.  Check with g.flags
     return v.copy(), onp.array(g, order='F')  # onp.asfortranarray(g)
@@ -129,8 +128,8 @@ def o(M=None, Su=Su, ambisonic_order=3, iprint=50, plot=False):
 
     if M is None:
         # infer M_shape from Su and Y
-        M_shape = (Su.shape[1],     # number of loudspeakers
-                   Y_test.shape[0], # number of program channels
+        M_shape = (Su.shape[1],      # number of loudspeakers
+                   Y_test.shape[0],  # number of program channels
                    )
         M = random.uniform(key, shape=M_shape, minval=-0.5, maxval=0.5)
     else:
@@ -139,7 +138,7 @@ def o(M=None, Su=Su, ambisonic_order=3, iprint=50, plot=False):
     x0 = M.ravel()  # inital guess
 
     res = opt.minimize(loss_grad, x0,
-                       args=(*M_shape, Su, Y_test),
+                       args=(*M_shape, Su, Y_test, W),
                        method='L-BFGS-B',
                        jac=True,
                        options=dict(disp=iprint, gtol=1e-8, ftol=1e-12)
@@ -156,7 +155,7 @@ def o(M=None, Su=Su, ambisonic_order=3, iprint=50, plot=False):
     return M_opt, res
 
 
-def unit_test():
+def unit_test(ambisonic_order=3):
     M_opt, res = o()
     lm.plot_performance(M_opt, Su, ambisonic_order, 'Optimized unit test')
     return
@@ -168,23 +167,32 @@ def stage_test(ambisonic_order=3):
     df = pd.read_csv('stage.csv')
     S_az = df["Azimuth:Degrees"] / 180 * np.pi
     S_el = df["Elevation:Degrees"] / 180 * np.pi
-    S_r  = df["Radius:Inches"] * 2.54 / 100
+    S_r = df["Radius:Inches"] * 2.54 / 100
     S_u = np.vstack(sg.sph2cart(S_az, S_el))
 
     if True:
         M_allrad = bd.allrad(l, m, S_az, S_el)
         lm.plot_performance(M_allrad, S_u, ambisonic_order, 'AllRAD')
+        lm.plot_matrix(M_allrad, title='AllRAD')
     else:
         M_allrad = None
 
     M_opt, res = o(M_allrad, S_u, ambisonic_order)
     lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
 
-    return M_opt, M_allrad
+    lm.plot_matrix(M_opt, title='Optimized')
 
-# %% Try to use jax.scipy.optimize.minimize...
+    off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6) # 60dB down
+    print("Turned off:\n", df["Name:Stage"][off.copy()].values)
+
+    return M_opt, M_allrad, off
+
+
+"""
+# %% Try to use jax.scipy.optimize.minimize to keep everything in the GPU
 #    sadly, this part of Jax apprears to be totally broken
-# source code at site-packages/jax/scipy/optimize/_minimize.py, _bfgs.py, _line_search.py
+# source code at site-packages/jax/scipy/optimize/_minimize.py,
+#  _bfgs.py, _line_search.py
 
 # this one is for jax.scipy.optimize, which has the args in a different order
 #  x comes last, this is because it does
@@ -192,7 +200,8 @@ def stage_test(ambisonic_order=3):
 # see https://docs.python.org/3.8/library/functools.html#functools.partial
 
 
-"""
+import jax.scipy.optimize as jopt
+
 def loss2(M_shape0, M_shape1, Su, Y, M):
     return loss(M, M_shape0, M_shape1, Su, Y )
 
@@ -216,32 +225,3 @@ def o2(M=None, Su=Su, Y_test=Y_test, iprint=50):
                            )
     return result
 """
-
-# %%
-"""
-# more unused code
-def rms_dir_error(M):
-    #print(M.shape)
-    G = M.reshape(M_shape) @ Y
-    G2 = G * G
-    E = np.sum(G2, axis=0)
-    rExyz = (Su @ G2) / E
-
-    # magnitude and direction of rE
-    rEr = np.sqrt(np.sum(rExyz * rExyz, axis=0))
-    rEu = rExyz/rEr
-
-    # the direction error vector
-    rE_err_xyz = T.u - rEu
-    rE_err_mag = np.sum((rE_err_xyz * rE_err_xyz).ravel())/T.shape[0]
-
-
-    return rE_err_mag
-
-
-def gv(M):
-    v, g = jax.value_and_grad(rms_dir_error)(M)
-    return onp.asarray(v), onp.array(g, order='F')
-
-"""
-
