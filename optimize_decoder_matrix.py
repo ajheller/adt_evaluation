@@ -184,7 +184,7 @@ def stage_test(ambisonic_order=3):
     else:
         M_allrad = None
 
-    M_opt, res = o(M_allrad, S_u, ambisonic_order)
+    M_opt, res = o(M_allrad, S_u, W, ambisonic_order)
     lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
 
     lm.plot_matrix(M_opt, title='Optimized')
