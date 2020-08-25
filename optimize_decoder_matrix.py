@@ -87,13 +87,7 @@ T = sg.t_design5200()
 T_azel = sg.az_el()
 Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
 
-# make a  decoder matrix for the 240 speaker t-design via pseudoinverse
-S240 = sg.t_design240()
-Su = S240.u
-M240 = bd.inversion(l, m, S240.az, S240.el)
-M240_shape = M240.shape
 
-M240_allrad = bd.allrad(l, m, S240.az, S240.el)
 
 
 # %%
@@ -112,7 +106,7 @@ def loss(M, M_shape0, M_shape1, Su, Y_test, W):
 val_and_grad_fn = jax.jit(jax.value_and_grad(loss), static_argnums=range(1, 6))
 
 
-def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W=1):
+def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W):
     v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W)
     # I'm not to happy about having to copy g but L-BGFS needs it in fortran
     # order.  Check with g.flags
@@ -120,7 +114,11 @@ def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W=1):
 
 
 # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
-def o(M=None, Su=Su, ambisonic_order=3, iprint=50, plot=False):
+def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
+
+    if W == None:
+        W = 1
+
     l, m = zip(*rsh.lm_generator(ambisonic_order))
     # the test directions
     T = sg.t_design5200()
@@ -156,7 +154,15 @@ def o(M=None, Su=Su, ambisonic_order=3, iprint=50, plot=False):
 
 
 def unit_test(ambisonic_order=3):
-    M_opt, res = o()
+    # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
+    S240 = sg.t_design240()
+    Su = S240.u
+    M240 = bd.inversion(l, m, S240.az, S240.el)
+    M240_shape = M240.shape
+
+    M240_allrad = bd.allrad(l, m, S240.az, S240.el)
+
+    M_opt, res = o(None, Su, 1, ambisonic_order)
     lm.plot_performance(M_opt, Su, ambisonic_order, 'Optimized unit test')
     return
 
@@ -171,6 +177,7 @@ def stage_test(ambisonic_order=3):
     S_u = np.vstack(sg.sph2cart(S_az, S_el))
 
     if True:
+        # make an AllRAD decoder and plot its performances
         M_allrad = bd.allrad(l, m, S_az, S_el)
         lm.plot_performance(M_allrad, S_u, ambisonic_order, 'AllRAD')
         lm.plot_matrix(M_allrad, title='AllRAD')
