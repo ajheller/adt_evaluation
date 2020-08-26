@@ -150,7 +150,10 @@ def plot_performance(M, Su, degree, title=""):
     rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
     rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
 
-    rE_dir_err = np.arccos(np.sum(rEu * test_dirs.u, axis=0)) * 180/np.pi
+    # the arg to arccos can get epsilon larger than 1 due to round off,
+    # which produces NaNs, so clip to [-1, 1]
+    rE_dir_err = np.arccos(np.clip(np.sum(rEu * test_dirs.u, axis=0),
+                                   -1, 1)) * 180/np.pi
 
     plot_rX(rEr.reshape(test_dirs.shape),
             title='%s, order=%d\nrE vs. test direction' % (title, degree),
@@ -162,6 +165,10 @@ def plot_performance(M, Su, degree, title=""):
     plot_rX(rE_dir_err.reshape(test_dirs.shape),
             title='%s, order=%d\ndir error' % (title, degree),
             clim=(0, 20))
+
+    return (rEr.reshape(test_dirs.shape),
+            E.reshape(test_dirs.shape),
+            rE_dir_err.reshape(test_dirs.shape))
 
 
 def plot_matrix(M, title=""):
