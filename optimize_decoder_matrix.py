@@ -43,6 +43,7 @@ import spherical_grids as sg
 import real_spherical_harmonics as rsh
 import basic_decoders as bd
 import localization_models as lm
+import shelf
 
 import pandas as pd
 
@@ -88,11 +89,6 @@ T_azel = sg.az_el()
 Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
 
 
-
-
-# %%
-cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/8)[0]
-W = np.array([1 if c else 0 for c in cap])
 
 # %%
 def loss(M, M_shape0, M_shape1, Su, Y_test, W):
@@ -153,45 +149,82 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
     return M_opt, res
 
 
-def unit_test(ambisonic_order=3):
+def unit_test(ambisonic_order=13):
+    l, m = zip(*rsh.lm_generator(ambisonic_order))
     # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
     S240 = sg.t_design240()
     Su = S240.u
+
+    # shelf filter gains for max_rE
+    gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
+                             dtype=np.float64)[np.array(l)])
+
+    # since this is a spherical design, all three methods should yeild the
+    # result
+
+    # inversion
     M240 = bd.inversion(l, m, S240.az, S240.el)
-    M240_shape = M240.shape
 
+    M240_e = M240 @ gamma
+
+    lm.plot_performance(M240_e, Su, ambisonic_order, 'Pinv unit test')
+    lm.plot_matrix(M240_e, title='Pinv unit test')
+
+    # AllRAD
     M240_allrad = bd.allrad(l, m, S240.az, S240.el)
+    M240_allrad_e = M240_allrad @ gamma
+    lm.plot_performance(M240_allrad_e, Su, ambisonic_order, 'AllRAD unit test')
+    lm.plot_matrix(M240_allrad_e, title='AllRAD unit test')
 
+    # NLOpt
     M_opt, res = o(None, Su, 1, ambisonic_order)
     lm.plot_performance(M_opt, Su, ambisonic_order, 'Optimized unit test')
+    lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return
+
+
+def stage(path='stage.csv'):
+    S = pd.read_csv(path)
+    S['name'] = S["Name:Stage"]
+
+    # add columns for canonical coordinates
+    S['x'], S['y'], S['z'] = \
+        sg.sph2cart(S["Azimuth:Degrees"] / 180 * np.pi,
+                    S["Elevation:Degrees"] / 180 * np.pi,
+                    S["Radius:Inches"] * 2.54 / 100)
+
+    # round trip thru Cartesian to make sure angles are in principal range
+    S['az'], S['el'], S['r'] = sg.cart2sph(S.x, S.y, S.z)
+    S.attrs["Name"] = "Stage"
+
+    return S
 
 
 def stage_test(ambisonic_order=3):
     l, m = zip(*rsh.lm_generator(ambisonic_order))
-
-    df = pd.read_csv('stage.csv')
-    S_az = df["Azimuth:Degrees"] / 180 * np.pi
-    S_el = df["Elevation:Degrees"] / 180 * np.pi
-    S_r = df["Radius:Inches"] * 2.54 / 100
-    S_u = np.vstack(sg.sph2cart(S_az, S_el))
+    S = stage()
+    S_u = (S[['x', 'y', 'z']].T / S.r).values
 
     if True:
         # make an AllRAD decoder and plot its performances
-        M_allrad = bd.allrad(l, m, S_az, S_el)
+        M_allrad = bd.allrad(l, m, S.az, S.el)
         lm.plot_performance(M_allrad, S_u, ambisonic_order, 'AllRAD')
         lm.plot_matrix(M_allrad, title='AllRAD')
     else:
         M_allrad = None
+
+    # Objective for E
+    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/8)[0]
+    W = np.array([1 if c else 0 for c in cap])
 
     M_opt, res = o(M_allrad, S_u, W, ambisonic_order)
     lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
 
     lm.plot_matrix(M_opt, title='Optimized')
 
-    off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6) # 60dB down
-    print("Using:\n", df["Name:Stage"][~off.copy()].values)
-    print("Turned off:\n", df["Name:Stage"][off.copy()].values)
+    off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
+    print("Using:\n", S.name[~off.copy()].values)
+    print("Turned off:\n", S.name[off.copy()].values)
 
     return M_opt, M_allrad, off
 
