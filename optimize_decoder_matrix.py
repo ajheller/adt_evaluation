@@ -156,6 +156,7 @@ def unit_test(ambisonic_order=13):
     Su = S240.u
 
     # shelf filter gains for max_rE
+    # FIXME shelf should return NDARRAY not a list
     gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
                              dtype=np.float64)[np.array(l)])
 
@@ -165,16 +166,16 @@ def unit_test(ambisonic_order=13):
     # inversion
     M240 = bd.inversion(l, m, S240.az, S240.el)
 
-    M240_e = M240 @ gamma
+    M240_hf = M240 @ gamma
 
-    lm.plot_performance(M240_e, Su, ambisonic_order, 'Pinv unit test')
-    lm.plot_matrix(M240_e, title='Pinv unit test')
+    lm.plot_performance(M240_hf, Su, ambisonic_order, 'Pinv unit test')
+    lm.plot_matrix(M240_hf, title='Pinv unit test')
 
     # AllRAD
     M240_allrad = bd.allrad(l, m, S240.az, S240.el)
-    M240_allrad_e = M240_allrad @ gamma
-    lm.plot_performance(M240_allrad_e, Su, ambisonic_order, 'AllRAD unit test')
-    lm.plot_matrix(M240_allrad_e, title='AllRAD unit test')
+    M240_allrad_hf = M240_allrad @ gamma
+    lm.plot_performance(M240_allrad_hf, Su, ambisonic_order, 'AllRAD unit test')
+    lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # NLOpt
     M_opt, res = o(None, Su, 1, ambisonic_order)
@@ -197,6 +198,9 @@ def stage(path='stage.csv'):
     S['az'], S['el'], S['r'] = sg.cart2sph(S.x, S.y, S.z)
     S.attrs["Name"] = "Stage"
 
+    # convert "Real" to boolean
+    S.Real = (S.Real == "T") | (S.Real == 1)
+
     return S
 
 
@@ -205,26 +209,37 @@ def stage_test(ambisonic_order=3):
     S = stage()
     S_u = (S[['x', 'y', 'z']].T / S.r).values
 
+    gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
+                             dtype=np.float64)[np.array(l)])
+
     if True:
         # make an AllRAD decoder and plot its performances
         M_allrad = bd.allrad(l, m, S.az, S.el)
-        lm.plot_performance(M_allrad, S_u, ambisonic_order, 'AllRAD')
-        lm.plot_matrix(M_allrad, title='AllRAD')
+
+        # remove imaginary speaker  FIXME!
+        M_allrad = M_allrad[S.Real, :]
+        S_u = S_u[:, S.Real]
+        Sr = S[S.Real]
+
+        M_allrad_hf = M_allrad @ gamma
+
+        lm.plot_performance(M_allrad_hf, S_u, ambisonic_order, 'AllRAD')
+        lm.plot_matrix(M_allrad_hf, title='AllRAD')
     else:
         M_allrad = None
 
     # Objective for E
-    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/8)[0]
+    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/6)[0]
     W = np.array([1 if c else 0 for c in cap])
 
-    M_opt, res = o(M_allrad, S_u, W, ambisonic_order)
+    M_opt, res = o(M_allrad, S_u, W, ambisonic_order, iprint=75)
     lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
 
     lm.plot_matrix(M_opt, title='Optimized')
 
     off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
-    print("Using:\n", S.name[~off.copy()].values)
-    print("Turned off:\n", S.name[off.copy()].values)
+    print("Using:\n", Sr.name[~off.copy()].values)
+    print("Turned off:\n", Sr.name[off.copy()].values)
 
     return M_opt, M_allrad, off
 
