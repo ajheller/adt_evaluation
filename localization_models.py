@@ -158,9 +158,12 @@ def plot_performance(M, Su, degree, title=""):
     plot_rX(rEr.reshape(test_dirs.shape),
             title='%s, order=%d\nrE vs. test direction' % (title, degree),
             clim=(0.5, 1))
-    plot_rX(10*np.log10(E.reshape(test_dirs.shape)),
+
+    E_dB = 10*np.log10(E.reshape(test_dirs.shape))
+    E_dB_ceil = np.ceil(E_dB.max())
+    plot_rX(E_dB,
             title='%s, order=%d\nE (dB) vs. test_direction' % (title, degree),
-            clim=(-6, 6)
+            clim=(E_dB_ceil-20, E_dB_ceil)
             )
     plot_rX(rE_dir_err.reshape(test_dirs.shape),
             title='%s, order=%d\ndir error' % (title, degree),
