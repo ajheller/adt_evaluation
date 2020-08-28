@@ -252,7 +252,7 @@ def stage_test(ambisonic_order=3):
     #M_allrad = None
 
     # Objective for E
-    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/3)[0]
+    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/8)[0]
     W = np.array([1 if c else 0 for c in cap])
 
     M_opt, res = o(M_allrad, S_u, W, ambisonic_order, iprint=50)
