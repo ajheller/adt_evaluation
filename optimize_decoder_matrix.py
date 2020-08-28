@@ -82,37 +82,51 @@ l, m = zip(*rsh.lm_generator(ambisonic_order))
 
 # the test directions
 T = sg.t_design5200()
-#Y_test = rsh.real_sph_harm_transform(l, m, T.az, T.el)
 
 # directtions for plotting
 T_azel = sg.az_el()
 Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
 
 
-
 # %%
+
+# define a callback for use with opt.minimize
+#  Calling this seems to screw up the convergence !?!
+ii = 0
+def callback(x):
+    global ii
+    if ii == 0:
+        print("Running optimizer")
+    ii += 1
+    if ii % 50 == 0:
+        print(".", end="")
+    if ii % 500 == 0:
+        print(ii)
+
+
 def loss(M, M_shape0, M_shape1, Su, Y_test, W):
     rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
-    return (np.sum((rExyz - T.u * 1.1)**2)
+    return (np.sum((rExyz - T.u * 1.0)**2)
             + np.sum((E - W)**2)/10
-            + np.sum(M**2)/1000  # regularization term
+            + np.sum(M**2) * 1e-12  # regularization term
             )
 
 
-val_and_grad_fn = jax.jit(jax.value_and_grad(loss), static_argnums=range(1, 6))
+val_and_grad_fn = jax.jit(jax.value_and_grad(loss),
+                          static_argnums=range(1, 6))
 
 
 def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W):
     v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W)
     # I'm not to happy about having to copy g but L-BGFS needs it in fortran
     # order.  Check with g.flags
-    return v.copy(), onp.array(g, order='F')  # onp.asfortranarray(g)
+    return v, onp.array(g, order='F')  # onp.asfortranarray(g)
 
 
 # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
 def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
 
-    if W == None:
+    if W is None:
         W = 1
 
     l, m = zip(*rsh.lm_generator(ambisonic_order))
@@ -125,7 +139,7 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
         M_shape = (Su.shape[1],      # number of loudspeakers
                    Y_test.shape[0],  # number of program channels
                    )
-        M = random.uniform(key, shape=M_shape, minval=-0.5, maxval=0.5)
+        M = random.uniform(key, shape=M_shape, minval=-0.25, maxval=0.25)
     else:
         M_shape = M.shape
 
@@ -135,7 +149,8 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
                        args=(*M_shape, Su, Y_test, W),
                        method='L-BFGS-B',
                        jac=True,
-                       options=dict(disp=iprint, gtol=1e-8, ftol=1e-12)
+                       options=dict(disp=iprint, gtol=1e-8, ftol=1e-12),
+                       #callback=callback,
                        )
     if res.status == 0:
         M_opt = res.x.reshape(M_shape)
@@ -145,6 +160,7 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
 
     else:
         print('bummer:', res.message)
+        raise RuntimeError(res.message)
 
     return M_opt, res
 
@@ -196,7 +212,10 @@ def stage(path='stage.csv'):
 
     # round trip thru Cartesian to make sure angles are in principal range
     S['az'], S['el'], S['r'] = sg.cart2sph(S.x, S.y, S.z)
-    S.attrs["Name"] = "Stage"
+
+    # Nando says this causes an error
+    # TODO: where can we put metadata in a Pandas dataframe?
+    # S.attrs["Name"] = "Stage"
 
     # convert "Real" to boolean
     S.Real = (S.Real == "T") | (S.Real == 1)
@@ -205,6 +224,8 @@ def stage(path='stage.csv'):
 
 
 def stage_test(ambisonic_order=3):
+    global ii; ii = 0
+
     l, m = zip(*rsh.lm_generator(ambisonic_order))
     S = stage()
     S_u = (S[['x', 'y', 'z']].T / S.r).values
@@ -228,11 +249,13 @@ def stage_test(ambisonic_order=3):
     else:
         M_allrad = None
 
+    #M_allrad = None
+
     # Objective for E
-    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/6)[0]
+    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/3)[0]
     W = np.array([1 if c else 0 for c in cap])
 
-    M_opt, res = o(M_allrad, S_u, W, ambisonic_order, iprint=0)
+    M_opt, res = o(M_allrad, S_u, W, ambisonic_order, iprint=50)
     lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
 
     lm.plot_matrix(M_opt, title='Optimized')
