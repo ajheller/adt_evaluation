@@ -27,10 +27,30 @@ from __future__ import division, print_function
 
 import numpy as np
 import sympy as sp
+import scipy.special as spec
 
 
 # max rE gains
 #  from Heller, et al. LAC 2012
+
+def max_rE_2d(ambisonic_order):
+    roots, _ = spec.roots_chebyt(ambisonic_order+1)
+    return roots.max()
+
+def max_rE_gamma_2d(ambisonic_order):
+    max_rE = max_rE_2d(ambisonic_order)
+    return np.array([np.polyval(spec.chebyt(l), max_rE)
+                     for l in range(ambisonic_order+1)])
+
+def max_rE_3d(ambisonic_order):
+    roots, _ = spec.roots_legendre(ambisonic_order+1)
+    return roots.max()
+
+def max_rE_gamma_3d(ambisonic_order):
+    max_rE = max_rE_3d(ambisonic_order)
+    return np.array([np.polyval(spec.legendre(l), max_rE)
+                     for l in range(ambisonic_order+1)])
+
 def max_rE_gains_2d(order, numeric=True):
     max_rE = np.max([sp.chebyshevt_root(order + 1, i)
                      for i in range(order + 1)])

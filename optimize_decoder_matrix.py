@@ -234,7 +234,7 @@ def stage_test(ambisonic_order=3):
                              dtype=np.float64)[np.array(l)])
 
     if True:
-        # make an AllRAD decoder and plot its performances
+        # make an AllRAD decoder and plot its performance
         M_allrad = bd.allrad(l, m, S.az, S.el)
 
         # remove imaginary speaker  FIXME!
