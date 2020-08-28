@@ -108,7 +108,7 @@ def loss(M, M_shape0, M_shape1, Su, Y_test, W):
     rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
     return (np.sum((rExyz - T.u * 1.0)**2)
             + np.sum((E - W)**2)/10
-            + np.sum(M**2) * 1e-12  # regularization term
+            + np.sum(M**2) * 1e-3  # regularization term
             )
 
 
