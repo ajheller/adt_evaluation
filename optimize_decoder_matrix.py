@@ -107,27 +107,27 @@ def callback(x):
         print(ii)
 
 
-def loss(M, M_shape0, M_shape1, Su, Y_test, W):
+def loss(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda=1e-3):
     rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
     return (np.sum((rExyz - T.u * 1.0)**2)
             + np.sum((E - W)**2)/10
-            + np.sum(M**2) * 1e-3  # regularization term
+            + np.sum(M**2) * tik_lambda  # Tikhanov regularization term
             )
 
 
 val_and_grad_fn = jax.jit(jax.value_and_grad(loss),
-                          static_argnums=range(1, 6))
+                          static_argnums=range(1, 7))
 
 
-def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W):
-    v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W)
+def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda):
+    v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda)
     # I'm not to happy about having to copy g but L-BGFS needs it in fortran
     # order.  Check with g.flags
     return v, onp.array(g, order='F')  # onp.asfortranarray(g)
 
 
 # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
-def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
+def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False, tik_lambda=1e-3):
 
     if W is None:
         W = 1
@@ -150,15 +150,17 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
 
     with Timer() as t:
         res = opt.minimize(loss_grad, x0,
-                           args=(*M_shape, Su, Y_test, W),
+                           args=(*M_shape, Su, Y_test, W, tik_lambda),
                            method='L-BFGS-B',
                            jac=True,
                            options=dict(disp=iprint, gtol=1e-8, ftol=1e-12),
-                           #callback=callback,
+                           # callback=callback,
                            )
-    print()
-    print("Optimizer time:", t.interval)
-    print(res)
+    if True:
+        print()
+        print("Execution time: %0.3f" % t.interval)
+        print(res)
+        print()
 
     if res.status == 0:
         M_opt = res.x.reshape(M_shape)
@@ -231,7 +233,7 @@ def stage(path='stage.csv'):
     return S
 
 
-def stage_test(ambisonic_order=3, el_lim=-π/8):
+def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3):
     global ii; ii = 0
 
     l, m = zip(*rsh.lm_generator(ambisonic_order))
@@ -264,10 +266,15 @@ def stage_test(ambisonic_order=3, el_lim=-π/8):
     cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π/2-el_lim)
     W = np.array([1 if c else 0 for c in cap])
 
-    M_opt, res = o(M_allrad, S_u, W, ambisonic_order, iprint=50)
+    M_opt, res = o(M_allrad, S_u, W, ambisonic_order,
+                   iprint=50, tik_lambda=tik_lambda)
     lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
 
     lm.plot_matrix(M_opt, title='Optimized')
+
+    print("ambisonic_order =", ambisonic_order)
+    print("el_lim =", el_lim * 180/π)
+    print("tik_lambda =", tik_lambda)
 
     off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
     print("Using:\n", Sr.name[~off.copy()].values)
