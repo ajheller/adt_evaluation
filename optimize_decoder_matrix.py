@@ -36,6 +36,9 @@ import jax.numpy as np  # jax overloads numpy
 import jax.random as random
 
 import numpy as onp  # 'original' numpy -- this is a convention
+from numpy import pi as π  # I get tired of typing np.pi
+
+from Timer import Timer
 
 import scipy.optimize as opt
 
@@ -145,13 +148,18 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False):
 
     x0 = M.ravel()  # inital guess
 
-    res = opt.minimize(loss_grad, x0,
-                       args=(*M_shape, Su, Y_test, W),
-                       method='L-BFGS-B',
-                       jac=True,
-                       options=dict(disp=iprint, gtol=1e-8, ftol=1e-12),
-                       #callback=callback,
-                       )
+    with Timer() as t:
+        res = opt.minimize(loss_grad, x0,
+                           args=(*M_shape, Su, Y_test, W),
+                           method='L-BFGS-B',
+                           jac=True,
+                           options=dict(disp=iprint, gtol=1e-8, ftol=1e-12),
+                           #callback=callback,
+                           )
+    print()
+    print("Optimizer time:", t.interval)
+    print(res)
+
     if res.status == 0:
         M_opt = res.x.reshape(M_shape)
 
@@ -197,7 +205,7 @@ def unit_test(ambisonic_order=13):
     M_opt, res = o(None, Su, 1, ambisonic_order)
     lm.plot_performance(M_opt, Su, ambisonic_order, 'Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
-    return
+    return res
 
 
 def stage(path='stage.csv'):
@@ -206,8 +214,8 @@ def stage(path='stage.csv'):
 
     # add columns for canonical coordinates
     S['x'], S['y'], S['z'] = \
-        sg.sph2cart(S["Azimuth:Degrees"] / 180 * np.pi,
-                    S["Elevation:Degrees"] / 180 * np.pi,
+        sg.sph2cart(S["Azimuth:Degrees"] / 180 * π,
+                    S["Elevation:Degrees"] / 180 * π,
                     S["Radius:Inches"] * 2.54 / 100)
 
     # round trip thru Cartesian to make sure angles are in principal range
@@ -223,7 +231,7 @@ def stage(path='stage.csv'):
     return S
 
 
-def stage_test(ambisonic_order=3):
+def stage_test(ambisonic_order=3, el_lim=-π/8):
     global ii; ii = 0
 
     l, m = zip(*rsh.lm_generator(ambisonic_order))
@@ -247,12 +255,13 @@ def stage_test(ambisonic_order=3):
         lm.plot_performance(M_allrad_hf, S_u, ambisonic_order, 'AllRAD')
         lm.plot_matrix(M_allrad_hf, title='AllRAD')
     else:
+        # let optmizer dream up a decoder on it's own
         M_allrad = None
 
     #M_allrad = None
 
     # Objective for E
-    cap = sg.spherical_cap(T.u, (0, 0, 1), np.pi/2+np.pi/8)[0]
+    cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π/2-el_lim)
     W = np.array([1 if c else 0 for c in cap])
 
     M_opt, res = o(M_allrad, S_u, W, ambisonic_order, iprint=50)
@@ -264,7 +273,7 @@ def stage_test(ambisonic_order=3):
     print("Using:\n", Sr.name[~off.copy()].values)
     print("Turned off:\n", Sr.name[off.copy()].values)
 
-    return M_opt, M_allrad, off
+    return M_opt, M_allrad, off, res
 
 
 """
