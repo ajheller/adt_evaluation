@@ -13,3 +13,11 @@ plots:
 
 clean:
 	rm -rf *.pyc *.log
+
+git-push:
+	for remote in `git remote`; do \
+	  git push $$remote ; \
+	done
+
+git-pull:
+	git pull --ff-only
