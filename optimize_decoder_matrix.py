@@ -6,6 +6,23 @@ Created on Tue Dec 31 02:48:26 2019
 @author: heller
 """
 
+# This file is part of the Ambisonic Decoder Toolbox (ADT)
+# Copyright (C) 2018-20  Aaron J. Heller <heller@ai.sri.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 # sanbox for optimizer using Jax for AutoGrad
 #   https://github.com/google/jax
 
@@ -112,6 +129,8 @@ def loss(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda=1e-3):
     return (np.sum((rExyz - T.u * 1.0)**2)
             + np.sum((E - W)**2)/10
             + np.sum(M**2) * tik_lambda  # Tikhanov regularization term
+            + np.sum(np.abs(M-0.1))  # don't turn off speakers
+            #+ np.sum(0.5-M**2)
             )
 
 

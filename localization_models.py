@@ -30,6 +30,7 @@ from numpy import pi
 import spherical_grids as sg
 import real_spherical_harmonics as rsh
 # import basic_decoders as bd
+import shelf
 
 import matplotlib.pyplot as plt
 
@@ -156,8 +157,19 @@ def plot_performance(M, Su, degree, title=""):
                                    -1, 1)) * 180/np.pi
 
     plot_rX(rEr.reshape(test_dirs.shape),
-            title='%s, order=%d\nrE vs. test direction' % (title, degree),
+            title='%s, order=%d\n magnitude of rE vs. test direction' % (title, degree),
             clim=(0.5, 1))
+
+    # contour plot of rE
+    fig = plt.figure(figsize=(10, 5))
+    plt.contourf(rEr.reshape(test_dirs.shape).T,
+                 np.convolve((0.5, 0.5), [shelf.max_rE_3d(o)
+                                          for o in range(0,8)], 'valid'),
+                 extent=(180, -180, -90, 90),
+                 cmap='jet')
+    plt.title('%s, order=%d\n magnitude of rE vs. test direction' % (title, degree))
+    plt.colorbar()
+    plt.show()
 
     E_dB = 10*np.log10(E.reshape(test_dirs.shape))
     E_dB_ceil = np.ceil(E_dB.max())
@@ -168,6 +180,16 @@ def plot_performance(M, Su, degree, title=""):
     plot_rX(rE_dir_err.reshape(test_dirs.shape),
             title='%s, order=%d\ndir error' % (title, degree),
             clim=(0, 20))
+
+    fig = plt.figure(figsize=(10, 5))
+    plt.contourf(rE_dir_err.reshape(test_dirs.shape).T,
+                 np.arange(0, 15, 2),
+                 extent=(180, -180, -90, 90),
+                 cmap='jet')
+
+    plt.title('%s, order=%d\ndir error' % (title, degree))
+    plt.colorbar()
+    plt.show()
 
     return (rEr.reshape(test_dirs.shape),
             E.reshape(test_dirs.shape),
