@@ -26,6 +26,7 @@ Created on Sun Nov  4 17:29:18 2018
 from __future__ import division, print_function
 import numpy as np
 from numpy import pi
+from numpy import pi as π
 
 import spherical_grids as sg
 import real_spherical_harmonics as rsh
@@ -138,8 +139,20 @@ def plot_rX(rX, title, clim=None, cmap='jet'):
 
     return fig
 
+def plot_loudspeakers(Su, **plot_args):
+    # unit vector to az-el
+    S_az, S_el, *_ = sg.cart2sph(*Su)
+    plt.scatter(S_az * 180/π, S_el * 180/π, **plot_args)
 
-def plot_performance(M, Su, degree, title=""):
+
+def plot_performance(M, Su, degree,
+                     title="",
+                     plot_spkrs=True,
+                     outdir=None):
+
+    if outdir:
+        pass
+
     l, m = zip(*rsh.lm_generator(degree))
     test_dirs = sg.az_el()
     Y_test_dirs = rsh.real_sph_harm_transform(l, m,
@@ -164,11 +177,14 @@ def plot_performance(M, Su, degree, title=""):
     fig = plt.figure(figsize=(10, 5))
     plt.contourf(rEr.reshape(test_dirs.shape).T,
                  np.convolve((0.5, 0.5), [shelf.max_rE_3d(o)
-                                          for o in range(0,8)], 'valid'),
+                                          for o in range(0, 10)], 'valid'),
                  extent=(180, -180, -90, 90),
                  cmap='jet')
-    plt.title('%s, order=%d\n magnitude of rE vs. test direction' % (title, degree))
     plt.colorbar()
+
+    plot_loudspeakers(Su, c='w', marker='D')
+
+    plt.title('%s, order=%d\n magnitude of rE vs. test direction' % (title, degree))
     plt.show()
 
     E_dB = 10*np.log10(E.reshape(test_dirs.shape))
@@ -186,9 +202,12 @@ def plot_performance(M, Su, degree, title=""):
                  np.arange(0, 15, 2),
                  extent=(180, -180, -90, 90),
                  cmap='jet')
+    plt.colorbar()
+
+    # overlay loudspeaker positions
+    plot_loudspeakers(Su, c='w', marker='D')
 
     plt.title('%s, order=%d\ndir error' % (title, degree))
-    plt.colorbar()
     plt.show()
 
     return (rEr.reshape(test_dirs.shape),

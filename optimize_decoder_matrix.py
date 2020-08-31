@@ -123,7 +123,7 @@ def callback(x):
     if ii % 500 == 0:
         print(ii)
 
-
+# FIXME: this is really the objective funtion, the individual terms are
 def loss(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda=1e-3):
     rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
     return (np.sum((rExyz - T.u * 1.0)**2)
