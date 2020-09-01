@@ -24,7 +24,7 @@ Created on Fri Oct 19 17:57:11 2018
 
 from __future__ import division, print_function
 import numpy as np
-from numpy import pi
+from numpy import pi as π
 
 from scipy.spatial import Delaunay  # for AllRAD decoder
 
@@ -362,7 +362,7 @@ def allrad_v2r(Su, Vu):
 
 # unit tests
 def unit_test():
-    s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4)
+    s_az = (π/4, 3*π/4, -3*π/4, -π/4)
     s_el = (0, 0, 0, 0)
 
     l = (0, 1, 1)
@@ -406,8 +406,8 @@ def unit_test2(order=3, case=0, debug=True):
 
     """
     if case == 0:
-        s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
-        s_el = (0, 0, 0, 0, pi/2, -pi/2)
+        s_az = (π/4, 3*π/4, -3*π/4, -π/4, 0, 0)
+        s_el = (0, 0, 0, 0, π/2, -π/2)
         order = max(order, 1)
     elif case == 1:
         s = sg.t_design240()
