@@ -282,7 +282,7 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3,
 
         print("\n\nDiffuse field gain of each loudspeaker (dB)")
         for n, g in zip(Sr.name.values, 10*np.log10(np.sum(M_allrad**2, axis=1))):
-            print(f"{n}: {g:4.2f}")
+            print(f"{n}: {g:6.2f}")
     else:
         # let optmizer dream up a decoder on it's own
         M_allrad = None
