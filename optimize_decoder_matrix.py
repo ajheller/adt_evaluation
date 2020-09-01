@@ -172,7 +172,12 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False, tik_lambda=1e-3):
                            args=(*M_shape, Su, Y_test, W, tik_lambda),
                            method='L-BFGS-B',
                            jac=True,
-                           options=dict(disp=iprint, gtol=1e-8, ftol=1e-12),
+                           options=dict(disp=iprint,
+                                        maxls=50,
+                                        maxcor=30,
+                                        pgtol=10e-7,
+                                        gtol=1e-8,
+                                        ftol=1e-12),
                            # callback=callback,
                            )
     if True:
