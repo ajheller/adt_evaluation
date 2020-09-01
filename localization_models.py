@@ -96,7 +96,7 @@ def compute_rVrE(l, m, M, Su, test_dirs=sg.az_el()):
     return rVr.reshape(test_dirs.shape), rEr.reshape(test_dirs.shape)
 
 
-def plot_rX(rX, title, clim=None, cmap='jet'):
+def plot_rX(rX, title, clim=None, cmap='jet', show=True):
     """
     Plot rV or rE magnitude.
 
@@ -135,9 +135,11 @@ def plot_rX(rX, title, clim=None, cmap='jet'):
         # plotly does not work with MPL images (yet)
         pass # plotly.offline.plot_mpl(fig)
     else:
-        plt.show()
+        if show:
+            plt.show()
 
     return fig
+
 
 def plot_loudspeakers(Su, **plot_args):
     # unit vector to az-el
@@ -147,11 +149,9 @@ def plot_loudspeakers(Su, **plot_args):
 
 def plot_performance(M, Su, degree,
                      title="",
-                     plot_spkrs=True,
-                     outdir=None):
+                     plot_spkrs=True):
 
-    if outdir:
-        pass
+    out_figs = []
 
     l, m = zip(*rsh.lm_generator(degree))
     test_dirs = sg.az_el()
@@ -167,52 +167,73 @@ def plot_performance(M, Su, degree,
     # the arg to arccos can get epsilon larger than 1 due to round off,
     # which produces NaNs, so clip to [-1, 1]
     rE_dir_err = np.arccos(np.clip(np.sum(rEu * test_dirs.u, axis=0),
-                                   -1, 1)) * 180/np.pi
+                                   -1, 1)) * 180/π
 
-    plot_rX(rEr.reshape(test_dirs.shape),
-            title='%s, order=%d\n magnitude of rE vs. test direction' % (title, degree),
-            clim=(0.5, 1))
+    # magnitude of rE
+    if True:
+        fig = plot_rX(rEr.reshape(test_dirs.shape),
+                      title=(f'{title}, order={degree}\n' +
+                             'magnitude of rE vs. test direction'),
+                      clim=(0.5, 1))
+        out_figs.append(fig)
 
-    # contour plot of rE
-    fig = plt.figure(figsize=(10, 5))
-    plt.contourf(rEr.reshape(test_dirs.shape).T,
-                 np.convolve((0.5, 0.5), [shelf.max_rE_3d(o)
-                                          for o in range(0, 10)], 'valid'),
-                 extent=(180, -180, -90, 90),
-                 cmap='jet')
-    plt.colorbar()
+        # contour plot of rE
+        fig = plt.figure(figsize=(10, 5))
+        plt.contourf(rEr.reshape(test_dirs.shape).T,
+                     np.convolve((0.5, 0.5),
+                                 [0] + [shelf.max_rE_3d(o)
+                                        for o in range(0, degree+2)] + [1, 1],
+                                 'valid'),
+                     extent=(180, -180, -90, 90),
+                     cmap='jet')
+        plt.xlabel("azimuth (degrees)")
+        plt.ylabel("elevation (degrees)")
+        plt.colorbar()
 
-    plot_loudspeakers(Su, c='w', marker='D')
+        if plot_spkrs:
+            plot_loudspeakers(Su, c='w', marker='D')
 
-    plt.title('%s, order=%d\n magnitude of rE vs. test direction' % (title, degree))
-    plt.show()
+        plt.title(f"{title}, order={degree}\n" +
+                  "magnitude of rE vs. test direction")
+        out_figs.append(fig)
+        plt.show()
 
-    E_dB = 10*np.log10(E.reshape(test_dirs.shape))
-    E_dB_ceil = np.ceil(E_dB.max())
-    plot_rX(E_dB,
-            title='%s, order=%d\nE (dB) vs. test_direction' % (title, degree),
-            clim=(E_dB_ceil-20, E_dB_ceil)
-            )
-    plot_rX(rE_dir_err.reshape(test_dirs.shape),
-            title='%s, order=%d\ndir error' % (title, degree),
-            clim=(0, 20))
+    # E vs td
+    if True:
+        E_dB = 10*np.log10(E.reshape(test_dirs.shape))
+        E_dB_ceil = np.ceil(E_dB.max())
+        fig = plot_rX(E_dB,
+                      title=(f'{title}, order={degree}\n' +
+                             'E (dB) vs. test_direction'),
+                      clim=(E_dB_ceil-20, E_dB_ceil)
+                      )
+        out_figs.append(fig)
 
-    fig = plt.figure(figsize=(10, 5))
-    plt.contourf(rE_dir_err.reshape(test_dirs.shape).T,
-                 np.arange(0, 15, 2),
-                 extent=(180, -180, -90, 90),
-                 cmap='jet')
-    plt.colorbar()
+    # direction error
+    if True:
+        plot_rX(rE_dir_err.reshape(test_dirs.shape),
+                title='%s, order=%d\ndir error' % (title, degree),
+                clim=(0, 20))
 
-    # overlay loudspeaker positions
-    plot_loudspeakers(Su, c='w', marker='D')
+        fig = plt.figure(figsize=(10, 5))
+        plt.contourf(rE_dir_err.reshape(test_dirs.shape).T,
+                     list(range(0, 15, 2)),
+                     extent=(180, -180, -90, 90),
+                     cmap='jet')
+        plt.xlabel("azimuth (degrees)")
+        plt.ylabel("elevation (degrees)")
+        plt.colorbar()
 
-    plt.title('%s, order=%d\ndir error' % (title, degree))
-    plt.show()
+        # overlay loudspeaker positions
+        if plot_spkrs:
+            plot_loudspeakers(Su, c='w', marker='D')
 
-    return (rEr.reshape(test_dirs.shape),
-            E.reshape(test_dirs.shape),
-            rE_dir_err.reshape(test_dirs.shape))
+        plt.title('%s, order=%d\ndirection error' % (title, degree))
+        out_figs.append(fig)
+        plt.show()
+
+    return out_figs
+
 
 
 def plot_matrix(M, title=""):
@@ -258,8 +279,8 @@ if __name__ == "__main__":
         l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
 
         if ss:
-            s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
-            s_el = (0, 0, 0, 0, pi/2, -pi/2)
+            s_az = (π/4, 3*π/4, -3*π/4, -π/4, 0, 0)
+            s_el = (0, 0, 0, 0, π/2, -π/2)
         else:
             s = sg.t_design240()
             s_az = s.az

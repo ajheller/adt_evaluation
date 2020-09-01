@@ -251,8 +251,9 @@ def stage(path='stage.csv'):
 
     return S
 
-
-def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3):
+import reports
+def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3,
+               do_report=False):
     global ii; ii = 0
 
     l, m = zip(*rsh.lm_generator(ambisonic_order))
@@ -262,6 +263,7 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3):
     gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
                              dtype=np.float64)[np.array(l)])
 
+    figs = []
     if True:
         # make an AllRAD decoder and plot its performance
         M_allrad = bd.allrad(l, m, S.az, S.el)
@@ -273,8 +275,14 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3):
 
         M_allrad_hf = M_allrad @ gamma
 
-        lm.plot_performance(M_allrad_hf, S_u, ambisonic_order, 'AllRAD')
+        figs.append(
+            lm.plot_performance(M_allrad_hf, S_u, ambisonic_order, 'AllRAD'))
+
         lm.plot_matrix(M_allrad_hf, title='AllRAD')
+
+        print("\n\nDiffuse field gain of each loudspeaker (dB)")
+        for n, g in zip(Sr.name.values, 10*np.log10(np.sum(M_allrad**2, axis=1))):
+            print(f"{n}: {g:4.2f}")
     else:
         # let optmizer dream up a decoder on it's own
         M_allrad = None
@@ -287,7 +295,8 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3):
 
     M_opt, res = o(M_allrad, S_u, W, ambisonic_order,
                    iprint=50, tik_lambda=tik_lambda)
-    lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD')
+    figs.append(
+        lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD'))
 
     lm.plot_matrix(M_opt, title='Optimized')
 
@@ -298,6 +307,16 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3):
     off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
     print("Using:\n", Sr.name[~off.copy()].values)
     print("Turned off:\n", Sr.name[off.copy()].values)
+
+    print("\n\nDiffuse field gain of each loudspeaker (dB)")
+    for n, g in zip(Sr.name.values, 10*np.log10(np.sum(M_opt**2, axis=1))):
+        print(f"{n}: {g:4.2f}")
+
+    #print(figs)
+    if do_report:
+        reports.html_report(zip(*figs),
+                            directory="Stage",
+                            name=f"Stage-order-{ambisonic_order}")
 
     return M_opt, M_allrad, off, res
 
