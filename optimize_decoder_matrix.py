@@ -123,30 +123,52 @@ def callback(x):
     if ii % 500 == 0:
         print(ii)
 
-# FIXME: this is really the objective funtion, the individual terms are
-def loss(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda=1e-3):
-    rExyz, E = rE(M.reshape((M_shape0, M_shape1)), Su, Y_test)
-    return (np.sum((rExyz - T.u * 1.0)**2)
-            + np.sum((E - W)**2)/10
-            + np.sum(M**2) * tik_lambda  # Tikhanov regularization term
-            + np.sum(np.abs(M-0.1))  # don't turn off speakers
-            #+ np.sum(0.5-M**2)
-            )
+# FIXME: this is really the objective funtion, the individual terms are the
+# losses.
+def objective(x,
+              # remainder of arguments are static
+              M_shape0, M_shape1,
+              Su,
+              Y_test,
+              W,
+              tikhanov_lambda,
+              sparseness_penalty):
+    M = x.reshape((M_shape0, M_shape1))
+    rExyz, E = rE(M, Su, Y_test)
+    f = (
+        # truncation loss due to finite order
+        np.sum((rExyz - T.u * 1.0)**2)
+
+        # uniform loudness
+        + np.sum((E - W)**2)/10
+
+        # Tikhanov regularization term
+        + np.sum(M**2) * tikhanov_lambda
+
+        # don't turn off speakers
+        #  TODO figure out why this works :)
+        + np.sum(np.abs(M-0.1)) * sparseness_penalty
+        )
+    return f
 
 
-val_and_grad_fn = jax.jit(jax.value_and_grad(loss),
-                          static_argnums=range(1, 7))
+val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
+                          static_argnums=range(1, 8))
 
 
-def loss_grad(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda):
-    v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W, tik_lambda)
+def objective_grad(M, M_shape0, M_shape1, Su, Y_test, W,
+                   tikhanov_lambda, sparseness_penalty=1):
+    v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W,
+                           tikhanov_lambda, sparseness_penalty)
     # I'm not to happy about having to copy g but L-BGFS needs it in fortran
     # order.  Check with g.flags
     return v, onp.array(g, order='F')  # onp.asfortranarray(g)
 
 
 # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
-def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False, tik_lambda=1e-3):
+def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
+      tikhanov_lambda=1e-3,
+      sparseness_penalty=1):
 
     if W is None:
         W = 1
@@ -165,19 +187,34 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False, tik_lambda=1e-3):
     else:
         M_shape = M.shape
 
+    # Need to define these here so the jit recompiles it for each run
+    val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
+                              static_argnums=range(1, 8))
+
+    def objective_grad(M, M_shape0, M_shape1, Su, Y_test, W,
+                       tikhanov_lambda, sparseness_penalty):
+        v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W,
+                               tikhanov_lambda, sparseness_penalty)
+        # I'm not to happy about having to copy g but L-BGFS needs it in fortran
+        # order.  Check with g.flags
+        return v, onp.array(g, order='F')  # onp.asfortranarray(g)
+
+
     x0 = M.ravel()  # inital guess
 
     with Timer() as t:
-        res = opt.minimize(loss_grad, x0,
-                           args=(*M_shape, Su, Y_test, W, tik_lambda),
+        res = opt.minimize(objective_grad, x0,
+                           args=(*M_shape, Su, Y_test, W, tikhanov_lambda,
+                                 sparseness_penalty),
                            method='L-BFGS-B',
                            jac=True,
                            options=dict(disp=iprint,
-                                        maxls=50,
-                                        maxcor=30,
-                                        pgtol=10e-7,
-                                        gtol=1e-8,
-                                        ftol=1e-12),
+                                        # maxls=50,
+                                        # maxcor=30,
+                                        # pgtol=10e-7,
+                                        # gtol=1e-8,
+                                        # ftol=1e-12
+                                        ),
                            # callback=callback,
                            )
     if True:
@@ -211,7 +248,7 @@ def unit_test(ambisonic_order=13):
                              dtype=np.float64)[np.array(l)])
 
     # since this is a spherical design, all three methods should yeild the
-    # result
+    # same result
 
     # inversion
     M240 = bd.inversion(l, m, S240.az, S240.el)
@@ -228,7 +265,7 @@ def unit_test(ambisonic_order=13):
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # NLOpt
-    M_opt, res = o(None, Su, 1, ambisonic_order)
+    M_opt, res = o(None, Su, 1, ambisonic_order, sparseness_penalty=0)
     lm.plot_performance(M_opt, Su, ambisonic_order, 'Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
@@ -257,14 +294,16 @@ def stage(path='stage.csv'):
     return S
 
 import reports
-def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3,
+def stage_test(ambisonic_order=3, el_lim=-π/8, tikhanov_lambda=1e-3,
+               sparseness_penalty=1,
                do_report=False):
-    global ii; ii = 0
+    # global ii; ii = 0  # counter for the callback
 
     l, m = zip(*rsh.lm_generator(ambisonic_order))
     S = stage()
     S_u = (S[['x', 'y', 'z']].T / S.r).values
 
+    # FIXME: what a mess, shelf should return an nd_array, not a list
     gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
                              dtype=np.float64)[np.array(l)])
 
@@ -273,7 +312,8 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3,
         # make an AllRAD decoder and plot its performance
         M_allrad = bd.allrad(l, m, S.az, S.el)
 
-        # remove imaginary speaker  FIXME!
+        # remove imaginary speaker
+        # FIXME: this is too messy, need a better way to handle imaginary LSsß
         M_allrad = M_allrad[S.Real, :]
         S_u = S_u[:, S.Real]
         Sr = S[S.Real]
@@ -286,20 +326,22 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3,
         lm.plot_matrix(M_allrad_hf, title='AllRAD')
 
         print("\n\nDiffuse field gain of each loudspeaker (dB)")
-        for n, g in zip(Sr.name.values, 10*np.log10(np.sum(M_allrad**2, axis=1))):
+        for n, g in zip(Sr.name.values,
+                        10*np.log10(np.sum(M_allrad**2, axis=1))):
             print(f"{n}: {g:6.2f}")
     else:
         # let optmizer dream up a decoder on it's own
         M_allrad = None
 
-    #M_allrad = None
+    # M_allrad = None
 
     # Objective for E
     cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π/2-el_lim)
-    W = np.array([1 if c else 0 for c in cap])
+    W = cap.astype(np.float64)
 
     M_opt, res = o(M_allrad, S_u, W, ambisonic_order,
-                   iprint=50, tik_lambda=tik_lambda)
+                   iprint=50, tikhanov_lambda=tikhanov_lambda,
+                   sparseness_penalty=sparseness_penalty)
     figs.append(
         lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD'))
 
@@ -307,7 +349,8 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3,
 
     print("ambisonic_order =", ambisonic_order)
     print("el_lim =", el_lim * 180/π)
-    print("tik_lambda =", tik_lambda)
+    print("tikhanov_lambda =", tikhanov_lambda)
+    print("sparseness penalty =", sparseness_penalty)
 
     off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
     print("Using:\n", Sr.name[~off.copy()].values)
@@ -317,7 +360,6 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tik_lambda=1e-3,
     for n, g in zip(Sr.name.values, 10*np.log10(np.sum(M_opt**2, axis=1))):
         print(f"{n}: {g:4.2f}")
 
-    #print(figs)
     if do_report:
         reports.html_report(zip(*figs),
                             directory="Stage",

@@ -5,6 +5,10 @@ Created on Mon Aug 31 14:28:07 2020
 
 @author: heller
 """
+
+# dominate is not avaiable via Conda, install it with:
+#    pip install dominate
+
 import os
 from dominate.tags import *
 
