@@ -123,56 +123,64 @@ def callback(x):
     if ii % 500 == 0:
         print(ii)
 
-# FIXME: this is really the objective funtion, the individual terms are the
-# losses.
+
 def objective(x,
               # remainder of arguments are static
-              M_shape0, M_shape1,
-              Su,
-              Y_test,
-              W,
-              tikhanov_lambda,
-              sparseness_penalty):
+              M_shape0: int, M_shape1: int,
+              Su: np.array,
+              Y_test: np.array,
+              W: float,
+              tikhanov_lambda: float,
+              sparseness_penalty: float
+              ) -> float:
     M = x.reshape((M_shape0, M_shape1))
     rExyz, E = rE(M, Su, Y_test)
     f = (
         # truncation loss due to finite order
         np.sum((rExyz - T.u * 1.0)**2)
 
-        # uniform loudness
+        # uniform loudness loss
         + np.sum((E - W)**2)/10
 
         # Tikhanov regularization term
         + np.sum(M**2) * tikhanov_lambda
 
         # don't turn off speakers
-        #  TODO figure out why this works :)
+        #  TODO figure out why this works :) :)
         + np.sum(np.abs(M-0.1)) * sparseness_penalty
         )
     return f
 
 
-val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
-                          static_argnums=range(1, 8))
-
-
-def objective_grad(M, M_shape0, M_shape1, Su, Y_test, W,
-                   tikhanov_lambda, sparseness_penalty=1):
-    v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W,
-                           tikhanov_lambda, sparseness_penalty)
-    # I'm not to happy about having to copy g but L-BGFS needs it in fortran
-    # order.  Check with g.flags
-    return v, onp.array(g, order='F')  # onp.asfortranarray(g)
-
-
-# https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
 def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
       tikhanov_lambda=1e-3,
       sparseness_penalty=1):
+    """Optimize pschoacoustic criteria.
 
+    Extended description of function.
+
+    Parameters
+    ----------
+    arg1 : int
+        Description of arg1
+    arg2 : str
+        Description of arg2
+
+    Returns
+    -------
+    bool
+        Description of return value
+
+    Examples
+    --------
+    >>> func(1, "a")
+    True
+    """
+    # handle defaults
     if W is None:
         W = 1
 
+    #
     l, m = zip(*rsh.lm_generator(ambisonic_order))
     # the test directions
     T = sg.t_design5200()
@@ -187,24 +195,24 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
     else:
         M_shape = M.shape
 
-    # Need to define these here so the jit recompiles it for each run
+    # Need to define these here so JAX's jit recompiles it for each run
     val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
                               static_argnums=range(1, 8))
 
-    def objective_grad(M, M_shape0, M_shape1, Su, Y_test, W,
-                       tikhanov_lambda, sparseness_penalty):
-        v, g = val_and_grad_fn(M, M_shape0, M_shape1, Su, Y_test, W,
-                               tikhanov_lambda, sparseness_penalty)
-        # I'm not to happy about having to copy g but L-BGFS needs it in fortran
-        # order.  Check with g.flags
+    def objective_grad(x, *args):
+        v, g = val_and_grad_fn(x, *args)
+        # I'm not to happy about having to copy g but L-BGFS needs it in
+        # fortran order.  Check with g.flags
         return v, onp.array(g, order='F')  # onp.asfortranarray(g)
-
+    #
 
     x0 = M.ravel()  # inital guess
 
     with Timer() as t:
+        # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
         res = opt.minimize(objective_grad, x0,
-                           args=(*M_shape, Su, Y_test, W, tikhanov_lambda,
+                           args=(*M_shape, Su, Y_test, W,
+                                 tikhanov_lambda,
                                  sparseness_penalty),
                            method='L-BFGS-B',
                            jac=True,
