@@ -65,12 +65,12 @@ def compute_rVrE_fast(M, Su, Y_test_dirs):
     # pressure & rV
     g = np.matmul(M, Y_test_dirs)
     P = np.sum(g, 0)
-    rVxyz = np.real(np.matmul(Su, g) / P) # np.array([P, P, P]))
+    rVxyz = np.real(np.matmul(Su, g) / P)
 
     # energy & rE
     g2 = np.real(g * g.conjugate())  # the g's might be complex
     E = np.sum(g2, 0)
-    rExyz = np.matmul(Su, g2) / E  #np.array([E, E, E])
+    rExyz = np.matmul(Su, g2) / E
 
     return P, rVxyz, E, rExyz
 
@@ -133,7 +133,7 @@ def plot_rX(rX, title, clim=None, cmap='jet', show=True):
 
     if False:
         # plotly does not work with MPL images (yet)
-        pass # plotly.offline.plot_mpl(fig)
+        pass  # plotly.offline.plot_mpl(fig)
     else:
         if show:
             plt.show()
@@ -235,8 +235,8 @@ def plot_performance(M, Su, degree,
     return out_figs
 
 
-
 def plot_matrix(M, title=""):
+    fig = plt.figure()
     plt.matshow(20*np.log10(np.abs(M)), cmap='jet')
     plt.colorbar()
     plt.clim((-60, 0))
@@ -244,7 +244,7 @@ def plot_matrix(M, title=""):
     plt.xlabel("Program channels (ACN order)")
     plt.ylabel("Loudspeakers")
     plt.show()
-    return None
+    return fig
 
 
 if __name__ == "__main__":

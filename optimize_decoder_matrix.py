@@ -23,7 +23,7 @@ Created on Tue Dec 31 02:48:26 2019
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-# sanbox for optimizer using Jax for AutoGrad
+# sandbox for a non-linear optimizer using Jax for AutoGrad
 #   https://github.com/google/jax
 
 # make a conda env for jax, so we can blow it away if we screw up
@@ -51,21 +51,18 @@ Created on Tue Dec 31 02:48:26 2019
 import jax
 import jax.numpy as np  # jax overloads numpy
 import jax.random as random
-
 import numpy as onp  # 'original' numpy -- this is a convention
+import pandas as pd
+import scipy.optimize as opt
 from numpy import pi as π  # I get tired of typing np.pi
 
-from Timer import Timer
-
-import scipy.optimize as opt
-
-import spherical_grids as sg
-import real_spherical_harmonics as rsh
 import basic_decoders as bd
 import localization_models as lm
+import real_spherical_harmonics as rsh
 import shelf
+import spherical_grids as sg
+from Timer import Timer
 
-import pandas as pd
 
 #  need a local definition so np is jax.np
 def rE(M, Su, Y_test):
@@ -103,7 +100,7 @@ l, m = zip(*rsh.lm_generator(ambisonic_order))
 # the test directions
 T = sg.t_design5200()
 
-# directtions for plotting
+# directions for plotting
 T_azel = sg.az_el()
 Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
 
@@ -155,7 +152,7 @@ def objective(x,
 def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
       tikhanov_lambda=1e-3,
       sparseness_penalty=1):
-    """Optimize pschoacoustic criteria.
+    """Optimize psychoacoustic criteria.
 
     Extended description of function.
 
@@ -206,7 +203,7 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
         return v, onp.array(g, order='F')  # onp.asfortranarray(g)
     #
 
-    x0 = M.ravel()  # inital guess
+    x0 = M.ravel()  # initial guess
 
     with Timer() as t:
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
@@ -338,7 +335,7 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tikhanov_lambda=1e-3,
                         10*np.log10(np.sum(M_allrad**2, axis=1))):
             print(f"{n}: {g:6.2f}")
     else:
-        # let optmizer dream up a decoder on it's own
+        # let optimizer dream up a decoder on its own
         M_allrad = None
 
     # M_allrad = None

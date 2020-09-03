@@ -80,7 +80,7 @@ def np_array(a):
 
 
 def normalization_semi(sh_l, sh_m=None):
-    "gains to produce schmidt semi-normalized values from full orthronormal"
+    """gains to produce schmidt semi-normalized values from full orthronormal"""
     return np.sqrt(2 * sh_l + 1)
 
 
@@ -249,7 +249,6 @@ def channel_mask(sh_l, sh_m, h_order, v_order, mixed_order_scheme='HV'):
     return ch_mask
 
 
-
 def ambisonic_channels_acn(ambisonic_order):
     for l in range(ambisonic_order + 1):
         for m in range(-l, l + 1):
@@ -289,7 +288,7 @@ def ambisonic_channel_names(sh_l, sh_m=None):
     return [ambisonic_channel_name(*lm) for lm in lms]
 
 
-
+#
 def h_order_validator(self, attribute, value):
     if not (int(value) == value and 0 <= value):
         raise ValueError("h_order must a non-negative integer")
