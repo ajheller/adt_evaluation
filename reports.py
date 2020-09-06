@@ -10,9 +10,9 @@ Created on Mon Aug 31 14:28:07 2020
 #    pip install dominate
 
 import os
-from dominate.tags import *
+from dominate.tags import html, body, h1, p, pre, div, table, tbody, tr, td, img
 
-def html_report(figs, name='report', directory=None, dpi=75):
+def html_report(figs, text=None, name='report', directory=None, dpi=75, fig_dir='figs'):
 
     if directory is None:
         directory = name
@@ -21,17 +21,24 @@ def html_report(figs, name='report', directory=None, dpi=75):
     except FileExistsError as e:
         print(e)
 
+    try:
+        os.mkdir(os.path.join(directory, fig_dir))
+    except FileExistsError as e:
+        print(e)
+
     h = html()
     with h.add(body()).add(div(id='content')):
         h1(f'Performance Plots: {name}')
-        #p('Lorem ipsum ...')
+        if text:
+            pre(text)
         with table().add(tbody()):
             for j, row in enumerate(figs):
-                l = tr()
+                r = tr()
                 for i, item in enumerate(row):
-                    url = f"{name}-fig-{j}_{i}.png"
-                    item.savefig(os.path.join(directory, url), dpi=dpi)
-                    l += td(img(src=url))
+                    url = os.path.join(fig_dir, f"{name}-fig-{j}_{i}.png")
+                    item.savefig(os.path.join(directory, url),
+                                 dpi=dpi)
+                    r += td(img(src=url))
 
     with open(os.path.join(directory, name + '.html'), 'w') as f:
         print(h, file=f)

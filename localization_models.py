@@ -147,15 +147,19 @@ def plot_loudspeakers(Su, **plot_args):
     plt.scatter(S_az * 180/π, S_el * 180/π, **plot_args)
 
 
-def plot_performance(M, Su, degree,
+def plot_performance(M, Su, sh_l, sh_m,
                      title="",
-                     plot_spkrs=True):
+                     plot_spkrs=True,
+                     test_dirs=None):
+
+    if test_dirs is None:
+        test_dirs = sg.az_el()
+
+    ambisonic_order = np.max(sh_l)  # FIXME: not really correct for mixed orders
 
     out_figs = []
 
-    l, m = zip(*rsh.lm_generator(degree))
-    test_dirs = sg.az_el()
-    Y_test_dirs = rsh.real_sph_harm_transform(l, m,
+    Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
                                               test_dirs.az.ravel(),
                                               test_dirs.el.ravel())
 
@@ -172,38 +176,36 @@ def plot_performance(M, Su, degree,
     # magnitude of rE
     if True:
         fig = plot_rX(rEr.reshape(test_dirs.shape),
-                      title=(f'{title}, order={degree}\n' +
+                      title=(f'{title}, order={ambisonic_order}\n' +
                              'magnitude of rE vs. test direction'),
                       clim=(0.5, 1))
         out_figs.append(fig)
 
-        # contour plot of rE
-        fig = plt.figure(figsize=(10, 5))
-        plt.contourf(rEr.reshape(test_dirs.shape).T,
-                     np.convolve((0.5, 0.5),
-                                 [0] + [shelf.max_rE_3d(o)
-                                        for o in range(0, degree+2)] + [1, 1],
-                                 'valid'),
-                     extent=(180, -180, -90, 90),
-                     cmap='jet')
-        plt.xlabel("azimuth (degrees)")
-        plt.ylabel("elevation (degrees)")
-        plt.colorbar()
+    # plot of ambisonic order
+    if True:
+        fig = plot_rX(
+            shelf.rE_to_ambisonic_order_3d(
+                rEr.reshape(test_dirs.shape),
+                max_order=ambisonic_order + 4).round(),
+            title=(f'{title}, order={ambisonic_order}\n' +
+                   'ambisonic order vs. test direction'),
+            clim=(0, ambisonic_order+2),
+            show=False)
 
         if plot_spkrs:
             plot_loudspeakers(Su, c='w', marker='D')
 
-        plt.title(f"{title}, order={degree}\n" +
-                  "magnitude of rE vs. test direction")
+        plt.title(f"{title}, order={ambisonic_order}\n" +
+                  "ambisonic order vs. test direction")
         out_figs.append(fig)
-        plt.show()
+        fig.show()
 
     # E vs td
     if True:
         E_dB = 10*np.log10(E.reshape(test_dirs.shape))
         E_dB_ceil = np.ceil(E_dB.max())
         fig = plot_rX(E_dB,
-                      title=(f'{title}, order={degree}\n' +
+                      title=(f'{title}, order={ambisonic_order}\n' +
                              'E (dB) vs. test_direction'),
                       clim=(E_dB_ceil-20, E_dB_ceil)
                       )
@@ -212,7 +214,7 @@ def plot_performance(M, Su, degree,
     # direction error
     if True:
         plot_rX(rE_dir_err.reshape(test_dirs.shape),
-                title='%s, order=%d\ndir error' % (title, degree),
+                title='%s, order=%d\ndir error' % (title, ambisonic_order),
                 clim=(0, 20))
 
         fig = plt.figure(figsize=(10, 5))
@@ -228,7 +230,7 @@ def plot_performance(M, Su, degree,
         if plot_spkrs:
             plot_loudspeakers(Su, c='w', marker='D')
 
-        plt.title('%s, order=%d\ndirection error' % (title, degree))
+        plt.title('%s, order=%d\ndirection error' % (title, ambisonic_order))
         out_figs.append(fig)
         plt.show()
 

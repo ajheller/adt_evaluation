@@ -80,6 +80,15 @@ def max_rE_gains_3d(order, numeric=True):
     return [sp.legendre(n, max_rE) for n in range(order+1)]
 
 
+def rE_to_ambisonic_order_3d(rE, max_order=20):
+    order = np.interp(rE,
+                      [max_rE_3d(o) for o in np.arange(max_order)],
+                      np.arange(max_order),
+                      left=0.0,
+                      right=max_order)
+    return order
+
+
 # cardioid gains
 #  from Moreau Table 3.5, page 69
 def cardioid_gains_2d(ambisonic_order):

@@ -62,6 +62,7 @@ import real_spherical_harmonics as rsh
 import shelf
 import spherical_grids as sg
 from Timer import Timer
+import io
 
 
 #  need a local definition so np is jax.np
@@ -123,21 +124,22 @@ def callback(x):
 
 def objective(x,
               # remainder of arguments are static
-              M_shape0: int, M_shape1: int,
+              M_shape: tuple,
               Su: np.array,
               Y_test: np.array,
               W: float,
               tikhanov_lambda: float,
-              sparseness_penalty: float
+              sparseness_penalty: float,
+              rE_goal: float,
               ) -> float:
-    M = x.reshape((M_shape0, M_shape1))
+    M = x.reshape(M_shape)
     rExyz, E = rE(M, Su, Y_test)
     f = (
         # truncation loss due to finite order
-        np.sum((rExyz - T.u * 1.0)**2)
+        np.sum((rExyz - T.u * rE_goal)**2)
 
         # uniform loudness loss
-        + np.sum((E - W)**2)/10
+        + np.sum((E - W)**2)/100
 
         # Tikhanov regularization term
         + np.sum(M**2) * tikhanov_lambda
@@ -149,33 +151,19 @@ def objective(x,
     return f
 
 
-def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
+def o(M, Su, W=None, ambisonic_order=3, iprint=50,
       tikhanov_lambda=1e-3,
-      sparseness_penalty=1):
+      sparseness_penalty=1,
+      rE_goal=1):
     """Optimize psychoacoustic criteria.
 
-    Extended description of function.
-
-    Parameters
-    ----------
-    arg1 : int
-        Description of arg1
-    arg2 : str
-        Description of arg2
-
-    Returns
-    -------
-    bool
-        Description of return value
-
-    Examples
-    --------
-    >>> func(1, "a")
-    True
     """
     # handle defaults
     if W is None:
         W = 1
+
+    if rE_goal == 'auto' or rE_goal is None:
+        rE_goal = shelf.max_rE_3d(ambisonic_order + 2)
 
     #
     l, m = zip(*rsh.lm_generator(ambisonic_order))
@@ -194,7 +182,7 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
 
     # Need to define these here so JAX's jit recompiles it for each run
     val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
-                              static_argnums=range(1, 8))
+                              static_argnums=range(1, 7))
 
     def objective_grad(x, *args):
         v, g = val_and_grad_fn(x, *args)
@@ -208,9 +196,10 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
     with Timer() as t:
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
         res = opt.minimize(objective_grad, x0,
-                           args=(*M_shape, Su, Y_test, W,
+                           args=(M_shape, Su, Y_test, W,
                                  tikhanov_lambda,
-                                 sparseness_penalty),
+                                 sparseness_penalty,
+                                 rE_goal),
                            method='L-BFGS-B',
                            jac=True,
                            options=dict(disp=iprint,
@@ -230,10 +219,6 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50, plot=False,
 
     if res.status == 0:
         M_opt = res.x.reshape(M_shape)
-
-        if plot:
-            lm.plot_performance(M_opt, Su, ambisonic_order)
-
     else:
         print('bummer:', res.message)
         raise RuntimeError(res.message)
@@ -260,18 +245,18 @@ def unit_test(ambisonic_order=13):
 
     M240_hf = M240 @ gamma
 
-    lm.plot_performance(M240_hf, Su, ambisonic_order, 'Pinv unit test')
+    lm.plot_performance(M240_hf, Su, l, m, 'Pinv unit test')
     lm.plot_matrix(M240_hf, title='Pinv unit test')
 
     # AllRAD
     M240_allrad = bd.allrad(l, m, S240.az, S240.el)
     M240_allrad_hf = M240_allrad @ gamma
-    lm.plot_performance(M240_allrad_hf, Su, ambisonic_order, 'AllRAD unit test')
+    lm.plot_performance(M240_allrad_hf, Su, l, m, 'AllRAD unit test')
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # NLOpt
     M_opt, res = o(None, Su, 1, ambisonic_order, sparseness_penalty=0)
-    lm.plot_performance(M_opt, Su, ambisonic_order, 'Optimized unit test')
+    lm.plot_performance(M_opt, Su, l, m, 'Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
 
@@ -299,23 +284,26 @@ def stage(path='stage.csv'):
     return S
 
 import reports
-def stage_test(ambisonic_order=3, el_lim=-π/8, tikhanov_lambda=1e-3,
+def stage_test(ambisonic_order=3,
+               el_lim=-π/8,
+               tikhanov_lambda=1e-3,
                sparseness_penalty=1,
-               do_report=False):
+               do_report=False,
+               rE_goal='auto'):
     # global ii; ii = 0  # counter for the callback
 
-    l, m = zip(*rsh.lm_generator(ambisonic_order))
+    sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
     S = stage()
     S_u = (S[['x', 'y', 'z']].T / S.r).values
 
     # FIXME: what a mess, shelf should return an nd_array, not a list
     gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
-                             dtype=np.float64)[np.array(l)])
+                             dtype=np.float64)[np.array(sh_l)])
 
     figs = []
     if True:
         # make an AllRAD decoder and plot its performance
-        M_allrad = bd.allrad(l, m, S.az, S.el)
+        M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
 
         # remove imaginary speaker
         # FIXME: this is too messy, need a better way to handle imaginary LSsß
@@ -326,7 +314,7 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tikhanov_lambda=1e-3,
         M_allrad_hf = M_allrad @ gamma
 
         figs.append(
-            lm.plot_performance(M_allrad_hf, S_u, ambisonic_order, 'AllRAD'))
+            lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m, 'AllRAD'))
 
         lm.plot_matrix(M_allrad_hf, title='AllRAD')
 
@@ -342,31 +330,39 @@ def stage_test(ambisonic_order=3, el_lim=-π/8, tikhanov_lambda=1e-3,
 
     # Objective for E
     cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π/2-el_lim)
-    W = cap.astype(np.float64)
+    E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
+    rE0 = np.array([0.4, 1.0])[cap.astype(np.int8)]
 
-    M_opt, res = o(M_allrad, S_u, W, ambisonic_order,
+    M_opt, res = o(M_allrad, S_u, E0, ambisonic_order,
                    iprint=50, tikhanov_lambda=tikhanov_lambda,
-                   sparseness_penalty=sparseness_penalty)
+                   sparseness_penalty=sparseness_penalty,
+                   rE_goal=rE_goal)
     figs.append(
-        lm.plot_performance(M_opt, S_u, ambisonic_order, 'Optimized AllRAD'))
+        lm.plot_performance(M_opt, S_u, sh_l, sh_m, 'Optimized AllRAD'))
 
     lm.plot_matrix(M_opt, title='Optimized')
 
-    print("ambisonic_order =", ambisonic_order)
-    print("el_lim =", el_lim * 180/π)
-    print("tikhanov_lambda =", tikhanov_lambda)
-    print("sparseness penalty =", sparseness_penalty)
+    with io.StringIO() as f:
+        print(f"ambisonic_order = {ambisonic_order}\n" +
+              f"el_lim = {el_lim * 180/π}\n" +
+              f"tikhanov_lambda = {tikhanov_lambda}\n" +
+              f"sparseness_penalty = {sparseness_penalty}\n",
+              file=f)
 
-    off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
-    print("Using:\n", Sr.name[~off.copy()].values)
-    print("Turned off:\n", Sr.name[off.copy()].values)
+        off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
+        print("Using:\n", Sr.name[~off.copy()].values, file=f)
+        print("Turned off:\n", Sr.name[off.copy()].values, file=f)
 
-    print("\n\nDiffuse field gain of each loudspeaker (dB)")
-    for n, g in zip(Sr.name.values, 10*np.log10(np.sum(M_opt**2, axis=1))):
-        print(f"{n}: {g:4.2f}")
+        print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
+        for n, g in zip(Sr.name.values,
+                        10*np.log10(np.sum(M_opt**2, axis=1))):
+            print(f"{n}: {g:8.2f} |{'=' * int(60+g)}", file=f)
+        report = f.getvalue()
+        print(report)
 
     if do_report:
         reports.html_report(zip(*figs),
+                            text=report,
                             directory="Stage",
                             name=f"Stage-order-{ambisonic_order}")
 
