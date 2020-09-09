@@ -185,8 +185,7 @@ def plot_performance(M, Su, sh_l, sh_m,
     if True:
         fig = plot_rX(
             shelf.rE_to_ambisonic_order_3d(
-                rEr.reshape(test_dirs.shape),
-                max_order=ambisonic_order + 4).round(),
+                rEr.reshape(test_dirs.shape)).round(),
             title=(f'{title}, order={ambisonic_order}\n' +
                    'ambisonic order vs. test direction'),
             clim=(0, ambisonic_order+2),
@@ -194,6 +193,7 @@ def plot_performance(M, Su, sh_l, sh_m,
 
         if plot_spkrs:
             plot_loudspeakers(Su, c='w', marker='D')
+            plot_loudspeakers(Su, c='b', marker='.')
 
         plt.title(f"{title}, order={ambisonic_order}\n" +
                   "ambisonic order vs. test direction")
@@ -213,22 +213,20 @@ def plot_performance(M, Su, sh_l, sh_m,
 
     # direction error
     if True:
-        plot_rX(rE_dir_err.reshape(test_dirs.shape),
-                title='%s, order=%d\ndir error' % (title, ambisonic_order),
-                clim=(0, 20))
+        fig = plot_rX(rE_dir_err.reshape(test_dirs.shape),
+                      title='%s, order=%d\ndir error' % (title, ambisonic_order),
+                      clim=(0, 20))
+        out_figs.append(fig)
 
-        fig = plt.figure(figsize=(10, 5))
-        plt.contourf(rE_dir_err.reshape(test_dirs.shape).T,
-                     list(range(0, 15, 2)),
-                     extent=(180, -180, -90, 90),
-                     cmap='jet')
-        plt.xlabel("azimuth (degrees)")
-        plt.ylabel("elevation (degrees)")
-        plt.colorbar()
+        fig = plot_rX(((rE_dir_err.reshape(test_dirs.shape)/3).round())*3,
+                      title='%s, order=%d\ndir error' % (title, ambisonic_order),
+                      clim=(0, 20),
+                      show=False)
 
         # overlay loudspeaker positions
         if plot_spkrs:
             plot_loudspeakers(Su, c='w', marker='D')
+            plot_loudspeakers(Su, c='b', marker='.')
 
         plt.title('%s, order=%d\ndirection error' % (title, ambisonic_order))
         out_figs.append(fig)

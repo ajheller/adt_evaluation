@@ -47,6 +47,7 @@ Created on Tue Dec 31 02:48:26 2019
 #  https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html
 #  https://jax.readthedocs.io/en/latest/jax.html#automatic-differentiation
 
+import io
 
 import jax
 import jax.numpy as np  # jax overloads numpy
@@ -54,6 +55,7 @@ import jax.random as random
 import numpy as onp  # 'original' numpy -- this is a convention
 import pandas as pd
 import scipy.optimize as opt
+from matplotlib import pyplot as plt
 from numpy import pi as π  # I get tired of typing np.pi
 
 import basic_decoders as bd
@@ -62,7 +64,7 @@ import real_spherical_harmonics as rsh
 import shelf
 import spherical_grids as sg
 from Timer import Timer
-import io
+import reports
 
 
 #  need a local definition so np is jax.np
@@ -94,16 +96,16 @@ jax.config.update("jax_enable_x64", True)
 key = random.PRNGKey(1)
 
 # select ambisonic order of decoder
-ambisonic_order = 3
-l, m = zip(*rsh.lm_generator(ambisonic_order))
+#ambisonic_order = 3
+#l, m = zip(*rsh.lm_generator(ambisonic_order))
 
 
 # the test directions
 T = sg.t_design5200()
 
 # directions for plotting
-T_azel = sg.az_el()
-Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
+# T_azel = sg.az_el()
+# Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
 
 
 # %%
@@ -139,7 +141,7 @@ def objective(x,
         np.sum((rExyz - T.u * rE_goal)**2)
 
         # uniform loudness loss
-        + np.sum((E - W)**2)/100
+        + np.sum((E - W)**2)/10
 
         # Tikhanov regularization term
         + np.sum(M**2) * tikhanov_lambda
@@ -261,6 +263,8 @@ def unit_test(ambisonic_order=13):
     return res
 
 
+# TODO: define a class for the speaker array,
+#       still use pandas to read the csv files
 def stage(path='stage.csv'):
     S = pd.read_csv(path)
     S['name'] = S["Name:Stage"]
@@ -282,8 +286,45 @@ def stage(path='stage.csv'):
     S.Real = (S.Real == "T") | (S.Real == 1)
 
     return S
+"""
+4 meters wide
+As deep as we want
+Earlevel stands are 1.1 meters, acoustic center speaker is .1 meters higher
 
-import reports
+Ceiling 2.44 meter, acoustic center .2 lower
+
+ITU with center with elevated
+"""
+def emb(z_low=-0.2, z_high=1):
+    S = pd.DataFrame(columns=['name', 'az', 'el', 'r', 'x', 'y', 'z', 'Real'])
+    az_deg = np.array([ 30, 120, -120, -30,  0, 90, 180, -90, 0, 0])
+    z  = np.array([z_low]*4 + [z_high]*4 +[2] + [-2])
+    r  = np.array([2]*8 + [0]*2)
+
+    S.name = ['L', 'LS', 'RS', 'R', 'CU', 'LU', 'BU', 'RU', '*IZ', '*IN']
+    S.x, S.y, *_ = \
+        sg.sph2cart(az_deg / 180 * π, 0, r)
+    S.z = z
+    S.az, S.el, S.r = sg.cart2sph(S.x, S.y, S.z)
+
+    S['Real'] = ['*' not in n for n in S.name]
+
+    return S
+
+def csv2spk(path='stage2.csv'):
+    hf = pd.read_table(path, delimiter=',', nrows=1, comment='#')
+    units = hf.iloc[0].value
+    df = pd.read_table(path,
+                       header=1, names=hf.columns,
+                       delimiter=',', index_col=False,
+                       comment='#', skip_blank_lines=True)
+    df.dropna(inplace=True)
+    df.reset_index(drop=True, inplace=True)
+
+
+    return hf, df
+
+
 def stage_test(ambisonic_order=3,
                el_lim=-π/8,
                tikhanov_lambda=1e-3,
@@ -293,24 +334,31 @@ def stage_test(ambisonic_order=3,
     # global ii; ii = 0  # counter for the callback
 
     sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
-    S = stage()
-    S_u = (S[['x', 'y', 'z']].T / S.r).values
+
+    if False:
+        S = stage()
+        spkr_array_name = 'Stage'
+    else:
+        # hack to enter Eric's array
+        S = emb()
+        spkr_array_name = 'EMB'
+
+    S_u = np.array(sg.sph2cart(S.az, S.el, 1))
 
     # FIXME: what a mess, shelf should return an nd_array, not a list
     gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
                              dtype=np.float64)[np.array(sh_l)])
 
     figs = []
-    if True:
+    if False:
         # make an AllRAD decoder and plot its performance
         M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
 
         # remove imaginary speaker
         # FIXME: this is too messy, need a better way to handle imaginary LSsß
         M_allrad = M_allrad[S.Real, :]
-        S_u = S_u[:, S.Real]
-        Sr = S[S.Real]
-
+        S_u = S_u[:, S.Real.values]
+        Sr = S[S.Real.values]
         M_allrad_hf = M_allrad @ gamma
 
         figs.append(
@@ -322,9 +370,15 @@ def stage_test(ambisonic_order=3,
         for n, g in zip(Sr.name.values,
                         10*np.log10(np.sum(M_allrad**2, axis=1))):
             print(f"{n}: {g:6.2f}")
+
+        initial_guess = 'AllRAD'
     else:
         # let optimizer dream up a decoder on its own
         M_allrad = None
+        S_u = S_u[:, S.Real.values]
+        Sr = S[S.Real]
+
+        initial_guess = 'Random'
 
     # M_allrad = None
 
@@ -338,9 +392,10 @@ def stage_test(ambisonic_order=3,
                    sparseness_penalty=sparseness_penalty,
                    rE_goal=rE_goal)
     figs.append(
-        lm.plot_performance(M_opt, S_u, sh_l, sh_m, 'Optimized AllRAD'))
+        lm.plot_performance(M_opt, S_u, sh_l, sh_m,
+                            title='Optimized ' + initial_guess))
 
-    lm.plot_matrix(M_opt, title='Optimized')
+    lm.plot_matrix(M_opt, title='Optimized' + initial_guess)
 
     with io.StringIO() as f:
         print(f"ambisonic_order = {ambisonic_order}\n" +
@@ -356,17 +411,31 @@ def stage_test(ambisonic_order=3,
         print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
         for n, g in zip(Sr.name.values,
                         10*np.log10(np.sum(M_opt**2, axis=1))):
-            print(f"{n}: {g:8.2f} |{'=' * int(60+g)}", file=f)
+            print(f"{n:3}:{g:8.2f} |{'=' * int(60+g)}", file=f)
         report = f.getvalue()
         print(report)
 
     if do_report:
         reports.html_report(zip(*figs),
                             text=report,
-                            directory="Stage",
-                            name=f"Stage-order-{ambisonic_order}")
+                            directory=spkr_array_name,
+                            name=f"{spkr_array_name}-order-{ambisonic_order}")
 
     return M_opt, M_allrad, off, res
+
+
+def plot_rE_vs_ambisonic_order():
+    rE = np.linspace(0.5, 1, 100)
+    plt.plot(rE, shelf.rE_to_ambisonic_order_3d(rE), label='3D')
+    plt.plot(rE, shelf.rE_to_ambisonic_order_2d(rE), label='2D')
+    plt.scatter([shelf.max_rE_3d(o) for o in range(1, 10)], range(1, 10))
+    plt.scatter([shelf.max_rE_2d(o) for o in range(1, 10)], range(1, 10))
+    plt.grid(True)
+    plt.xlabel("Magnitude of rE")
+    plt.ylabel("Ambisonic Order")
+    plt.legend()
+    plt.ylim(0, 10)
+
 
 
 """

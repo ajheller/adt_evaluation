@@ -28,6 +28,7 @@ from __future__ import division, print_function
 import numpy as np
 import sympy as sp
 import scipy.special as spec
+from scipy import interpolate as interp
 
 
 # max rE gains
@@ -42,14 +43,14 @@ def max_rE_gamma_2d(ambisonic_order):
     return np.array([np.polyval(spec.chebyt(l), max_rE)
                      for l in range(ambisonic_order+1)])
 
-def max_rE_3d(ambisonic_order):
+def max_rE_3d(ambisonic_order: int):
     roots, _ = spec.roots_legendre(ambisonic_order+1)
     return roots.max()
 
-def max_rE_gamma_3d(ambisonic_order):
+def max_rE_gamma_3d(ambisonic_order: int):
     max_rE = max_rE_3d(ambisonic_order)
-    return np.array([np.polyval(spec.legendre(l), max_rE)
-                     for l in range(ambisonic_order+1)])
+    return np.array([np.polyval(spec.legendre(deg), max_rE)
+                     for deg in range(ambisonic_order+1)])
 
 def max_rE_gains_2d(order, numeric=True):
     max_rE = np.max([sp.chebyshevt_root(order + 1, i)
@@ -80,13 +81,27 @@ def max_rE_gains_3d(order, numeric=True):
     return [sp.legendre(n, max_rE) for n in range(order+1)]
 
 
-def rE_to_ambisonic_order_3d(rE, max_order=20):
-    order = np.interp(rE,
-                      [max_rE_3d(o) for o in np.arange(max_order)],
-                      np.arange(max_order),
-                      left=0.0,
-                      right=max_order)
-    return order
+# inverses of max_rE_nd
+def rE_to_ambisonic_order_function(dims, max_order=50):
+
+    x = np.arange(max_order)
+    if dims == 2:
+        y = [max_rE_2d(o) for o in np.arange(max_order)]
+    elif dims == 3:
+        y = [max_rE_3d(o) for o in np.arange(max_order)]
+    else:
+        raise ValueError("dims should be 2 or 3")
+
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.interp1d.html
+    fn = interp.interp1d(y, x,
+                         'quadratic',
+                         bounds_error=False,
+                         fill_value=(0.0, max_order))
+    return fn
+
+
+rE_to_ambisonic_order_3d = rE_to_ambisonic_order_function(3)
+rE_to_ambisonic_order_2d = rE_to_ambisonic_order_function(2)
 
 
 # cardioid gains
