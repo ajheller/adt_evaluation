@@ -39,13 +39,18 @@ Created on Tue Dec 31 02:48:26 2019
 # on cuda0000x.ai.sri.com install jax like this:
 #  PYTHON_VERSION=cp38; CUDA_VERSION=cuda102; PLATFORM=manylinux2010_x86_64
 #  BASE_URL='https://storage.googleapis.com/jax-releases'
-#  pip install --upgrade $BASE_URL/$CUDA_VERSION/jaxlib-0.1.52-$PYTHON_VERSION-none-$PLATFORM.whl
+#  pip install --upgrade \
+#     $BASE_URL/$CUDA_VERSION/jaxlib-0.1.52-$PYTHON_VERSION-none-$PLATFORM.whl
 #  pip install --upgrade jax
 
 # Jax Autograd
 #  https://github.com/google/jax#automatic-differentiation-with-grad
 #  https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html
 #  https://jax.readthedocs.io/en/latest/jax.html#automatic-differentiation
+
+# pylint: disable=missing-module-docstring
+# pylint: disable=missing-class-docstring
+# pylint: disable=missing-function-docstring
 
 import io
 
@@ -69,6 +74,7 @@ import reports
 
 #  need a local definition so np is jax.np
 def rE(M, Su, Y_test):
+    """Return energy-model localization vector and energy."""
     G = M @ Y_test
     G2 = G * G  # FIXME: this should be G * G.conj
     E = np.sum(G2, axis=0)
@@ -77,6 +83,7 @@ def rE(M, Su, Y_test):
 
 
 def rV(M, Su, Y_test):
+    """Return velocity-model localization vector and pressure."""
     G = M @ Y_test
     P = np.sum(G, axis=0)
     rVxyz = (Su @ G) / P
@@ -84,6 +91,7 @@ def rV(M, Su, Y_test):
 
 
 def xyz2ur(xyz):
+    """Transform cartesian vector to unit vector and magnitude."""
     r = np.linalg.norm(xyz, ord=2, axis=0)
     u = xyz / r
     return u, r
@@ -94,11 +102,6 @@ jax.config.update("jax_enable_x64", True)
 
 # Generate key which is used by JAX to generate random numbers
 key = random.PRNGKey(1)
-
-# select ambisonic order of decoder
-#ambisonic_order = 3
-#l, m = zip(*rsh.lm_generator(ambisonic_order))
-
 
 # the test directions
 T = sg.t_design5200()
@@ -112,16 +115,17 @@ T = sg.t_design5200()
 
 # define a callback for use with opt.minimize
 #  Calling this seems to screw up the convergence !?!
-ii = 0
-def callback(x):
-    global ii
-    if ii == 0:
-        print("Running optimizer")
-    ii += 1
-    if ii % 50 == 0:
-        print(".", end="")
-    if ii % 500 == 0:
-        print(ii)
+# ii = 0
+# def callback(x):
+#     """Print progress of optimizer."""
+#     global ii
+#     if ii == 0:
+#         print("Running optimizer")
+#     ii += 1
+#     if ii % 50 == 0:
+#         print(".", end="")
+#     if ii % 500 == 0:
+#         print(ii)
 
 
 def objective(x,
@@ -134,6 +138,7 @@ def objective(x,
               sparseness_penalty: float,
               rE_goal: float,
               ) -> float:
+    """Return value of objective function for a given decoder matrix."""
     M = x.reshape(M_shape)
     rExyz, E = rE(M, Su, Y_test)
     f = (
@@ -153,25 +158,24 @@ def objective(x,
     return f
 
 
-def o(M, Su, W=None, ambisonic_order=3, iprint=50,
+def o(M, Su, sh_l, sh_m,
+      W=None,
+      iprint=50,
       tikhanov_lambda=1e-3,
       sparseness_penalty=1,
       rE_goal=1):
-    """Optimize psychoacoustic criteria.
-
-    """
+    """Optimize psychoacoustic criteria."""
+    #
     # handle defaults
     if W is None:
         W = 1
 
     if rE_goal == 'auto' or rE_goal is None:
-        rE_goal = shelf.max_rE_3d(ambisonic_order + 2)
+        rE_goal = shelf.max_rE_3d(np.max(sh_l) + 2)
 
-    #
-    l, m = zip(*rsh.lm_generator(ambisonic_order))
     # the test directions
     T = sg.t_design5200()
-    Y_test = rsh.real_sph_harm_transform(l, m, T.az, T.el)
+    Y_test = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
 
     if M is None:
         # infer M_shape from Su and Y
@@ -229,7 +233,9 @@ def o(M, Su, W=None, ambisonic_order=3, iprint=50,
 
 
 def unit_test(ambisonic_order=13):
-    l, m = zip(*rsh.lm_generator(ambisonic_order))
+    """Run unit test for optimizer with uniform array."""
+    #
+    sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
     # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
     S240 = sg.t_design240()
     Su = S240.u
@@ -237,28 +243,28 @@ def unit_test(ambisonic_order=13):
     # shelf filter gains for max_rE
     # FIXME shelf should return NDARRAY not a list
     gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
-                             dtype=np.float64)[np.array(l)])
+                             dtype=np.float64)[np.array(sh_l)])
 
     # since this is a spherical design, all three methods should yeild the
     # same result
 
     # inversion
-    M240 = bd.inversion(l, m, S240.az, S240.el)
+    M240 = bd.inversion(sh_l, sh_m, S240.az, S240.el)
 
     M240_hf = M240 @ gamma
 
-    lm.plot_performance(M240_hf, Su, l, m, 'Pinv unit test')
+    lm.plot_performance(M240_hf, Su, sh_l, sh_m, 'Pinv unit test')
     lm.plot_matrix(M240_hf, title='Pinv unit test')
 
     # AllRAD
-    M240_allrad = bd.allrad(l, m, S240.az, S240.el)
+    M240_allrad = bd.allrad(sh_l, sh_m, S240.az, S240.el)
     M240_allrad_hf = M240_allrad @ gamma
-    lm.plot_performance(M240_allrad_hf, Su, l, m, 'AllRAD unit test')
+    lm.plot_performance(M240_allrad_hf, Su, sh_l, sh_m, 'AllRAD unit test')
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # NLOpt
-    M_opt, res = o(None, Su, 1, ambisonic_order, sparseness_penalty=0)
-    lm.plot_performance(M_opt, Su, l, m, 'Optimized unit test')
+    M_opt, res = o(None, Su, sh_l, sh_m, W=1, sparseness_penalty=0)
+    lm.plot_performance(M_opt, Su, sh_l, sh_m, 'Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
 
@@ -266,6 +272,8 @@ def unit_test(ambisonic_order=13):
 # TODO: define a class for the speaker array,
 #       still use pandas to read the csv files
 def stage(path='stage.csv'):
+    """Load CCRMA Stage loudspeaker array."""
+    #
     S = pd.read_csv(path)
     S['name'] = S["Name:Stage"]
 
@@ -286,20 +294,24 @@ def stage(path='stage.csv'):
     S.Real = (S.Real == "T") | (S.Real == 1)
 
     return S
-"""
-4 meters wide
-As deep as we want
-Earlevel stands are 1.1 meters, acoustic center speaker is .1 meters higher
 
-Ceiling 2.44 meter, acoustic center .2 lower
 
-ITU with center with elevated
-"""
 def emb(z_low=-0.2, z_high=1):
+    """Return geometry of EMB's loudspeaker array.
+
+    ITU with center with elevated, additional height at left, right, back
+    4 meters wide
+    As deep as we want
+    Earlevel stands are 1.1 meters, acoustic center speaker is .1 meters higher
+
+    Ceiling 2.44 metersß, acoustic center .2 lower
+
+    """
+    #
     S = pd.DataFrame(columns=['name', 'az', 'el', 'r', 'x', 'y', 'z', 'Real'])
-    az_deg = np.array([ 30, 120, -120, -30,  0, 90, 180, -90, 0, 0])
-    z  = np.array([z_low]*4 + [z_high]*4 +[2] + [-2])
-    r  = np.array([2]*8 + [0]*2)
+    az_deg = np.array([30, 120, -120, -30,  0, 90, 180, -90, 0, 0])
+    z = np.array([z_low] * 4 + [z_high] * 4 + [2] + [-2])
+    r = np.array([2] * 8 + [0] * 2)
 
     S.name = ['L', 'LS', 'RS', 'R', 'CU', 'LU', 'BU', 'RU', '*IZ', '*IN']
     S.x, S.y, *_ = \
@@ -311,16 +323,18 @@ def emb(z_low=-0.2, z_high=1):
 
     return S
 
+
 def csv2spk(path='stage2.csv'):
+    """TODO; Load a loudspeaker array form a CSV file. Work in progress."""
     hf = pd.read_table(path, delimiter=',', nrows=1, comment='#')
     units = hf.iloc[0].value
     df = pd.read_table(path,
                        header=1, names=hf.columns,
                        delimiter=',', index_col=False,
                        comment='#', skip_blank_lines=True)
+    # remove empty rows
     df.dropna(inplace=True)
     df.reset_index(drop=True, inplace=True)
-
 
     return hf, df
 
@@ -331,8 +345,9 @@ def stage_test(ambisonic_order=3,
                sparseness_penalty=1,
                do_report=False,
                rE_goal='auto'):
-    # global ii; ii = 0  # counter for the callback
-
+    """Test optimizer with CCRMA Stage array."""
+    #
+    #
     sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
 
     if False:
@@ -355,7 +370,7 @@ def stage_test(ambisonic_order=3,
         M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
 
         # remove imaginary speaker
-        # FIXME: this is too messy, need a better way to handle imaginary LSsß
+        # FIXME: this is too messy, need a better way to handle imaginary LSs
         M_allrad = M_allrad[S.Real, :]
         S_u = S_u[:, S.Real.values]
         Sr = S[S.Real.values]
@@ -385,9 +400,9 @@ def stage_test(ambisonic_order=3,
     # Objective for E
     cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π/2-el_lim)
     E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
-    rE0 = np.array([0.4, 1.0])[cap.astype(np.int8)]
+    # FIXME: rE0 = np.array([0.4, 1.0])[cap.astype(np.int8)]
 
-    M_opt, res = o(M_allrad, S_u, E0, ambisonic_order,
+    M_opt, res = o(M_allrad, S_u, sh_l, sh_m, W=E0,
                    iprint=50, tikhanov_lambda=tikhanov_lambda,
                    sparseness_penalty=sparseness_penalty,
                    rE_goal=rE_goal)
@@ -425,6 +440,8 @@ def stage_test(ambisonic_order=3,
 
 
 def plot_rE_vs_ambisonic_order():
+    """Plot magnitude of rE for uniform loudspeaker arrays."""
+    #
     rE = np.linspace(0.5, 1, 100)
     plt.plot(rE, shelf.rE_to_ambisonic_order_3d(rE), label='3D')
     plt.plot(rE, shelf.rE_to_ambisonic_order_2d(rE), label='2D')
@@ -437,7 +454,24 @@ def plot_rE_vs_ambisonic_order():
     plt.ylim(0, 10)
 
 
+def table_ambisonics_order_vs_rE(max_order=20):
+    """Return a dataframe with rE as a function of order."""
+    order = np.arange(20, dtype=np.int32)
+    rE3 = np.array(list(map(shelf.max_rE_3d, order)))
+    rE2 = np.array(list(map(shelf.max_rE_2d, order)))
 
+    df = pd.DataFrame(np.column_stack((order,
+                                       rE2, 2 * np.arccos(rE2) * 180/π,
+                                       rE3, 2 * np.arccos(rE3) * 180/π,)),
+                      columns=('order',
+                               '2D', 'asw',
+                               '3D', 'asw',
+                               ))
+    return df
+
+
+#
+#
 """
 # %% Try to use jax.scipy.optimize.minimize to keep everything in the GPU
 #    sadly, this part of Jax apprears to be totally broken
