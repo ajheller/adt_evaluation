@@ -342,14 +342,16 @@ def csv2spk(path='stage2.csv'):
 def olm(C):
     """."""
     try:
-        order = C.h_order
+        order_h = C.h_order
+        order_v = C.v_order
         sh_l = C.sh_l
         sh_m = C.sh_m
     except AttributeError:
-        order = C
-        sh_l, sh_m = zip(*rsh.lm_generator(order))
+        order_h = C
+        order_v = C
+        sh_l, sh_m = zip(*rsh.lm_generator(order_h))
 
-    return order, sh_l, sh_m
+    return order_h, order_v, sh_l, sh_m
 
 
 def stage_test(ambisonic_order=3,
@@ -361,7 +363,9 @@ def stage_test(ambisonic_order=3,
     """Test optimizer with CCRMA Stage array."""
     #
     #
-    order, sh_l, sh_m = olm(ambisonic_order)
+    order_h, order_v, sh_l, sh_m = olm(ambisonic_order)
+    order = max(order_h, order_v)
+    is_3D = order_v > 0
 
     if False:
         S = stage()

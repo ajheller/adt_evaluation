@@ -317,6 +317,12 @@ class Channels(object):
     def __str__(self, verbose=False):
         return "<Channels %s %dH%dV>" % (self.name, self.h_order, self.v_order)
 
+    def is_3D(self):
+        return self.v_order > 0
+
+    def order(self):
+        return max(self.h_order, self.v_order)
+
 
 class ChannelsAmbisonic(Channels):
     "This class fills in defaults and does sanity checks"
