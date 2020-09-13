@@ -10,7 +10,7 @@ Created on Mon Aug 31 14:28:07 2020
 #    pip install dominate
 
 import os
-from dominate.tags import html, body, h1, p, pre,
+from dominate.tags import html, body, h1, p, pre
 from dominate.tags import div, table, tbody, tr, td, img
 
 
