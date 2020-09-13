@@ -10,9 +10,12 @@ Created on Mon Aug 31 14:28:07 2020
 #    pip install dominate
 
 import os
-from dominate.tags import html, body, h1, p, pre, div, table, tbody, tr, td, img
+from dominate.tags import html, body, h1, p, pre,
+from dominate.tags import div, table, tbody, tr, td, img
 
-def html_report(figs, text=None, name='report', directory=None, dpi=75, fig_dir='figs'):
+
+def html_report(figs, text=None, name='report', directory=None,
+                dpi=75, fig_dir='figs'):
 
     if directory is None:
         directory = name
