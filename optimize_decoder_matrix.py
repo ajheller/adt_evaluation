@@ -339,6 +339,19 @@ def csv2spk(path='stage2.csv'):
     return hf, df
 
 
+def olm(C):
+    """."""
+    try:
+        order = C.h_order
+        sh_l = C.sh_l
+        sh_m = C.sh_m
+    except AttributeError:
+        order = C
+        sh_l, sh_m = zip(*rsh.lm_generator(order))
+
+    return order, sh_l, sh_m
+
+
 def stage_test(ambisonic_order=3,
                el_lim=-π/8,
                tikhanov_lambda=1e-3,
@@ -348,7 +361,7 @@ def stage_test(ambisonic_order=3,
     """Test optimizer with CCRMA Stage array."""
     #
     #
-    sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
+    order, sh_l, sh_m = olm(ambisonic_order)
 
     if False:
         S = stage()
@@ -361,11 +374,11 @@ def stage_test(ambisonic_order=3,
     S_u = np.array(sg.sph2cart(S.az, S.el, 1))
 
     # FIXME: what a mess, shelf should return an nd_array, not a list
-    gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
+    gamma = np.diag(np.array(shelf.max_rE_gains_3d(order),
                              dtype=np.float64)[np.array(sh_l)])
 
     figs = []
-    if False:
+    if True:
         # make an AllRAD decoder and plot its performance
         M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
 
@@ -377,7 +390,8 @@ def stage_test(ambisonic_order=3,
         M_allrad_hf = M_allrad @ gamma
 
         figs.append(
-            lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m, 'AllRAD'))
+            lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
+                                plot_title='AllRAD'))
 
         lm.plot_matrix(M_allrad_hf, title='AllRAD')
 
@@ -408,12 +422,12 @@ def stage_test(ambisonic_order=3,
                    rE_goal=rE_goal)
     figs.append(
         lm.plot_performance(M_opt, S_u, sh_l, sh_m,
-                            title='Optimized ' + initial_guess))
+                            plot_title='Optimized ' + initial_guess))
 
-    lm.plot_matrix(M_opt, title='Optimized' + initial_guess)
+    lm.plot_matrix(M_opt, title='Optimized ' + initial_guess)
 
     with io.StringIO() as f:
-        print(f"ambisonic_order = {ambisonic_order}\n" +
+        print(f"ambisonic_order = {order}\n" +
               f"el_lim = {el_lim * 180/π}\n" +
               f"tikhanov_lambda = {tikhanov_lambda}\n" +
               f"sparseness_penalty = {sparseness_penalty}\n",
@@ -434,7 +448,7 @@ def stage_test(ambisonic_order=3,
         reports.html_report(zip(*figs),
                             text=report,
                             directory=spkr_array_name,
-                            name=f"{spkr_array_name}-order-{ambisonic_order}")
+                            name=f"{spkr_array_name}-order-{order}")
 
     return M_opt, M_allrad, off, res
 

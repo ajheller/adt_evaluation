@@ -148,7 +148,7 @@ def plot_loudspeakers(Su, **plot_args):
 
 
 def plot_performance(M, Su, sh_l, sh_m,
-                     title="",
+                     plot_title="",
                      plot_spkrs=True,
                      test_dirs=None):
 
@@ -176,59 +176,65 @@ def plot_performance(M, Su, sh_l, sh_m,
     # magnitude of rE
     if True:
         fig = plot_rX(rEr.reshape(test_dirs.shape),
-                      title=(f'{title}, order={ambisonic_order}\n' +
+                      title=(f'{plot_title}, order={ambisonic_order}\n' +
                              'magnitude of rE vs. test direction'),
-                      clim=(0.5, 1))
+                      clim=(0.5, 1),
+                      show=False)
         out_figs.append(fig)
+        plt.show()
 
     # plot of ambisonic order
     if True:
         fig = plot_rX(
-            shelf.rE_to_ambisonic_order_3d(
-                rEr.reshape(test_dirs.shape)).round(),
-            title=(f'{title}, order={ambisonic_order}\n' +
+            (shelf.rE_to_ambisonic_order_3d(
+                rEr.reshape(test_dirs.shape)) - ambisonic_order).round(),
+            title=(f'{plot_title}, order={ambisonic_order}\n' +
                    'ambisonic order vs. test direction'),
-            clim=(0, ambisonic_order+2),
+            clim=(-3, +3),
+            cmap='Spectral_r',
             show=False)
 
         if plot_spkrs:
             plot_loudspeakers(Su, c='w', marker='D')
-            plot_loudspeakers(Su, c='b', marker='.')
+            plot_loudspeakers(Su, c='k', marker='.')
 
-        plt.title(f"{title}, order={ambisonic_order}\n" +
-                  "ambisonic order vs. test direction")
         out_figs.append(fig)
-        fig.show()
+        plt.show()
 
     # E vs td
     if True:
         E_dB = 10*np.log10(E.reshape(test_dirs.shape))
         E_dB_ceil = np.ceil(E_dB.max())
         fig = plot_rX(E_dB,
-                      title=(f'{title}, order={ambisonic_order}\n' +
+                      title=(f'{plot_title}, order={ambisonic_order}\n' +
                              'E (dB) vs. test_direction'),
-                      clim=(E_dB_ceil-20, E_dB_ceil)
+                      clim=(E_dB_ceil-20, E_dB_ceil),
+                      show=False,
                       )
         out_figs.append(fig)
+        plt.show()
 
     # direction error
     if True:
         fig = plot_rX(rE_dir_err.reshape(test_dirs.shape),
-                      title='%s, order=%d\ndir error' % (title, ambisonic_order),
-                      clim=(0, 20))
+                      title=f'{plot_title}, order={ambisonic_order}' +
+                            '\ndirection error (deg)',
+                      clim=(0, 20),
+                      show=False)
         out_figs.append(fig)
+        plt.show()
 
         fig = plot_rX(((rE_dir_err.reshape(test_dirs.shape)/3).round())*3,
-                      title='%s, order=%d\ndir error' % (title, ambisonic_order),
+                      title=f'{plot_title}, order={ambisonic_order}' +
+                            '\ndirection error (deg)',
                       clim=(0, 20),
                       show=False)
 
         # overlay loudspeaker positions
         if plot_spkrs:
             plot_loudspeakers(Su, c='w', marker='D')
-            plot_loudspeakers(Su, c='b', marker='.')
+            plot_loudspeakers(Su, c='k', marker='.')
 
-        plt.title('%s, order=%d\ndirection error' % (title, ambisonic_order))
         out_figs.append(fig)
         plt.show()
 
@@ -237,7 +243,7 @@ def plot_performance(M, Su, sh_l, sh_m,
 
 def plot_matrix(M, title=""):
     fig = plt.figure()
-    plt.matshow(20*np.log10(np.abs(M)), cmap='jet')
+    plt.matshow(20*np.log10(np.abs(M)), fignum=0, cmap='jet')
     plt.colorbar()
     plt.clim((-60, 0))
     plt.title("%s\nMatrix element gains (dB)" % title)
