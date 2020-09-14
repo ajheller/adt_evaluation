@@ -25,8 +25,7 @@ Created on Sun Nov  4 17:29:18 2018
 
 from __future__ import division, print_function
 import numpy as np
-from numpy import pi
-from numpy import pi as π
+from numpy import pi, pi as π
 
 import spherical_grids as sg
 import real_spherical_harmonics as rsh
@@ -82,9 +81,9 @@ def xyz2aeru(xyz):
     return az, el, r, u
 
 
-def compute_rVrE(l, m, M, Su, test_dirs=sg.az_el()):
+def compute_rVrE(sh_l, sh_m, M, Su, test_dirs=sg.az_el()):
     """Compute rV and rE, single call interface."""
-    Y_test_dirs = rsh.real_sph_harm_transform(l, m,
+    Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
                                               test_dirs.az.ravel(),
                                               test_dirs.el.ravel())
 
@@ -141,22 +140,29 @@ def plot_rX(rX, title, clim=None, cmap='jet', show=True):
     return fig
 
 
-def plot_loudspeakers(Su, **plot_args):
+def plot_loudspeakers(Su: np.ndarray, **plot_args) -> None:
+    """Overlay loudspeaker positions on an existing figure."""
+    #
     # unit vector to az-el
     S_az, S_el, *_ = sg.cart2sph(*Su)
-    plt.scatter(S_az * 180/π, S_el * 180/π, **plot_args)
+    # a white diamond with a black dot in the center
+    plt.scatter(S_az * 180/π, S_el * 180/π, c='w', marker='D', **plot_args)
+    plt.scatter(S_az * 180/π, S_el * 180/π, c='k', marker='.', **plot_args)
 
 
 def plot_performance(M, Su, sh_l, sh_m,
-                     plot_title="",
+                     title="",
                      plot_spkrs=True,
                      test_dirs=None):
-
+    """Compute and plot basic performance metrics of a decoder matrix."""
+    # fill in defaults
     if test_dirs is None:
         test_dirs = sg.az_el()
 
-    ambisonic_order = np.max(sh_l)  # FIXME: not really correct for mixed orders
+    ambisonic_order = np.max(sh_l)  # FIXME: is this correct for mixed orders?
 
+    # we want to return a list of all the figures to make the HTML report.
+    # accumulate them in out_figs
     out_figs = []
 
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
@@ -176,7 +182,7 @@ def plot_performance(M, Su, sh_l, sh_m,
     # magnitude of rE
     if True:
         fig = plot_rX(rEr.reshape(test_dirs.shape),
-                      title=(f'{plot_title}, order={ambisonic_order}\n' +
+                      title=(f'{title}\n' +
                              'magnitude of rE vs. test direction'),
                       clim=(0.5, 1),
                       show=False)
@@ -188,15 +194,14 @@ def plot_performance(M, Su, sh_l, sh_m,
         fig = plot_rX(
             (shelf.rE_to_ambisonic_order_3d(
                 rEr.reshape(test_dirs.shape)) - ambisonic_order).round(),
-            title=(f'{plot_title}, order={ambisonic_order}\n' +
+            title=(f'{title}\n' +
                    'ambisonic order vs. test direction'),
             clim=(-3, +3),
             cmap='Spectral_r',
             show=False)
 
         if plot_spkrs:
-            plot_loudspeakers(Su, c='w', marker='D')
-            plot_loudspeakers(Su, c='k', marker='.')
+            plot_loudspeakers(Su)
 
         out_figs.append(fig)
         plt.show()
@@ -206,7 +211,7 @@ def plot_performance(M, Su, sh_l, sh_m,
         E_dB = 10*np.log10(E.reshape(test_dirs.shape))
         E_dB_ceil = np.ceil(E_dB.max())
         fig = plot_rX(E_dB,
-                      title=(f'{plot_title}, order={ambisonic_order}\n' +
+                      title=(f'{title}\n' +
                              'E (dB) vs. test_direction'),
                       clim=(E_dB_ceil-20, E_dB_ceil),
                       show=False,
@@ -217,23 +222,22 @@ def plot_performance(M, Su, sh_l, sh_m,
     # direction error
     if True:
         fig = plot_rX(rE_dir_err.reshape(test_dirs.shape),
-                      title=f'{plot_title}, order={ambisonic_order}' +
-                            '\ndirection error (deg)',
+                      title=f'{title}\n' +
+                            'direction error (deg)',
                       clim=(0, 20),
                       show=False)
         out_figs.append(fig)
         plt.show()
 
         fig = plot_rX(((rE_dir_err.reshape(test_dirs.shape)/3).round())*3,
-                      title=f'{plot_title}, order={ambisonic_order}' +
-                            '\ndirection error (deg)',
+                      title=f'{title}\n' +
+                            'direction error (deg)',
                       clim=(0, 20),
                       show=False)
 
         # overlay loudspeaker positions
         if plot_spkrs:
-            plot_loudspeakers(Su, c='w', marker='D')
-            plot_loudspeakers(Su, c='k', marker='.')
+            plot_loudspeakers(Su)
 
         out_figs.append(fig)
         plt.show()
@@ -242,6 +246,7 @@ def plot_performance(M, Su, sh_l, sh_m,
 
 
 def plot_matrix(M, title=""):
+    """Display the matrix as an image."""
     fig = plt.figure()
     plt.matshow(20*np.log10(np.abs(M)), fignum=0, cmap='jet')
     plt.colorbar()

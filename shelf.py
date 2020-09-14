@@ -35,27 +35,34 @@ from scipy import interpolate as interp
 #  from Heller, et al. LAC 2012
 
 def max_rE_2d(ambisonic_order):
-    roots, _ = spec.roots_chebyt(ambisonic_order+1)
+    """Maximum achievable |rE| with a uniform 2-D speaker array."""
+    roots, _ = spec.roots_chebyt(ambisonic_order + 1)
     return roots.max()
 
-def max_rE_gamma_2d(ambisonic_order):
-    max_rE = max_rE_2d(ambisonic_order)
-    return np.array([np.polyval(spec.chebyt(l), max_rE)
-                     for l in range(ambisonic_order+1)])
+
+def max_rE_gamma_2d(sh_l):
+    max_rE = max_rE_2d(np.max(sh_l))
+    return np.array([np.polyval(spec.chebyt(deg), max_rE)
+                     for deg in sh_l])
+
 
 def max_rE_3d(ambisonic_order: int):
-    roots, _ = spec.roots_legendre(ambisonic_order+1)
+    """Maximum achievable |rE| with a uniform 3-D speaker array."""
+    roots, _ = spec.roots_legendre(ambisonic_order + 1)
     return roots.max()
 
-def max_rE_gamma_3d(ambisonic_order: int):
-    max_rE = max_rE_3d(ambisonic_order)
+
+def max_rE_gamma_3d(sh_l):
+    max_rE = max_rE_3d(np.max(sh_l))
     return np.array([np.polyval(spec.legendre(deg), max_rE)
-                     for deg in range(ambisonic_order+1)])
+                     for deg in sh_l])
+
 
 def max_rE_gains_2d(order, numeric=True):
+    """Deprecated."""
     max_rE = np.max([sp.chebyshevt_root(order + 1, i)
                      for i in range(order + 1)])
-    return [sp.chebyshevt(n, max_rE) for n in range(order+1)]
+    return [sp.chebyshevt(n, max_rE) for n in range(order + 1)]
 
 
 def max_rE_gains_3d(order, numeric=True):
@@ -63,7 +70,7 @@ def max_rE_gains_3d(order, numeric=True):
     polynomial"""
 
     x = sp.symbols('x')
-    lp = sp.legendre_poly(order+1, x)
+    lp = sp.legendre_poly(order + 1, x)
 
     # there are more efficient methods to find the roots of the Legendre
     # polynomials, but this is good enough for our purposes
@@ -78,12 +85,11 @@ def max_rE_gains_3d(order, numeric=True):
     # this works for either one
     max_rE = np.max([*roots])
 
-    return [sp.legendre(n, max_rE) for n in range(order+1)]
+    return [sp.legendre(n, max_rE) for n in range(order + 1)]
 
 
 # inverses of max_rE_nd
 def rE_to_ambisonic_order_function(dims, max_order=50):
-
     x = np.arange(max_order)
     if dims == 2:
         y = [max_rE_2d(o) for o in np.arange(max_order)]
@@ -104,16 +110,65 @@ rE_to_ambisonic_order_3d = rE_to_ambisonic_order_function(3)
 rE_to_ambisonic_order_2d = rE_to_ambisonic_order_function(2)
 
 
-# cardioid gains
+# cardioid gains, aka in-phase gains
 #  from Moreau Table 3.5, page 69
+# we use sympy to do exact arithmetic here
 def cardioid_gains_2d(ambisonic_order):
     l = ambisonic_order
-    return [sp.factorial(l)**2 / (sp.factorial(l+m) * sp.factorial(l-m))
-            for m in range(l+1)]
+    return [sp.factorial(l) ** 2 / (sp.factorial(l + m) * sp.factorial(l - m))
+            for m in range(l + 1)]
+
+def cardioid_gamma_2d(sh_l):
+    l = np.max(sh_l)
+    return [sp.factorial(l) ** 2 / (sp.factorial(l + m) * sp.factorial(l - m))
+            for m in sh_l]
 
 
 def cardioid_gains_3d(ambisonic_order):
     l = ambisonic_order
-    return [(sp.factorial(l) * sp.factorial(l+1)) /
-            (sp.factorial(l+m+1) * sp.factorial(l-m))
-            for m in range(l+1)]
+    return [(sp.factorial(l) * sp.factorial(l + 1)) /
+            (sp.factorial(l + m + 1) * sp.factorial(l - m))
+            for m in range(l + 1)]
+
+def cardioid_gamma_3d(sh_l):
+    l = np.max(sh_l)
+    return [(sp.factorial(l) * sp.factorial(l + 1)) /
+            (sp.factorial(l + m + 1) * sp.factorial(l - m))
+            for m in sh_l]
+
+
+# full-featured API
+def gamma(sh_l, decoder_type: str = 'max_rE', decoder_3d: bool = True,
+          return_matrix: bool = False) -> np.ndarray:
+    #
+    # fill in defaults
+    try:
+        iter(sh_l)  # is sh_l iterable?
+    except TypeError:
+        sh_l = range(sh_l+1)
+
+    decoder_type = decoder_type.upper()
+
+    #
+    if decoder_type in ('MAX_RE', 'HF'):
+        if decoder_3d:
+            ret = max_rE_gamma_3d(sh_l)
+        else:
+            ret = max_rE_gamma_2d(sh_l)
+
+    elif decoder_type in ('CARDIOID', 'IN_PHASE', 'LARGE_AREA'):
+        if decoder_3d:
+            ret = cardioid_gamma_3d(sh_l)
+        else:
+            ret = cardioid_gamma_2d(sh_l)
+
+    elif decoder_type in ('VELOCOTY', 'MATCHING', 'BASIC', 'LF'):
+        ret = np.ones_like(sh_l)
+
+    else:
+        raise ValueError(f'Unknown decoder type: {decoder_type}')
+
+    if return_matrix:
+        ret = np.diag(ret)
+
+    return ret

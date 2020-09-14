@@ -241,12 +241,9 @@ def unit_test(ambisonic_order=13):
     Su = S240.u
 
     # shelf filter gains for max_rE
-    # FIXME shelf should return NDARRAY not a list
-    gamma = np.diag(np.array(shelf.max_rE_gains_3d(ambisonic_order),
-                             dtype=np.float64)[np.array(sh_l)])
+    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=True, return_matrix=True)
 
-    # since this is a spherical design, all three methods should yeild the
-    # same result
+    # since this is a spherical design, all three methods should yield the same result
 
     # inversion
     M240 = bd.inversion(sh_l, sh_m, S240.az, S240.el)
@@ -364,10 +361,10 @@ def stage_test(ambisonic_order=3,
     #
     #
     order_h, order_v, sh_l, sh_m = olm(ambisonic_order)
-    order = max(order_h, order_v)
+    order = max(order_h, order_v)  # FIXME
     is_3D = order_v > 0
 
-    if False:
+    if True:
         S = stage()
         spkr_array_name = 'Stage'
     else:
@@ -377,13 +374,13 @@ def stage_test(ambisonic_order=3,
 
     S_u = np.array(sg.sph2cart(S.az, S.el, 1))
 
-    # FIXME: what a mess, shelf should return an nd_array, not a list
-    gamma = np.diag(np.array(shelf.max_rE_gains_3d(order),
-                             dtype=np.float64)[np.array(sh_l)])
+    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=order_v,
+                        return_matrix=True)
 
     figs = []
     if True:
-        # make an AllRAD decoder and plot its performance
+        M_start = 'AllRAD'
+
         M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
 
         # remove imaginary speaker
@@ -393,25 +390,25 @@ def stage_test(ambisonic_order=3,
         Sr = S[S.Real.values]
         M_allrad_hf = M_allrad @ gamma
 
+        # performance plots
+        plot_title = f"AllRAD, Ambisonic order={order_h}H{order_v}V"
         figs.append(
             lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
-                                plot_title='AllRAD'))
+                                title=plot_title))
 
-        lm.plot_matrix(M_allrad_hf, title='AllRAD')
+        lm.plot_matrix(M_allrad_hf, title=plot_title)
 
-        print("\n\nDiffuse field gain of each loudspeaker (dB)")
+        print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
         for n, g in zip(Sr.name.values,
                         10*np.log10(np.sum(M_allrad**2, axis=1))):
             print(f"{n}: {g:6.2f}")
 
-        initial_guess = 'AllRAD'
     else:
+        M_start = 'Random'
         # let optimizer dream up a decoder on its own
         M_allrad = None
         S_u = S_u[:, S.Real.values]
         Sr = S[S.Real]
-
-        initial_guess = 'Random'
 
     # M_allrad = None
 
@@ -424,11 +421,14 @@ def stage_test(ambisonic_order=3,
                    iprint=50, tikhanov_lambda=tikhanov_lambda,
                    sparseness_penalty=sparseness_penalty,
                    rE_goal=rE_goal)
+
+    plot_title = f'Optimized {M_start}, Ambisonic order={order_h}H{order_v}V'
     figs.append(
         lm.plot_performance(M_opt, S_u, sh_l, sh_m,
-                            plot_title='Optimized ' + initial_guess))
+                            title=plot_title
+                            ))
 
-    lm.plot_matrix(M_opt, title='Optimized ' + initial_guess)
+    lm.plot_matrix(M_opt, title=plot_title)
 
     with io.StringIO() as f:
         print(f"ambisonic_order = {order}\n" +
@@ -476,14 +476,17 @@ def table_ambisonics_order_vs_rE(max_order=20):
     """Return a dataframe with rE as a function of order."""
     order = np.arange(20, dtype=np.int32)
     rE3 = np.array(list(map(shelf.max_rE_3d, order)))
+    drE3 = np.append(np.nan, rE3[1:] - rE3[:-1])
+
     rE2 = np.array(list(map(shelf.max_rE_2d, order)))
+    drE2 = np.append(np.nan, rE2[1:] - rE2[:-1])
 
     df = pd.DataFrame(np.column_stack((order,
-                                       rE2, 2 * np.arccos(rE2) * 180/π,
-                                       rE3, 2 * np.arccos(rE3) * 180/π,)),
+                                       rE2, 100*drE2/rE2, 2 * np.arccos(rE2) * 180/π,
+                                       rE3, 100*drE3/rE3, 2 * np.arccos(rE3) * 180/π,)),
                       columns=('order',
-                               '2D', 'asw',
-                               '3D', 'asw',
+                               '2D', '% change', 'asw',
+                               '3D', '% change', 'asw',
                                ))
     return df
 
