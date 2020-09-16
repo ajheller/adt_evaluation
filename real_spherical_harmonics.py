@@ -101,7 +101,7 @@ def lm_broadcast(l, m, theta, phi,
     """
     if transpose:
         a_m, a_theta = meshgrid(m, theta)
-        a_phi, a_m = meshgrid(l, phi)
+        a_l, a_phi  = meshgrid(l, phi)
     else:
         a_theta, a_m = meshgrid(theta, m)
         a_phi, a_l = meshgrid(phi, l)
@@ -133,7 +133,7 @@ def dblquad_test():
     return qq, ee
 
 
-def lm_generator(max_degree=3, pred=lambda l, m: True):
+def lm_generator(max_degree: int = 3, pred = lambda l, m: True):
     return ((l, m)
             for l in range(max_degree+1)
             for m in range(-l, l+1)
