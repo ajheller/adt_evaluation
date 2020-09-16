@@ -34,7 +34,7 @@ from scipy import interpolate as interp
 # max rE gains
 #  from Heller, et al. LAC 2012
 
-def max_rE_2d(ambisonic_order):
+def max_rE_2d(ambisonic_order: int) -> float:
     """Maximum achievable |rE| with a uniform 2-D speaker array."""
     roots, _ = spec.roots_chebyt(ambisonic_order + 1)
     return roots.max()
@@ -46,7 +46,7 @@ def max_rE_gamma_2d(sh_l):
                      for deg in sh_l])
 
 
-def max_rE_3d(ambisonic_order: int):
+def max_rE_3d(ambisonic_order: int) -> float:
     """Maximum achievable |rE| with a uniform 3-D speaker array."""
     roots, _ = spec.roots_legendre(ambisonic_order + 1)
     return roots.max()
@@ -118,6 +118,7 @@ def cardioid_gains_2d(ambisonic_order):
     return [sp.factorial(l) ** 2 / (sp.factorial(l + m) * sp.factorial(l - m))
             for m in range(l + 1)]
 
+
 def cardioid_gamma_2d(sh_l):
     l = np.max(sh_l)
     return [sp.factorial(l) ** 2 / (sp.factorial(l + m) * sp.factorial(l - m))
@@ -129,6 +130,7 @@ def cardioid_gains_3d(ambisonic_order):
     return [(sp.factorial(l) * sp.factorial(l + 1)) /
             (sp.factorial(l + m + 1) * sp.factorial(l - m))
             for m in range(l + 1)]
+
 
 def cardioid_gamma_3d(sh_l):
     l = np.max(sh_l)
@@ -145,7 +147,7 @@ def gamma(sh_l, decoder_type: str = 'max_rE', decoder_3d: bool = True,
     try:
         iter(sh_l)  # is sh_l iterable?
     except TypeError:
-        sh_l = range(sh_l+1)
+        sh_l = range(sh_l + 1)
 
     decoder_type = decoder_type.upper()
 
@@ -162,7 +164,7 @@ def gamma(sh_l, decoder_type: str = 'max_rE', decoder_3d: bool = True,
         else:
             ret = cardioid_gamma_2d(sh_l)
 
-    elif decoder_type in ('VELOCOTY', 'MATCHING', 'BASIC', 'LF'):
+    elif decoder_type in ('VELOCITY', 'MATCHING', 'BASIC', 'LF'):
         ret = np.ones_like(sh_l)
 
     else:

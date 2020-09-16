@@ -25,7 +25,7 @@ Created on Sun Nov  4 17:29:18 2018
 
 from __future__ import division, print_function
 import numpy as np
-from numpy import pi, pi as π
+from numpy import pi as π
 
 import spherical_grids as sg
 import real_spherical_harmonics as rsh
@@ -287,7 +287,7 @@ if __name__ == "__main__":
             DESCRIPTION.
 
         """
-        l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
+        sh_l, sh_m = zip(*rsh.lm_generator(order))
 
         if ss:
             s_az = (π/4, 3*π/4, -3*π/4, -π/4, 0, 0)
@@ -298,15 +298,15 @@ if __name__ == "__main__":
             s_el = s.el
 
         if decoder == 1:
-            M = bd.allrad(l, m, s_az, s_el)
+            M = bd.allrad(sh_l, sh_m, s_az, s_el)
         elif decoder == 2:
-            M = bd.allrad2(l, m, s_az, s_el)
+            M = bd.allrad2(sh_l, sh_m, s_az, s_el)
         elif decoder == 3:
-            M = bd.inversion(l, m, s_az, s_el)
+            M = bd.inversion(sh_l, sh_m, s_az, s_el)
         else:
             raise ValueError("Unknown decoder type: %d" % decoder)
 
-        rVr, rEr, = compute_rVrE(l, m, M,
+        rVr, rEr, = compute_rVrE(sh_l, sh_m, M,
                                  np.array(sg.sph2cart(s_az, s_el)))
 
         plot_rX(rVr, "rVr", (0.5, 1))

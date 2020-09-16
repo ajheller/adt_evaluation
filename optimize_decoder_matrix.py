@@ -241,11 +241,13 @@ def unit_test(ambisonic_order=13):
     Su = S240.u
 
     # shelf filter gains for max_rE
-    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=True, return_matrix=True)
+    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=True,
+                        return_matrix=True)
 
-    # since this is a spherical design, all three methods should yield the same result
+    # since this is a spherical design, all three methods should yield the
+    # same result
 
-    # inversion
+    # 1 - inversion
     M240 = bd.inversion(sh_l, sh_m, S240.az, S240.el)
 
     M240_hf = M240 @ gamma
@@ -253,13 +255,13 @@ def unit_test(ambisonic_order=13):
     lm.plot_performance(M240_hf, Su, sh_l, sh_m, 'Pinv unit test')
     lm.plot_matrix(M240_hf, title='Pinv unit test')
 
-    # AllRAD
+    # 2 - AllRAD
     M240_allrad = bd.allrad(sh_l, sh_m, S240.az, S240.el)
     M240_allrad_hf = M240_allrad @ gamma
     lm.plot_performance(M240_allrad_hf, Su, sh_l, sh_m, 'AllRAD unit test')
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
-    # NLOpt
+    # 3 - NLOpt
     M_opt, res = o(None, Su, sh_l, sh_m, W=1, sparseness_penalty=0)
     lm.plot_performance(M_opt, Su, sh_l, sh_m, 'Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
@@ -374,7 +376,7 @@ def stage_test(ambisonic_order=3,
 
     S_u = np.array(sg.sph2cart(S.az, S.el, 1))
 
-    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=order_v,
+    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=is_3D,
                         return_matrix=True)
 
     figs = []
@@ -481,13 +483,13 @@ def table_ambisonics_order_vs_rE(max_order=20):
     rE2 = np.array(list(map(shelf.max_rE_2d, order)))
     drE2 = np.append(np.nan, rE2[1:] - rE2[:-1])
 
-    df = pd.DataFrame(np.column_stack((order,
-                                       rE2, 100*drE2/rE2, 2 * np.arccos(rE2) * 180/π,
-                                       rE3, 100*drE3/rE3, 2 * np.arccos(rE3) * 180/π,)),
-                      columns=('order',
-                               '2D', '% change', 'asw',
-                               '3D', '% change', 'asw',
-                               ))
+    df = pd.DataFrame(
+        np.column_stack((order,
+                         rE2, 100*drE2/rE2, 2 * np.arccos(rE2) * 180/π,
+                         rE3, 100*drE3/rE3, 2 * np.arccos(rE3) * 180/π,)),
+        columns=('order',
+                 '2D', '% change', 'asw',
+                 '3D', '% change', 'asw'))
     return df
 
 
@@ -530,3 +532,6 @@ def o2(M=None, Su=Su, Y_test=Y_test, iprint=50):
                            )
     return result
 """
+
+if __name__ == '__main__':
+    unit_test()
