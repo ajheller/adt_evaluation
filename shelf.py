@@ -26,8 +26,8 @@ Created on Fri Aug 24 23:09:48 2018
 from __future__ import division, print_function
 
 import numpy as np
-import sympy as sp
 import scipy.special as spec
+import sympy as sp
 from scipy import interpolate as interp
 
 

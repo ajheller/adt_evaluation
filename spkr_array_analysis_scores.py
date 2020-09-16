@@ -22,18 +22,16 @@ Created on Sun Dec 29 15:39:29 2019
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
+import plotly.graph_objs as go
 from numpy import pi
 from scipy.spatial import Delaunay
 
 # plotly is not available via conda
 # use pip install plotly to install
 import plotly
-import plotly.graph_objs as go
-from plotly import tools as tls
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 
 
 def plot_tri(tri, name='foo', cmap_name='jet'):
@@ -58,13 +56,13 @@ def plot_tri(tri, name='foo', cmap_name='jet'):
 
     # set up color map
     cmap = plt.get_cmap(cmap_name)
-    cNorm = mpl.colors.Normalize(vmin=0, vmax=pi/2)
+    cNorm = mpl.colors.Normalize(vmin=0, vmax=pi / 2)
     scalarMap = mpl.cm.ScalarMappable(norm=cNorm, cmap=cmap)
 
     #
     spkr_cv_hull = go.Mesh3d(
         name=name + ' Speakers (unit sphere)',
-        #alphahull=0,  # 0 to compute convex hull
+        # alphahull=0,  # 0 to compute convex hull
         x=tri.points[:, 0],
         y=tri.points[:, 1],
         z=tri.points[:, 2],
@@ -76,16 +74,16 @@ def plot_tri(tri, name='foo', cmap_name='jet'):
         opacity=1.0,
         color='#1f77b4',
         facecolor=scalarMap.to_rgba(scores),
-        #autocolorscale=True,
+        # autocolorscale=True,
         colorscale='Jet',
         showscale=True,
         cmin=0,
         cmax=np.pi,
         # markers=dict(color='orange', size=15),
         flatshading=True,
-        #intensity=scores,
-        #text=np.squeeze(S['id'] + ["Imaginary1", "Imaginary2"])
-        )
+        # intensity=scores,
+        # text=np.squeeze(S['id'] + ["Imaginary1", "Imaginary2"])
+    )
 
     face_end = np.array(((None, None, None),))
     face_indices = np.array((0, 1, 2, 0))
@@ -101,16 +99,16 @@ def plot_tri(tri, name='foo', cmap_name='jet'):
         mode='lines+markers',
         hoverinfo='none',
         line=dict(color='yellow', width=8),
-        #line=dict(color=np.random.random(100), width=10),
+        # line=dict(color=np.random.random(100), width=10),
         visible=True,
         connectgaps=False)
 
-# set up figure
+    # set up figure
     fig = go.Figure(data=[spkr_cv_hull, cvedges],
                     layout=go.Layout(
                         title='Face scores: ' + spkr_cv_hull['name'],
                         showlegend=True,
-                        ))
+                    ))
 
     plotly.offline.plot(fig,
                         filename='plotly/%s-speaker-array-rE.html' % name,
@@ -148,9 +146,10 @@ def face_scores(tri):
     # helper function to compute angle between two vectors (dot product divided
     # by product of magnitudes, and then take the arc cosine)
     def angle(v1, v2, axis=0):
-        return np.arccos(np.sum(v1*v2, axis=axis) /
+        return np.arccos(np.sum(v1 * v2, axis=axis) /
                          (np.linalg.norm(v1, axis=axis) *
                           np.linalg.norm(v2, axis=axis)))
+
     # 3x3 matrix used for computing consecutive differences (used in computing
     # edges as well as scores)
 
@@ -176,7 +175,7 @@ def delunay_edges(tri, unique=True):
     points = tri.points
     vis, nis = tri.vertex_neighbor_vertices
 
-    e = [nis[vis[i]:vis[i+1]] for i, p in enumerate(points)]
+    e = [nis[vis[i]:vis[i + 1]] for i, p in enumerate(points)]
 
     if unique:
         u = [vi[vi > i] for i, vi in enumerate(e)]
@@ -188,12 +187,12 @@ def edge_scores(tri):
     points = tri.points
     vis, nis = tri.vertex_neighbor_vertices
     if False:
-        for i in range(len(vis)-1):
-            for j in nis[vis[i]:vis[i+1]]:
+        for i in range(len(vis) - 1):
+            for j in nis[vis[i]:vis[i + 1]]:
                 print(i, j, np.dot(points[i], points[j]))
     else:
-        s = [(nis[vis[i]:vis[i+1]],
-              np.dot(points[nis[vis[i]:vis[i+1]]], p))
+        s = [(nis[vis[i]:vis[i + 1]],
+              np.dot(points[nis[vis[i]:vis[i + 1]]], p))
              for i, p in enumerate(points)]
     return s
 
@@ -260,7 +259,6 @@ stage = np.array([
     [-8.77470133e-01, +4.47093364e-01, -1.73648178e-01],
     [-8.77470133e-01, -4.47093364e-01, -1.73648178e-01]])
 
-
 #
 #  Steve Katz's home array
 skatz = np.array([
@@ -277,7 +275,6 @@ skatz = np.array([
     [+4.98595351e-01, -6.23244189e-01, +6.02469383e-01],
     [-4.32236723e-01, +6.48355085e-01, +6.26743248e-01],
     [-4.32236723e-01, -6.48355085e-01, +6.26743248e-01]])
-
 
 #
 #  Envelop array, as built
@@ -306,8 +303,8 @@ envelop = np.array([
     [-4.17025940e-01, -7.88919202e-01, -4.51326775e-01],
     [-8.70216769e-01, +3.58364326e-01, -3.38079553e-01],
     [-8.70216769e-01, -3.58364326e-01, -3.38079553e-01],
-    #[0, 0, 1], [0, 0, -1],
-    ])
+    # [0, 0, 1], [0, 0, -1],
+])
 
 tetra = (np.array([[1, 1, 1], [-1, 1, -1], [-1, -1, 1], [1, -1, -1]]) /
          np.linalg.norm([1, 1, 1]))
@@ -319,14 +316,12 @@ tetra = (np.array([[1, 1, 1], [-1, 1, -1], [-1, -1, 1], [1, -1, -1]]) /
 # CCRMA stage
 stage_tri = Delaunay(stage)
 
-
 # Steve Katz's home
 skatz_tri = Delaunay(skatz)
 
 # envelop
 envelop_tri = Delaunay(envelop)
 tetra_tri = Delaunay(tetra)
-
 
 if __name__ == "__main__":
     print("CCRMA stage:\n%s\n" % face_scores(stage_tri))
@@ -340,7 +335,6 @@ if __name__ == "__main__":
 
     print("Tetra:\n%s\n" % face_scores(tetra_tri))
     plot_tri(tetra_tri, 'tetra', 'viridis')
-
 
 # ###############################################################3
 # previous code

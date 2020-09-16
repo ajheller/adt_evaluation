@@ -23,22 +23,21 @@ Created on Fri Oct 19 17:57:11 2018
 
 
 from __future__ import division, print_function
+
 import numpy as np
 from numpy import pi as π
-
 from scipy.spatial import Delaunay  # for AllRAD decoder
 
-import real_spherical_harmonics as rsh
-
-import spherical_grids as sg
 import ray_triangle_intersection as rti
-
+import real_spherical_harmonics as rsh
+import spherical_grids as sg
 from localization_models import compute_rVrE, plot_rX
 
 
 def channel_spec(degree, order, norm=1, cs_phase=None):
     def cs(l, m, n=1): return l, m, n
-    return [cs(l, m) for l in range(degree+1) for m in range(-l, l+1)]
+
+    return [cs(l, m) for l in range(degree + 1) for m in range(-l, l + 1)]
 
 
 def projection(degree, order,
@@ -129,7 +128,7 @@ def constant_energy_inversion(degree, order,
     # TODO do something clever with the singular values here
     #  for constant energy set all the singular values to one
     #  for mode matching PINV
-    Sinv = 1/S
+    Sinv = 1 / S
     Sinv[np.isclose(S, 0, atol=1e-5)] = 0
 
     M = np.matmul(V.T, np.diag(Sinv), U.T)
@@ -279,7 +278,7 @@ def allrad_v2rp(Su, Vu, vbap_norm=True):
     for i in range(n_virtual_speakers):
         flag, u, v, t = rti.ray_triangle_intersection_p1(origin, Vu[:, i],
                                                          p0, p1, p2)
-        valid = flag & (t > 0)   # np.logical_and(flag, t > 0)
+        valid = flag & (t > 0)  # np.logical_and(flag, t > 0)
         if np.sum(valid) == 1:
             face = Hr[valid][0]
             ur = u[valid][0]
@@ -350,7 +349,7 @@ def allrad_v2r(Su, Vu):
                 # virtual speaker i intersects face j
                 Vtri[i] = j
                 # coordinates of intersection for plotting
-                Vxyz[:, i] = bw*p0 + bu*p1 + bv*p2
+                Vxyz[:, i] = bw * p0 + bu * p1 + bv * p2
                 # fill in gains, normalize for energy
                 b = np.array([bw, bu, bv])
 
@@ -362,7 +361,7 @@ def allrad_v2r(Su, Vu):
 
 # unit tests
 def unit_test():
-    s_az = (π/4, 3*π/4, -3*π/4, -π/4)
+    s_az = (π / 4, 3 * π / 4, -3 * π / 4, -π / 4)
     s_el = (0, 0, 0, 0)
 
     l = (0, 1, 1)
@@ -406,8 +405,8 @@ def unit_test2(order=3, case=0, debug=True):
 
     """
     if case == 0:
-        s_az = (π/4, 3*π/4, -3*π/4, -π/4, 0, 0)
-        s_el = (0, 0, 0, 0, π/2, -π/2)
+        s_az = (π / 4, 3 * π / 4, -3 * π / 4, -π / 4, 0, 0)
+        s_el = (0, 0, 0, 0, π / 2, -π / 2)
         order = max(order, 1)
     elif case == 1:
         s = sg.t_design240()
@@ -425,7 +424,7 @@ def unit_test2(order=3, case=0, debug=True):
         print(s_az)
         print(s_el)
 
-    l, m = zip(*[(l, m) for l in range(order+1) for m in range(-l, l+1)])
+    l, m = zip(*[(l, m) for l in range(order + 1) for m in range(-l, l + 1)])
 
     M_pinv = inversion(l, m, s_az, s_el)
     # fuzz to zero
@@ -448,7 +447,7 @@ def unit_test2(order=3, case=0, debug=True):
     return M_pinv, M_proj, p, M_allrad, M_allrad2
 
 
-#v2rp, ap, trip = allrad_v2rp(Su, Vu)
+# v2rp, ap, trip = allrad_v2rp(Su, Vu)
 
 if __name__ == '__main__':
     M_pinv, M_proj, p, M_allrad, M_allrad2 = unit_test2(case=2, debug=False)

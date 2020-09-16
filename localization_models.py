@@ -24,15 +24,15 @@ Created on Sun Nov  4 17:29:18 2018
 
 
 from __future__ import division, print_function
+
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy import pi as π
 
-import spherical_grids as sg
 import real_spherical_harmonics as rsh
 # import basic_decoders as bd
 import shelf
-
-import matplotlib.pyplot as plt
+import spherical_grids as sg
 
 
 def compute_rVrE_fast(M, Su, Y_test_dirs):
@@ -146,8 +146,8 @@ def plot_loudspeakers(Su: np.ndarray, **plot_args) -> None:
     # unit vector to az-el
     S_az, S_el, *_ = sg.cart2sph(*Su)
     # a white diamond with a black dot in the center
-    plt.scatter(S_az * 180/π, S_el * 180/π, c='w', marker='D', **plot_args)
-    plt.scatter(S_az * 180/π, S_el * 180/π, c='k', marker='.', **plot_args)
+    plt.scatter(S_az * 180 / π, S_el * 180 / π, c='w', marker='D', **plot_args)
+    plt.scatter(S_az * 180 / π, S_el * 180 / π, c='k', marker='.', **plot_args)
 
 
 def plot_performance(M, Su, sh_l, sh_m,
@@ -177,7 +177,7 @@ def plot_performance(M, Su, sh_l, sh_m,
     # the arg to arccos can get epsilon larger than 1 due to round off,
     # which produces NaNs, so clip to [-1, 1]
     rE_dir_err = np.arccos(np.clip(np.sum(rEu * test_dirs.u, axis=0),
-                                   -1, 1)) * 180/π
+                                   -1, 1)) * 180 / π
 
     # magnitude of rE
     if True:
@@ -208,12 +208,12 @@ def plot_performance(M, Su, sh_l, sh_m,
 
     # E vs td
     if True:
-        E_dB = 10*np.log10(E.reshape(test_dirs.shape))
+        E_dB = 10 * np.log10(E.reshape(test_dirs.shape))
         E_dB_ceil = np.ceil(E_dB.max())
         fig = plot_rX(E_dB,
                       title=(f'{title}\n' +
                              'E (dB) vs. test_direction'),
-                      clim=(E_dB_ceil-20, E_dB_ceil),
+                      clim=(E_dB_ceil - 20, E_dB_ceil),
                       show=False,
                       )
         out_figs.append(fig)
@@ -229,7 +229,7 @@ def plot_performance(M, Su, sh_l, sh_m,
         out_figs.append(fig)
         plt.show()
 
-        fig = plot_rX(((rE_dir_err.reshape(test_dirs.shape)/3).round())*3,
+        fig = plot_rX(((rE_dir_err.reshape(test_dirs.shape) / 3).round()) * 3,
                       title=f'{title}\n' +
                             'direction error (deg)',
                       clim=(0, 20),
@@ -248,7 +248,7 @@ def plot_performance(M, Su, sh_l, sh_m,
 def plot_matrix(M, title=""):
     """Display the matrix as an image."""
     fig = plt.figure()
-    plt.matshow(20*np.log10(np.abs(M)), fignum=0, cmap='jet')
+    plt.matshow(20 * np.log10(np.abs(M)), fignum=0, cmap='jet')
     plt.colorbar()
     plt.clim((-60, 0))
     plt.title("%s\nMatrix element gains (dB)" % title)
@@ -260,6 +260,7 @@ def plot_matrix(M, title=""):
 
 if __name__ == "__main__":
     import basic_decoders as bd
+
 
     def test(order=3, decoder=1, ss=False):
         """
@@ -290,8 +291,8 @@ if __name__ == "__main__":
         sh_l, sh_m = zip(*rsh.lm_generator(order))
 
         if ss:
-            s_az = (π/4, 3*π/4, -3*π/4, -π/4, 0, 0)
-            s_el = (0, 0, 0, 0, π/2, -π/2)
+            s_az = (π / 4, 3 * π / 4, -3 * π / 4, -π / 4, 0, 0)
+            s_el = (0, 0, 0, 0, π / 2, -π / 2)
         else:
             s = sg.t_design240()
             s_az = s.az

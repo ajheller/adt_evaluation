@@ -118,7 +118,7 @@ def normalization_full(sh_l, sh_m=None):
 _FuMa_sh_l = np.array((0,  1,  1,  1,   2,  2,  2,  2,  2,   3,  3,  3,  3,  3,  3,  3))
 _FuMa_sh_m = np.array((0,  1, -1,  0,   0,  1, -1,  2, -2,   0,  1, -1,  2, -2,  3, -3))
 _FuMa_sh_lm = zip(_FuMa_sh_l, _FuMa_sh_m)
-_FuMa_sh_acn = [l**2 + l + m for l, m in _FuMa_sh_lm]
+_FuMa_sh_acn = [l ** 2 + l + m for l, m in _FuMa_sh_lm]
 _FuMa_channel_names = np.array(tuple("W" + "XYZ" + "RSTUV" + "KLMNOPQ"))
 
 _FuMa_channel_normalization = 1 / np.sqrt(np.array(

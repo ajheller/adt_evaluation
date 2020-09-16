@@ -7,28 +7,16 @@ Created on Mon Sep 10 09:49:44 2018
 """
 
 import os.path as path
+
 import numpy as np
-
-# plotly is not available via conda
-# use pip install plotly to install
-import plotly
-import plotly.graph_objs as go
-from plotly import tools as tls
-
-import matplotlib.pyplot as plt
-
-
-import real_spherical_harmonics as rsh
-import acn_order as acn
-
-import spherical_grids as grids
-from spherical_grids import cart2sph, sph2cart
-
 from scipy.spatial import Delaunay
 
 import adt_scmd
-import spherical_grids as sg
 import ray_triangle_intersection as rti
+import spherical_grids as sg
+
+# plotly is not available via conda
+# use pip install plotly to install
 
 __debug = True
 
@@ -74,7 +62,7 @@ for i in range(len(V.uz)):  # iterate over the virtual loudspeakers
             # virtual speaker i intersects face j
             Vtri[i] = j
             # coordinates of intersection for plotting
-            Vxyz[:, i] = bw*p0 + bu*p1 + bv*p2
+            Vxyz[:, i] = bw * p0 + bu * p1 + bv * p2
             # fill in gains, normalize for energy
             b = np.array([bw, bu, bv])
 

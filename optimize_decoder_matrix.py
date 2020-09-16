@@ -66,10 +66,10 @@ from numpy import pi as π  # I get tired of typing np.pi
 import basic_decoders as bd
 import localization_models as lm
 import real_spherical_harmonics as rsh
+import reports
 import shelf
 import spherical_grids as sg
 from Timer import Timer
-import reports
 
 
 #  need a local definition so np is jax.np
@@ -105,6 +105,7 @@ key = random.PRNGKey(1)
 
 # the test directions
 T = sg.t_design5200()
+
 
 # directions for plotting
 # T_azel = sg.az_el()
@@ -143,18 +144,18 @@ def objective(x,
     rExyz, E = rE(M, Su, Y_test)
     f = (
         # truncation loss due to finite order
-        np.sum((rExyz - T.u * rE_goal)**2)
+            np.sum((rExyz - T.u * rE_goal) ** 2)
 
-        # uniform loudness loss
-        + np.sum((E - W)**2)/10
+            # uniform loudness loss
+            + np.sum((E - W) ** 2) / 10
 
-        # Tikhanov regularization term
-        + np.sum(M**2) * tikhanov_lambda
+            # Tikhanov regularization term
+            + np.sum(M ** 2) * tikhanov_lambda
 
-        # don't turn off speakers
-        #  TODO figure out why this works :) :)
-        + np.sum(np.abs(M-0.1)) * sparseness_penalty
-        )
+            # don't turn off speakers
+            #  TODO figure out why this works :) :)
+            + np.sum(np.abs(M - 0.1)) * sparseness_penalty
+    )
     return f
 
 
@@ -179,7 +180,7 @@ def o(M, Su, sh_l, sh_m,
 
     if M is None:
         # infer M_shape from Su and Y
-        M_shape = (Su.shape[1],      # number of loudspeakers
+        M_shape = (Su.shape[1],  # number of loudspeakers
                    Y_test.shape[0],  # number of program channels
                    )
         M = random.uniform(key, shape=M_shape, minval=-0.25, maxval=0.25)
@@ -195,6 +196,7 @@ def o(M, Su, sh_l, sh_m,
         # I'm not to happy about having to copy g but L-BGFS needs it in
         # fortran order.  Check with g.flags
         return v, onp.array(g, order='F')  # onp.asfortranarray(g)
+
     #
 
     x0 = M.ravel()  # initial guess
@@ -308,7 +310,7 @@ def emb(z_low=-0.2, z_high=1):
     """
     #
     S = pd.DataFrame(columns=['name', 'az', 'el', 'r', 'x', 'y', 'z', 'Real'])
-    az_deg = np.array([30, 120, -120, -30,  0, 90, 180, -90, 0, 0])
+    az_deg = np.array([30, 120, -120, -30, 0, 90, 180, -90, 0, 0])
     z = np.array([z_low] * 4 + [z_high] * 4 + [2] + [-2])
     r = np.array([2] * 8 + [0] * 2)
 
@@ -354,7 +356,7 @@ def olm(C):
 
 
 def stage_test(ambisonic_order=3,
-               el_lim=-π/8,
+               el_lim=-π / 8,
                tikhanov_lambda=1e-3,
                sparseness_penalty=1,
                do_report=False,
@@ -402,7 +404,7 @@ def stage_test(ambisonic_order=3,
 
         print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
         for n, g in zip(Sr.name.values,
-                        10*np.log10(np.sum(M_allrad**2, axis=1))):
+                        10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
             print(f"{n}: {g:6.2f}")
 
     else:
@@ -415,7 +417,7 @@ def stage_test(ambisonic_order=3,
     # M_allrad = None
 
     # Objective for E
-    cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π/2-el_lim)
+    cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π / 2 - el_lim)
     E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
     # FIXME: rE0 = np.array([0.4, 1.0])[cap.astype(np.int8)]
 
@@ -434,19 +436,19 @@ def stage_test(ambisonic_order=3,
 
     with io.StringIO() as f:
         print(f"ambisonic_order = {order}\n" +
-              f"el_lim = {el_lim * 180/π}\n" +
+              f"el_lim = {el_lim * 180 / π}\n" +
               f"tikhanov_lambda = {tikhanov_lambda}\n" +
               f"sparseness_penalty = {sparseness_penalty}\n",
               file=f)
 
-        off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
+        off = np.isclose(np.sum(M_opt ** 2, axis=1), 0, rtol=1e-6)  # 60dB down
         print("Using:\n", Sr.name[~off.copy()].values, file=f)
         print("Turned off:\n", Sr.name[off.copy()].values, file=f)
 
         print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
         for n, g in zip(Sr.name.values,
-                        10*np.log10(np.sum(M_opt**2, axis=1))):
-            print(f"{n:3}:{g:8.2f} |{'=' * int(60+g)}", file=f)
+                        10 * np.log10(np.sum(M_opt ** 2, axis=1))):
+            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}", file=f)
         report = f.getvalue()
         print(report)
 
@@ -485,8 +487,8 @@ def table_ambisonics_order_vs_rE(max_order=20):
 
     df = pd.DataFrame(
         np.column_stack((order,
-                         rE2, 100*drE2/rE2, 2 * np.arccos(rE2) * 180/π,
-                         rE3, 100*drE3/rE3, 2 * np.arccos(rE3) * 180/π,)),
+                         rE2, 100 * drE2 / rE2, 2 * np.arccos(rE2) * 180 / π,
+                         rE3, 100 * drE3 / rE3, 2 * np.arccos(rE3) * 180 / π,)),
         columns=('order',
                  '2D', '% change', 'asw',
                  '3D', '% change', 'asw'))

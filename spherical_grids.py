@@ -24,15 +24,14 @@ Created on Sun Aug 12 17:29:51 2018
 
 
 from __future__ import division
+
+import warnings
+from collections import namedtuple
+
 import numpy as np
 from numpy import pi
 
-from collections import namedtuple
-
-#import cPickle as pickle
-import pickle
-
-import warnings
+# import cPickle as pickle
 
 """
 In NumPy and MATLAB, grids create a N-dimensional coordinate space used for
@@ -106,7 +105,7 @@ def sph2cart(az, el, r=1):
 # these follow the physics convention of zenith angle, azimuth
 def sphz2cart(zen, az, r=1):
     "Spherical to cartesian using Physics conventxion, e.g. Arfkin"
-    return sph2cart(az, pi/2-zen, r)
+    return sph2cart(az, pi / 2 - zen, r)
 
 
 def cart2sphz(x, y, z):
@@ -130,7 +129,7 @@ def cart2sphz(x, y, z):
            distance from the origin in input units
     """
     az, el, r = cart2sph(x, y, z)
-    return (pi/2-el), az, r
+    return (pi / 2 - el), az, r
 
 
 #  Grid
@@ -163,14 +162,14 @@ def az_el(resolution=180):
     return a grid with equal sampling in azimuth and elevation
     """
     u = np.linspace(-pi, pi, (2 * resolution) + 1)
-    v = np.linspace(-pi/2, pi/2, resolution + 1)
+    v = np.linspace(-pi / 2, pi / 2, resolution + 1)
     el, az = np.meshgrid(v, u)
 
     ux, uy, uz = sph2cart(az, el)
 
     # quadrature weights (sum to 4pi, area of a unit sphere)
-    du = np.abs(u[1]-u[0])
-    dv = np.abs(v[1]-v[0])
+    du = np.abs(u[1] - u[0])
+    dv = np.abs(v[1] - v[0])
     w = np.cos(el) * du * dv
     # the last row overlaps the first so set it's weights to zero
     w[-1, :] = 0
@@ -183,8 +182,8 @@ def az_el(resolution=180):
 
 def az_el_unit_test(resolution=1000):
     g = az_el(resolution)
-    sw = np.sum((g.ux**2 + g.uy**2 + g.uz**2) * g.w) / (4 * pi)
-    sx = np.sum(g.ux**2 * g.w) / (1/3) / (4 * pi)
+    sw = np.sum((g.ux ** 2 + g.uy ** 2 + g.uz ** 2) * g.w) / (4 * pi)
+    sx = np.sum(g.ux ** 2 * g.w) / (1 / 3) / (4 * pi)
     return sw, sx  # both should be 1
 
 
@@ -224,7 +223,7 @@ def load_t_design_sph(file, four_pi=True):
         t = np.fromfile(f, dtype=np.float64, sep=" ").reshape(-1, 2)
     az = t[:, 0]
     # convert from zenith angle to elevation
-    el = pi/2 - t[:, 1]
+    el = pi / 2 - t[:, 1]
     ux, uy, uz = sph2cart(az, el)
     w = np.ones(ux.shape) / ux.shape[0]
     if four_pi:
@@ -243,6 +242,7 @@ def t_design240(four_pi=True):
 
 def t_design5200(four_pi=True):
     return load_t_design_sph("data/Design_5200_100_random.dat.txt", four_pi)
+
 
 # also http://web.maths.unsw.edu.au/~rsw/Sphere/EffSphDes/ss.html
 
@@ -323,4 +323,4 @@ def spherical_cap(T, u, angle, min_angle=0):
     c_max = np.argmax(p)
     a_err = u - Tu[:, c_max]
 
-    return c, c_max, a_err, 2*np.arcsin(np.linalg.norm(a_err)/2)
+    return c, c_max, a_err, 2 * np.arcsin(np.linalg.norm(a_err) / 2)

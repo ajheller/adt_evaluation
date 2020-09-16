@@ -27,8 +27,8 @@ from __future__ import division, print_function
 
 import numpy as np
 
-def ray_triangle_intersection(o, d, p0, p1, p2, epsilon=1e-5):
 
+def ray_triangle_intersection(o, d, p0, p1, p2, epsilon=1e-5):
     e1 = p1 - p0
     e2 = p2 - p0
     q = np.cross(d, e2)
@@ -39,7 +39,7 @@ def ray_triangle_intersection(o, d, p0, p1, p2, epsilon=1e-5):
         flag, u, v, t = 0, 0, 0, 0
         return flag, u, v, t
 
-    f = 1/a
+    f = 1 / a
     s = o - p0
     u = f * np.dot(s, q)
 
@@ -69,7 +69,6 @@ def dot1(a, b):
 # this version depends on numpy.true_division to return nan and inf, so we can
 #  do all the tests at the end
 def ray_triangle_intersection_p1(o, d, p0, p1, p2, epsilon=1e-5):
-
     #
     # Moller and Trumbore
     #   https://en.wikipedia.org/wiki/Möller–Trumbore_intersection_algorithm
@@ -164,7 +163,7 @@ def test():
     direction = np.array([-0.3, -0.5, -0.7])
 
     flag, u, v, t = ray_triangle_intersection(
-            origin, direction, v0, v1, v2)
+        origin, direction, v0, v1, v2)
 
     return flag, u, v, t
 
@@ -177,7 +176,7 @@ def testp():
     direction = np.array([-0.3, -0.5, -0.7])
 
     flag, u, v, t = ray_triangle_intersection_p1(
-            origin, direction, v0, v1, v2)
+        origin, direction, v0, v1, v2)
 
     return flag, u, v, t
 
@@ -185,6 +184,7 @@ def testp():
 def test2(i):
     flag, u, v, t = ray_triangle_intersection_p(origin, Vu[:, i], p0, p1, p2)
     return flag, u, v, t
+
 
 if False:
     print(test())
@@ -197,7 +197,6 @@ from numpy import pi
 
 
 def test3(case=1):
-
     if case == 1:
         rti_fun = ray_triangle_intersection_p1
     elif case == 2:
@@ -206,8 +205,8 @@ def test3(case=1):
         print('unknown case ' + str(case))
 
     if False:
-        s_az = (pi/4, 3*pi/4, -3*pi/4, -pi/4, 0, 0)
-        s_el = (0, 0, 0, 0, pi/2, -pi/2)
+        s_az = (pi / 4, 3 * pi / 4, -3 * pi / 4, -pi / 4, 0, 0)
+        s_el = (0, 0, 0, 0, pi / 2, -pi / 2)
     else:
         s = sg.t_design()
         s_az = s.az

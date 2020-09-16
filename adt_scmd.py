@@ -6,8 +6,9 @@ Created on Thu Aug 16 17:46:44 2018
 @author: heller
 """
 
-import numpy as np
 import json
+
+import numpy as np
 
 
 def load(path):
@@ -24,6 +25,6 @@ def load(path):
     except TypeError:
         M_hf = np.array(M)
 
-    Su = np.squeeze([S['x'],S['y'], S['z']])
+    Su = np.squeeze([S['x'], S['y'], S['z']])
 
     return Su, C, M_hf, D, scmd
