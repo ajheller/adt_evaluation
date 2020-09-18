@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is my latest sandbox for a Python/NumPy/SciPy/SymPy/PyTorch
+This is my latest sandbox for a Python/NumPy/SciPy/SymPy/Jax
 implementation of the Ambisonic Decoder Toolbox (ADT). It is a work
 in progress, so use at your own risk. One of my goals with this is to
 have everything include unit tests for pedagogical reasons and so you
@@ -22,6 +22,27 @@ To make Plotly plots of decoder performance:
 
 2. run rErV.py to make the 3D speaker layout sphere plots
 3. run plotly_image.py to make the 2D performance plots
+
+## Installation
+
+This code is tested with Python3.8, although I think it should run
+in version 3.6 or newer as it uses f-strings.  The core code also
+needs:
+* NumPy
+* SciPy
+* SymPy
+* Pandas
+* Matplotlib
+
+These are all available with the Anaconda distribution of Python
+
+The optimizer needs:
+* Google JAX, https://github.com/google/jax#installation
+* Dominate, pip install dominate
+
+The fancy 3D graphics need:
+* Plotly, pip install plotly
+
 
 ## License
 
@@ -47,7 +68,7 @@ I've struggled with the question of how to represent vectors and
 arrays that are a collection of vectors. By linear algebra convention,
 vectors in an N-dimensional space are written as Nx1 column vectors,
 for 3-D often written in inline text as [x y z]^T (the transpose of a
-row vector). By extention, a collection of M 3-D coordinates is
+row vector). By extension, a collection of M 3-D coordinates is
 written as an [3 x M] array. Transforming those coordinates into
 spherical harmonics results in a [rank(Y) x M] array, where rank(Y) is
 the number of spherical harmonics in the basis.
@@ -78,8 +99,8 @@ SciPy linear algebra writeups, such as:
 
 * <http://www2.lawrence.edu/fast/GREGGJ/Python/numpy/numpyLA.html>
 
-There is a NumPy matrix object that has the symantics of MATLAB's 2-D
-arrays, however its use is discouraged and it may be removed in the
+There is a NumPy matrix object that has the semantics of MATLAB's 2-D
+arrays, however its use is discouraged, and it may be removed in the
 future.
 
 * <https://docs.scipy.org/doc/numpy/reference/generated/numpy.matrix.html>
@@ -104,6 +125,7 @@ Aaron Heller <heller@ai.sri.com>
 I recently found a good discussion of this on Stack Exchange:
 <https://stats.stackexchange.com/questions/284995/are-1-dimensional-numpy-arrays-equivalent-to-vectors>
 
+------
 <a href="https://scan.coverity.com/projects/ajheller-adt_evaluation">
   <img alt="Coverity Scan Build Status"
        src="https://scan.coverity.com/projects/20006/badge.svg"/>
