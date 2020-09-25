@@ -142,20 +142,20 @@ def objective(x,
     """Return value of objective function for a given decoder matrix."""
     M = x.reshape(M_shape)
     rExyz, E = rE(M, Su, Y_test)
-    f = (
-        # truncation loss due to finite order
-            np.sum((rExyz - T.u * rE_goal) ** 2)
 
-            # uniform loudness loss
-            + np.sum((E - W) ** 2) / 10
+    # truncation loss due to finite order
+    tl = np.sum((rExyz - T.u * rE_goal) ** 2)
 
-            # Tikhanov regularization term
-            + np.sum(M ** 2) * tikhanov_lambda
+    # uniform loudness loss
+    ulu = np.sum((E - W) ** 2) / 10
 
-            # don't turn off speakers
-            #  TODO figure out why this works :) :)
-            + np.sum(np.abs(M - 0.1)) * sparseness_penalty
-    )
+    # Tikhanov regularization term
+    trt = np.sum(M ** 2) * tikhanov_lambda
+
+    # don't turn off speakers
+    sp = np.abs(1-np.sum(1 - np.sum(M**2, axis=1))) * 1000 * sparseness_penalty
+    # + np.sum(np.abs(M - 0.1)) * sparseness_penalty
+    f = tl + ulu + trt + sp
     return f
 
 
@@ -203,22 +203,21 @@ def o(M, Su, sh_l, sh_m,
 
     with Timer() as t:
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
-        res = opt.minimize(objective_grad, x0,
-                           args=(M_shape, Su, Y_test, W,
-                                 tikhanov_lambda,
-                                 sparseness_penalty,
-                                 rE_goal),
-                           method='L-BFGS-B',
-                           jac=True,
-                           options=dict(disp=iprint,
-                                        # maxls=50,
-                                        # maxcor=30,
-                                        # pgtol=10e-7,
-                                        # gtol=1e-8,
-                                        # ftol=1e-12
-                                        ),
-                           # callback=callback,
-                           )
+        res = opt.minimize(
+            objective_grad, x0,
+            args=(M_shape, Su, Y_test, W, tikhanov_lambda, sparseness_penalty, rE_goal),
+            method='L-BFGS-B',
+            jac=True,
+            options=dict(
+                disp=iprint,
+                # maxls=50,
+                # maxcor=30,
+                pgtol=1e-8,  # default is 1e-5, you can make this as small as the sqrt of machine precision
+                gtol=1e-8,
+                # ftol=1e-12
+                ),
+            # callback=callback,
+           )
     if True:
         print()
         print("Execution time: %0.3f" % t.interval)
@@ -458,7 +457,7 @@ def stage_test(ambisonic_order=3,
                             directory=spkr_array_name,
                             name=f"{spkr_array_name}-order-{order}")
 
-    return M_opt, M_allrad, off, res
+    return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
 
 
 def plot_rE_vs_ambisonic_order():
@@ -536,4 +535,5 @@ def o2(M=None, Su=Su, Y_test=Y_test, iprint=50):
 """
 
 if __name__ == '__main__':
-    unit_test()
+    # unit_test()
+    stage_test(4, do_report=True)
