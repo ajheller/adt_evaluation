@@ -153,7 +153,7 @@ def objective(x,
     trt = np.sum(M ** 2) * tikhanov_lambda
 
     # don't turn off speakers
-    sp = np.abs(1-np.sum(1 - np.sum(M**2, axis=1))) * 1000 * sparseness_penalty
+    sp = np.sum(np.abs(1 - np.sum(M**2, axis=1))) * 100 * sparseness_penalty
     # + np.sum(np.abs(M - 0.1)) * sparseness_penalty
     f = tl + ulu + trt + sp
     return f
