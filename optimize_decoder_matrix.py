@@ -159,12 +159,12 @@ def objective(x,
     return f
 
 
-def o(M, Su, sh_l, sh_m,
-      W=None,
-      iprint=50,
-      tikhanov_lambda=1e-3,
-      sparseness_penalty=1,
-      rE_goal=1):
+def optimize(M, Su, sh_l, sh_m,
+             W=None,
+             iprint=50,
+             tikhanov_lambda=1e-3,
+             sparseness_penalty=1,
+             rE_goal=1):
     """Optimize psychoacoustic criteria."""
     #
     # handle defaults
@@ -263,7 +263,7 @@ def unit_test(ambisonic_order=13):
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # 3 - NLOpt
-    M_opt, res = o(None, Su, sh_l, sh_m, W=1, sparseness_penalty=0)
+    M_opt, res = optimize(None, Su, sh_l, sh_m, W=1, sparseness_penalty=0)
     lm.plot_performance(M_opt, Su, sh_l, sh_m, 'Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
@@ -338,28 +338,34 @@ def csv2spk(path='stage2.csv'):
 
     return hf, df
 
-
+# this belongs in ProgramChannels or real_spherical_harmonics
 def olm(C):
-    """."""
+    """Get order, l, and m from either a ProgramChannels object or a tuple or an integer """
+    # use duck typing
+    # does it behave like a ProgramChannels object?
     try:
-        order_h = C.h_order
-        order_v = C.v_order
-        sh_l = C.sh_l
-        sh_m = C.sh_m
+        return C.h_order, C.v_order, C.sh_l, C.sh_m
     except AttributeError:
-        order_h = C
-        order_v = C
-        sh_l, sh_m = zip(*rsh.lm_generator(order_h))
-
-    return order_h, order_v, sh_l, sh_m
+        pass
+    # does it behave like a iterable?
+    try:
+        return C[0], C[1], *zip(*rsh.lm_generator(C[0]))
+    except TypeError:
+        pass
+    # does it behave like an integer?
+    try:
+        return  C, C, *zip(*rsh.lm_generator(C))
+    except TypeError:
+        raise ValueError(f"Can't make sense of C = {C}")
 
 
 def stage_test(ambisonic_order=3,
                el_lim=-π / 8,
-               tikhanov_lambda=1e-3,
+               tikhanov_lambda=0, #1e-3,
                sparseness_penalty=1,
                do_report=False,
-               rE_goal='auto'):
+               rE_goal=1.1 # 'auto'
+               ):
     """Test optimizer with CCRMA Stage array."""
     #
     #
@@ -420,10 +426,10 @@ def stage_test(ambisonic_order=3,
     E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
     # FIXME: rE0 = np.array([0.4, 1.0])[cap.astype(np.int8)]
 
-    M_opt, res = o(M_allrad, S_u, sh_l, sh_m, W=E0,
-                   iprint=50, tikhanov_lambda=tikhanov_lambda,
-                   sparseness_penalty=sparseness_penalty,
-                   rE_goal=rE_goal)
+    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
+                          iprint=50, tikhanov_lambda=tikhanov_lambda,
+                          sparseness_penalty=sparseness_penalty,
+                          rE_goal=rE_goal)
 
     plot_title = f'Optimized {M_start}, Ambisonic order={order_h}H{order_v}V'
     figs.append(
@@ -536,4 +542,5 @@ def o2(M=None, Su=Su, Y_test=Y_test, iprint=50):
 
 if __name__ == '__main__':
     # unit_test()
-    stage_test(4, do_report=True)
+    for d in range(1, 8):
+        stage_test(d, do_report=True)
