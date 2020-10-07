@@ -1,6 +1,9 @@
+"""
+"""
 from dataclasses import dataclass, field
 import numpy as np
 from functools import cached_property
+import warnings
 
 from numpy import pi
 from numpy import pi as π
@@ -87,93 +90,228 @@ def cart2sphz(x, y, z):
     az, el, r = cart2sph(x, y, z)
     return (pi / 2 - el), az, r
 
+# --------------- Spherical Cap -------------------
+#   http://mathworld.wolfram.com/SphericalCap.html
+#   https://en.wikipedia.org/wiki/Spherical_cap
+
+axis_names = dict(x=(1.0, 0.0, 0.0),
+                  y=(0.0, 1.0, 0.0),
+                  z=(0.0, 0.0, 1.0))
+
+
+def spherical_cap(T, u, angle, min_angle=0):
+    """return boolean array of points in T within angle of unit vector u
+
+    Parameters
+    ----------
+
+        T: collection of unit vectors
+            a spherical grid object
+
+        u: vector-like or string
+            unit vector for center of cap or axis name
+
+        angle: float
+            angular extent of cap in radians
+
+        min_angle: float
+            start of cap in radians to create a spherical frustrum
+
+    Returns
+    -------
+        boolean array of points in the cap
+
+        index of point closest to u
+
+        error of point
+
+    Example
+    -------
+
+    References
+    ----------
+        http://mathworld.wolfram.com/SphericalCap.html
+
+        https://en.wikipedia.org/wiki/Spherical_cap
+    """
+
+    # convert axis name to unit vector
+    try:
+        u = axis_names[u.lower()]
+    except AttributeError or KeyError:
+        pass
+
+    # check that u is a unit vector
+    norm = np.sqrt(np.dot(u, u))
+    if not np.isclose(norm, 1):
+        warnings.warn("u is not a unit vector, normalizing")
+        u = u / norm
+
+    # retrieve unit vectors
+    try:
+        Tu = T.u
+    except AttributeError as ae:
+        Tu = T
+
+    # if Tu is not not compatible with u, try the transpose, still can fail in
+    # np.dot()
+    if len(u) != len(Tu):
+        Tu = Tu.transpose()
+
+    # compute the cap
+    p = np.dot(u, Tu).squeeze()
+    c = (p >= np.cos(angle)) & (p <= np.cos(min_angle))
+
+    # find the index of the element of T closest to u and compute the error
+    c_max = np.argmax(p)
+    a_err = u - Tu[:, c_max]
+
+    return c, c_max, a_err, 2 * np.arcsin(np.linalg.norm(a_err) / 2)
+
+
+# ---- the class definition ----
 # TODO: rework this so the shape of the elements are preserved.
 # add a shape property.  x, y, z beocome primary representation
 # xyz and u become cached properties
 @dataclass
 class SphericalData():
-    xyz: np.ndarray = field(default_factory=lambda: np.array(None))
+    x: np.ndarray = field(default_factory=lambda: np.array(None))
+    y: np.ndarray = field(default_factory=lambda: np.array(None))
+    z: np.ndarray = field(default_factory=lambda: np.array(None))
     name: str = 'data'
 
-    _primary_attrs = ['xyz', 'name']
+    _primary_attrs = ['x', 'y', 'z', 'name']
 
     # def __init__(self, name="data"):
     #     self.xyz = None
     #     self.name = name
 
+    # TODO: How much do we want to keep a user from shooting himself in the foot here
+    # The current implementation raises an AttributeError if user tries to set any attributes other than those
+    # explicitly called out.
     def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if name == 'xyz':
+        if name in self._primary_attrs:
+            super().__setattr__(name, value)
             print('clearing caches')
             self._clear_cached_properties()
+        elif name in ('xyz', 'cart'):
+            return self.set_from_cart(*value)
+        else:
+            raise AttributeError
+
+    def __str__(self):
+        return f"{__class__.__name__}({self.name})"
 
     def _clear_cached_properties(self):
         keys = list(self.__dict__.keys())
         for key in keys:
-            if key not in ('xyz',):
+            if key not in self._primary_attrs:
                 print(f"   clearing: {key}")
                 delattr(self, key)
 
-    def set_from_cart(self, x_or_xyz, y=None, z=None):
-        xyz = np.asarray(x_or_xyz)
-        if y is not None:
-            xyz = np.c_[xyz, y, z]
-        self.xyz = xyz
-        return self
+    def set_from_cart(self, x, y, z):
+        if not(x.shape == y.shape == z.shape):
+            raise ValueError("x, y, z not the same shape.")
+        else:
+            self.x = x
+            self.y = y
+            self.z = z
+            self._clear_cached_properties()
+            return self
 
     def set_from_sph(self, theta, phi, rho=1, phi_is_zenith=False):
         if phi_is_zenith:
             phi = pi/2 - phi
-        return self.set_from_cart(sph2cart(theta, phi, rho))
+        return self.set_from_cart(*sph2cart(theta, phi, rho))
 
     def set_from_aer(self, az, el, r=1):
-        self.xyz = np.column_stack(*sph2cart(az, el, r))
+        self.set_from_sph(self, az, el, r, phi_is_zenith=False)
         return self
 
     def set_from_cyl(self, theta, rho, z):
         raise NotImplementedError
         return self
 
+    @property
+    def cart(self):
+        """Return x, y, and z components in a tuple."""
+        return self.x, self.y, self.z
+
+    @cached_property
+    def xyz(self):
+        """Return x, y, z as an iterable of vectors."""
+        return np.c_[self.x.ravel(), self.y.ravel(), self.z.ravel()]
+
     @cached_property
     def u(self):
-        return self.xyz / np.linalg.norm(self.xyz, axis=1)[None].T
+        """unit vectors as an iterable."""
+        return (self.xyz /
+                # thsi makes a column vector without copying
+                np.linalg.norm(self.xyz, axis=1)[None].T
+                )
 
     @cached_property
-    def aer(self):
-        return np.column_stack(cart2sph(*self.xyz.T))
+    def sph(self):
+        """azimuth, elevation, radius as a tuple."""
+        return cart2sph(self.x, self.y, self.z)
 
     @cached_property
-    def azr(self):
-        return np.column_stack(cart2sphz(*self.xyz.T))
+    def sphz(self):
+        """azimuth, zenith angle, radius as a tuple."""
+        return cart2sphz(self.x, self.y, self.z)
+
+    @property
+    def x0(self):
+        return self.x.ravel()
+
+    @property
+    def y0(self):
+        return self.y.ravel()
+
+    @property
+    def z0(self):
+        return self.z.ravel()
 
     @property
     def az(self):
-        return self.aer[:, 0]
+        return self.sph[0]
 
     @property
     def el(self):
-        return self.aer[:, 1]
+        return self.sph[1]
 
     @property
     def r(self):
-        return self.aer[:, 2]
+        return self.sph[2]
+
+    @property
+    def shape(self):
+        return self.x.shape
+
+    def unravel(self, x):
+        return x.reshape(self.shape)
+
+    def cap(self, u, angle, **kwargs):
+        return spherical_cap(self.u, u, angle, **kwargs)
 
 
-def from_cart(*args, sd_class=SphericalData):
-    return sd_class().set_from_cart(*args)
-
-def from_sph(*args, sd_class=SphericalData):
-    return sd_class().set_from_sph(*args)
+def from_cart(*args, sd_class=SphericalData, **kwargs):
+    return sd_class().set_from_cart(*args, **kwargs)
 
 
+def from_sph(*args, sd_class=SphericalData, **kwargs):
+    return sd_class().set_from_sph(*args, **kwargs)
+
+
+#
 def unit_test():
     import spherical_grids
     sg240 = spherical_grids.t_design240()
     q = from_sph(sg240.az, sg240.el)
     u = q.u
     v = q.az
-    w = q.aer
-    q.set_from_cart(((1, 0, 0), (0, 1, 0), (0, 0, 1)))
+    w = q.sph
+    q.set_from_cart(*(np.asarray(((1, 0, 2), (0, 1, 0), (0, 0, 1))).T))
     # cache should be cleared
     if q.u == u:
         print('FAIL: caches were not cleared!!')
