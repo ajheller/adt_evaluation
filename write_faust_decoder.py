@@ -7,7 +7,9 @@ Created on Fri Dec 27 18:40:20 2019
 """
 
 import numpy as np
-# import string as str
+import getpass
+import platform
+import time
 
 
 def array2faust_vector(a, prefix=None, suffix=None):
@@ -32,8 +34,8 @@ def array2faust_vector(a, prefix=None, suffix=None):
     if suffix is None:
         suffix = ''
 
-    # make sure a is an ndarray
-    a = np.array(a, copy=False)
+    # make sure 'a' is a ndarray
+    a = np.asarray(a)
 
     if prefix is None:
         s = ''
@@ -55,7 +57,7 @@ def array2faust_vector(a, prefix=None, suffix=None):
 
 def matrix2faust(m, prefix='', fid=None):
     """
-    Write matrix m to fid in FAUST syntax.
+    Write the matrix m to fid in FAUST syntax.
 
     Parameters
     ----------
@@ -72,51 +74,72 @@ def matrix2faust(m, prefix='', fid=None):
         DESCRIPTION.
 
     """
-    s = "\n".join([array2faust_vector(v, prefix=(prefix % i))
+    s = "\n".join([array2faust_vector(v, prefix=(prefix % i), suffix=';\n')
                    for i, v in enumerate(m)])
     if fid is not None:
         fid.write(s)
 
     return s
 
+
 def bool2faust(a):
     return '1' if a else '0'
 
 
-def write_faust_decoder_description():
+def faust_decoder_description(path,
+                              description,
+                              array_name,
+                              order_h, order_v,
+                              coeff_order='acn',
+                              coeff_scale='N3D',
+                              input_scale='N3D',
+                              mixed_order_scheme='HV',
+                              input_channel_order=None,
+                              output_speaker_order=None
+                              ):
+
+    run_by = getpass.getuser()
+    on_node = platform.node() + " (" + platform.platform() + ")"
+    at_time = time.time()  # make this human readable!
+
     s = f"""
 // Faust Decoder Configuration File
 // Written by Ambisonic Decoder Toolbox, version 8.0
-// run by heller on Crean-2.local (MACI64) at 25-Dec-2019 12:13:15
+// run by {run_by} on {on_node}
+// at {at_time}
 
 //------- decoder information -------
-// decoder file = /Users/heller/Documents/adt/decoders/S_Katz_914_3h1p_allrad_5200_rE_max_2_band.dsp
-// description = S_Katz_914_3h1p_allrad_5200_rE_max_2_band
-// speaker array name = S_Katz_914
-// horizontal order   = 3
-// vertical order     = 1
-// coefficient order  = acn
-// coefficient scale  = SN3D
-// input scale        = SN3D
-// mixed-order scheme = HP
-// input channel order: W Y Z X V U Q P
-// output speaker order: 3 1 2 5 6 9 10 7 8 11 12 13 14
+// decoder file = {path}
+// description = {description}
+// speaker array name = {array_name}
+// horizontal order   = {order_h}
+// vertical order     = {order_v}
+// coefficient order  = {coeff_order}
+// coefficient scale  = {coeff_scale}
+// input scale        = {input_scale}
+// mixed-order scheme = {mixed_order_scheme}
+// input channel order: {input_channel_order}
+// output speaker order: {output_speaker_order}
 //-------
 """
     return s
 
 
-def write_faust_decoder_configuration(name, nbands=2, decoder_type=2,
-                                      xover_freq=380, lfhf_ratio_dB=0,
-                                      decoder_order=3,
-                                      co=(0,1,1,1,2,2,2,2,3,3,3,3,3,3,3,3,3),
-                                      input_full_set=False,
-                                      delay_comp=True, level_comp=True,
-                                      nfc_output=True, nfc_input=False,
-                                      output_gain_muting=True,
-                                      nspkrs=24, rspkrs=24*(1,),
-                                      gamma0=(1, 1, 1, 1),
-                                      gamma1=(1, 1, 1, 1)):
+def faust_decoder_configuration(name, nbands=2, decoder_type=2,
+                                xover_freq=380, lfhf_ratio_dB=0,
+                                decoder_order=3,
+                                co=(0,
+                                    1, 1, 1,
+                                    2, 2, 2, 2, 2,
+                                    3, 3, 3, 3, 3, 3, 3, 3),
+                                input_full_set=False,
+                                delay_comp=True, level_comp=True,
+                                nfc_output=True, nfc_input=False,
+                                output_gain_muting=True,
+                                nspkrs=24,
+                                rspkrs=24*(1,),
+                                gamma0=(1, 1, 1, 1),
+                                gamma1=(1, 1, 1, 1)):
     """
     Write the config for the ADT's decoder in FAUST.
 
@@ -164,6 +187,12 @@ def write_faust_decoder_configuration(name, nbands=2, decoder_type=2,
     """
 #
 
+    radius_str = array2faust_vector(rspkrs, prefix='rs = ', suffix=';\n')
+    gamma_str = array2faust_vector(gamma0, prefix="gamma(0) = ", suffix=';\n')
+    if gamma1:
+        gamma_str += array2faust_vector(gamma1, prefix="gamma(1) = ",
+                                        suffix=';\n')
+
     s = f"""
 // start decoder configuration
 declare name	"{name}";
@@ -208,13 +237,22 @@ output_gain_muting = {int(output_gain_muting)};
 ns = {nspkrs};
 
 // radius for each speaker in meters
-rs = (         2.199,         2.676,         2.676,         1.908,         1.784,         1.614,         1.466,         1.949,         1.828,         2.445,         2.445,         2.351,         2.351);
+{radius_str}
 
 // per order gains, 0 for LF, 1 for HF.
 //  Used to implement shelf filters, or to modify velocity matrix
 //  for max_rE decoding, and so forth.  See Appendix A of BLaH6.
-gamma(0) = (             1,             1,             1,             1);
-gamma(1) = (   1.386698221,   1.194136191,  0.8491219424,  0.4225921018);
+{gamma_str}
 """
-
     return s
+
+
+def write_faust_decoder(path, name, decoder_matrix, sh_l, r):
+    with open(path, 'w') as f:
+        f.write(
+            faust_decoder_configuration(name, nbands=1, decoder_type=1,
+                                        decoder_order=np.max(sh_l), co=sh_l,
+                                        nspkrs=len(r), rspkrs=r))
+        f.write(matrix2faust(decoder_matrix, prefix="s(%03d, 0) = "))
+        # append the implementation
+        f.write(open("ambi-decoder_preamble2.dsp", 'r').read())

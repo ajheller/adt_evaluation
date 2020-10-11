@@ -1,5 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
+Created on Tue Oct  6 17:13:07 2020
+
+@author: heller
 """
+
 from dataclasses import dataclass, field
 import numpy as np
 from functools import cached_property
@@ -39,7 +45,7 @@ def sph2cart(az, el, r=1):
 
     Parameters
     ----------
-        az, e, r: ndarray
+        az, el, r: ndarray
             azimuth, elevation (radians)
             radius (input units), optional (default 1)
 
@@ -63,7 +69,7 @@ def sph2cart(az, el, r=1):
 
 # these follow the physics convention of zenith angle, azimuth
 def sphz2cart(zen, az, r=1):
-    "Spherical to cartesian using Physics conventxion, e.g. Arfkin"
+    """Spherical to cartesian using Physics conventxion, e.g. Arfkin."""
     return sph2cart(az, pi / 2 - zen, r)
 
 
@@ -94,13 +100,14 @@ def cart2sphz(x, y, z):
 #   http://mathworld.wolfram.com/SphericalCap.html
 #   https://en.wikipedia.org/wiki/Spherical_cap
 
+
 axis_names = dict(x=(1.0, 0.0, 0.0),
                   y=(0.0, 1.0, 0.0),
                   z=(0.0, 0.0, 1.0))
 
 
 def spherical_cap(T, u, angle, min_angle=0):
-    """return boolean array of points in T within angle of unit vector u
+    """return boolean array of points in T within 'angle' of unit vector 'u'
 
     Parameters
     ----------
@@ -115,7 +122,7 @@ def spherical_cap(T, u, angle, min_angle=0):
             angular extent of cap in radians
 
         min_angle: float
-            start of cap in radians to create a spherical frustrum
+            start of cap in radians to create a spherical frustum
 
     Returns
     -------
@@ -141,7 +148,7 @@ def spherical_cap(T, u, angle, min_angle=0):
     except AttributeError or KeyError:
         pass
 
-    # check that u is a unit vector
+    # u needs to be an array of unit vectors, normalize if not
     norm = np.sqrt(np.dot(u, u))
     if not np.isclose(norm, 1):
         warnings.warn("u is not a unit vector, normalizing")
@@ -150,11 +157,11 @@ def spherical_cap(T, u, angle, min_angle=0):
     # retrieve unit vectors
     try:
         Tu = T.u
-    except AttributeError as ae:
+    except AttributeError:
         Tu = T
 
-    # if Tu is not not compatible with u, try the transpose, still can fail in
-    # np.dot()
+    # if Tu is not compatible with u, try its transpose
+    # this still can fail in np.dot()
     if len(u) != len(Tu):
         Tu = Tu.transpose()
 
@@ -170,11 +177,9 @@ def spherical_cap(T, u, angle, min_angle=0):
 
 
 # ---- the class definition ----
-# TODO: rework this so the shape of the elements are preserved.
-# add a shape property.  x, y, z beocome primary representation
-# xyz and u become cached properties
+
 @dataclass
-class SphericalData():
+class SphericalData(None):
     x: np.ndarray = field(default_factory=lambda: np.array(None))
     y: np.ndarray = field(default_factory=lambda: np.array(None))
     z: np.ndarray = field(default_factory=lambda: np.array(None))
@@ -186,13 +191,13 @@ class SphericalData():
     #     self.xyz = None
     #     self.name = name
 
-    # TODO: How much do we want to keep a user from shooting himself in the foot here
-    # The current implementation raises an AttributeError if user tries to set any attributes other than those
-    # explicitly called out.
+    # TODO: How much do we want to keep users from shooting themselves in the
+    #  foot? The current implementation raises an AttributeError if the user
+    #  tries to set any attributes other than those explicitly called out.
     def __setattr__(self, name, value):
         if name in self._primary_attrs:
             super().__setattr__(name, value)
-            print('clearing caches')
+            # print(f'clearing caches: {name} <-- {value}')
             self._clear_cached_properties()
         elif name in ('xyz', 'cart'):
             return self.set_from_cart(*value)
@@ -206,7 +211,7 @@ class SphericalData():
         keys = list(self.__dict__.keys())
         for key in keys:
             if key not in self._primary_attrs:
-                print(f"   clearing: {key}")
+                #print(f"   clearing: {key}")
                 delattr(self, key)
 
     def set_from_cart(self, x, y, z):
@@ -225,9 +230,10 @@ class SphericalData():
         return self.set_from_cart(*sph2cart(theta, phi, rho))
 
     def set_from_aer(self, az, el, r=1):
-        self.set_from_sph(self, az, el, r, phi_is_zenith=False)
+        self.set_from_sph(az, el, r, phi_is_zenith=False)
         return self
 
+    # TODO: implement this
     def set_from_cyl(self, theta, rho, z):
         raise NotImplementedError
         return self
@@ -246,7 +252,7 @@ class SphericalData():
     def u(self):
         """unit vectors as an iterable."""
         return (self.xyz /
-                # thsi makes a column vector without copying
+                # this makes a column vector without copying
                 np.linalg.norm(self.xyz, axis=1)[None].T
                 )
 
@@ -262,14 +268,17 @@ class SphericalData():
 
     @property
     def x0(self):
+        """Return x flattened."""
         return self.x.ravel()
 
     @property
     def y0(self):
+        """Return y flattened."""
         return self.y.ravel()
 
     @property
     def z0(self):
+        """Return z flattened."""
         return self.z.ravel()
 
     @property
@@ -303,7 +312,7 @@ def from_sph(*args, sd_class=SphericalData, **kwargs):
     return sd_class().set_from_sph(*args, **kwargs)
 
 
-#
+# %%
 def unit_test():
     import spherical_grids
     sg240 = spherical_grids.t_design240()
@@ -311,10 +320,8 @@ def unit_test():
     u = q.u
     v = q.az
     w = q.sph
-    q.set_from_cart(*(np.asarray(((1, 0, 2), (0, 1, 0), (0, 0, 1))).T))
+    q.set_from_cart(*np.asarray(((1, 0, 2), (0, 1, 0), (0, 0, 1))).T)
     # cache should be cleared
     if q.u == u:
         print('FAIL: caches were not cleared!!')
     return q, (u, v, w)
-
-
