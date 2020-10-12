@@ -5,12 +5,15 @@ Created on Tue Oct  6 17:13:07 2020
 
 @author: heller
 """
-
+from pathlib import Path
 import numpy as np
 from numpy import pi
 from dataclasses import dataclass, field
 
 import SphericalData as SphD
+
+# data dir
+_data_dir = Path(__file__).parent/"data"
 
 
 @dataclass
@@ -73,12 +76,12 @@ def load_t_design_sphz(file, four_pi=False):
 # short cuts for the two spherical designs I use most frequently
 def t_design240(*args, **kwargs) -> SphericalGrid:
     """Return Sloane's 240 3-Design"""
-    return load_t_design_cart("data/des.3.240.21.txt",
+    return load_t_design_cart(_data_dir/"des.3.240.21.txt",
                               *args, **kwargs)
 
 
 def t_design5200(*args, **kwargs) -> SphericalGrid:
-    return load_t_design_sphz('data/Design_5200_100_random.dat.txt',
+    return load_t_design_sphz(_data_dir/"Design_5200_100_random.dat.txt",
                               *args, **kwargs)
 
 

@@ -179,7 +179,7 @@ def spherical_cap(T, u, angle, min_angle=0):
 # ---- the class definition ----
 
 @dataclass
-class SphericalData(None):
+class SphericalData():
     x: np.ndarray = field(default_factory=lambda: np.array(None))
     y: np.ndarray = field(default_factory=lambda: np.array(None))
     z: np.ndarray = field(default_factory=lambda: np.array(None))

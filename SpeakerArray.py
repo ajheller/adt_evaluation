@@ -26,7 +26,7 @@ class SpeakerArray(SphD.SphericalData):
     def append(self, other, is_real=None):
         # TODO: should x, y, z be delegated to the base class?
         self.x = np.append(self.x, other.x)
-        self.y = np.append(self.x, other.x)
+        self.y = np.append(self.y, other.y)
         self.z = np.append(self.z, other.z)
         self.ids += other.ids
         if is_real is None:

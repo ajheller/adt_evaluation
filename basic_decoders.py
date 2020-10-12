@@ -77,16 +77,23 @@ def inversion(degree, order,
     """
     Compute basic decoder matrix by inversion method (aka, mode matching).
 
-    Args:
-        degree (array-like): degree (l) of each spherical harmonic.
-        order (array-like): order (m) of each sperical harmonic.
-        speakers_azimuth (array-like): speaker azimuths in radians.
-        speakers_elevation (array-like): speaker elevations in radians.
+    Parameters
+    ----------
+        degree: (array-like)
+            degree (l) of each spherical harmonic.
+        order: (array-like)
+            order (m) of each sperical harmonic.
+        speakers_azimuth: (array-like)
+            speaker azimuths in radians.
+        speakers_elevation: (array-like)
+            speaker elevations in radians.
 
-    Returns:
+    Returns
+    -------
         Basic decoder matrix
 
-    Note:
+    Note
+    ----
         Optimal for uniform arrays only.
 
     """
@@ -104,21 +111,22 @@ def constant_energy_inversion(degree, order,
 
     Parameters
     ----------
-    degree : TYPE
-        DESCRIPTION.
-    order : TYPE
-        DESCRIPTION.
-    speakers_azimuth : TYPE
-        DESCRIPTION.
-    speakers_elevation : TYPE
-        DESCRIPTION.
-    alpha : TYPE, optional
-        DESCRIPTION. The default is 1.
+    degree: (array-like)
+        degree (l) of each spherical harmonic.
+    order: (array-like)
+        order (m) of each sperical harmonic.
+    speakers_azimuth: (array-like)
+        speaker azimuths in radians.
+    speakers_elevation: (array-like)
+        speaker elevations in radians.
+    alpha : float, optional
+        mixing coefficient between inversion (α=0) and constant energy (α=1).
+        The default is 1. Intermediate values not implemented yet!
 
     Returns
     -------
-    M : TYPE
-        DESCRIPTION.
+    M : nd-array
+        Basic decoder matrix
 
     """
     M_proj = projection(degree, order, speakers_azimuth, speakers_elevation)
@@ -127,9 +135,15 @@ def constant_energy_inversion(degree, order,
 
     # TODO do something clever with the singular values here
     #  for constant energy set all the singular values to one
-    #  for mode matching PINV
-    Sinv = 1 / S
-    Sinv[np.isclose(S, 0, atol=1e-5)] = 0
+    #  for mode matching PINV, invert non-zero entried of S
+    if alpha == 0:
+        # this is pseudinverse (pinv)
+        Sinv = 1 / S
+        Sinv[np.isclose(S, 0, atol=1e-5)] = 0
+    elif alpha == 1:
+        Sinv = np.ones_like(S)
+    else:
+        raise NotADirectoryError("Sorry, mixing not implemented yet!")
 
     M = np.matmul(V.T, np.diag(Sinv), U.T)
 
@@ -138,7 +152,7 @@ def constant_energy_inversion(degree, order,
 
 def allrad(degree, order,
            speakers_azimuth, speakers_elevation,
-           speaker_is_imaginary=None,
+           speaker_is_real=None,
            v_az=None, v_el=None,
            vbap_norm=True):
     """
@@ -154,7 +168,7 @@ def allrad(degree, order,
         DESCRIPTION.
     speakers_elevation : TYPE
         DESCRIPTION.
-    speaker_is_imaginary : TYPE, optional
+    speaker_is_real : TYPE, optional
         DESCRIPTION. The default is None.
     v_az : TYPE, optional
         DESCRIPTION. The default is None.
@@ -183,9 +197,9 @@ def allrad(degree, order,
     Mv = inversion(degree, order, v_az, v_el)
     M = np.matmul(V2R, Mv)
 
-    if speaker_is_imaginary:
-        # TODO get rid of rows corresponding to imaginary speakers
-        pass
+    if speaker_is_real:
+        # get rid of rows corresponding to imaginary speakers
+        M = M[speaker_is_real]
 
     return M
 
@@ -361,7 +375,9 @@ def allrad_v2r(Su, Vu):
 
 # unit tests
 def unit_test():
-    s_az = (π / 4, 3 * π / 4, -3 * π / 4, -π / 4)
+
+    # horitontal square array
+    s_az = (π/4, 3 * π/4, -3 * π/4, -π/4)
     s_el = (0, 0, 0, 0)
 
     l = (0, 1, 1)
@@ -370,14 +386,19 @@ def unit_test():
     M_pinv = inversion(l, m, s_az, s_el)
     M_proj = projection(l, m, s_az, s_el)
 
-    M_check = np.matmul(M_proj, M_pinv)
+    M_check = np.matmul(M_proj.T, M_pinv)
 
     max_error = np.max(np.abs(M_check - np.identity(M_check.shape[0])))
+
+    if np.isclose(max_error, 0):
+        print("Pass:", max_error)
+    else:
+        print("FAIL:", max_error)
 
     return M_pinv, M_proj, M_check, max_error
 
 
-def unit_test2(order=3, case=0, debug=True):
+def unit_test2(order=3, case=1, debug=True):
     """
     Run basic decoders unit tests.
 
@@ -404,6 +425,10 @@ def unit_test2(order=3, case=0, debug=True):
         DESCRIPTION.
 
     """
+    import example_speaker_arrays as esa
+    import SphericalGrids as sg
+    import SphericalData as sd
+
     if case == 0:
         s_az = (π / 4, 3 * π / 4, -3 * π / 4, -π / 4, 0, 0)
         s_el = (0, 0, 0, 0, π / 2, -π / 2)
@@ -413,9 +438,9 @@ def unit_test2(order=3, case=0, debug=True):
         s_az = s.az
         s_el = s.el
     elif case == 2:
-        s = np.loadtxt('/Users/heller/Documents/adt/examples/directions.csv')
-        s_az = s[:, 0]
-        s_el = s[:, 1]
+        s = esa.iem_cube().append(esa.nadir())
+        s_az = s.az
+        s_el = s.el
     else:
         print('unknown case')
         return None
@@ -424,22 +449,24 @@ def unit_test2(order=3, case=0, debug=True):
         print(s_az)
         print(s_el)
 
-    l, m = zip(*[(l, m) for l in range(order + 1) for m in range(-l, l + 1)])
+    sh_l, sh_m = zip(*[(l, m)
+                       for l in range(order + 1)
+                       for m in range(-l, l + 1)])
 
-    M_pinv = inversion(l, m, s_az, s_el)
+    M_pinv = inversion(sh_l, sh_m, s_az, s_el)
     # fuzz to zero
     M_pinv[np.isclose(0, M_pinv, atol=1e-10, rtol=1e-10)] = 0
 
-    M_proj = projection(l, m, s_az, s_el)
+    M_proj = projection(sh_l, sh_m, s_az, s_el)
 
-    p = np.allclose(np.matmul(M_proj.transpose(), M_pinv), np.eye(len(l)))
+    p = np.allclose(np.matmul(M_proj.transpose(), M_pinv), np.eye(len(sh_l)))
 
-    M_allrad = allrad(l, m, s_az, s_el)
+    M_allrad = allrad(sh_l, sh_m, s_az, s_el)
 
-    M_allrad2 = allrad2(l, m, s_az, s_el)
+    M_allrad2 = allrad2(sh_l, sh_m, s_az, s_el)
 
-    rV, rE = compute_rVrE(l, m, M_allrad,
-                          np.array(sg.sph2cart(s_az, s_el)))
+    rV, rE = compute_rVrE(sh_l, sh_m, M_allrad,
+                          np.array(sd.sph2cart(s_az, s_el)))
 
     plot_rX(rV, 'rVr', [0.5, 1])
     plot_rX(rE, 'rEr', [0.5, 1])
