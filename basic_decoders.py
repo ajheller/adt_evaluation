@@ -25,7 +25,6 @@ Created on Fri Oct 19 17:57:11 2018
 from __future__ import division, print_function
 
 import numpy as np
-from numpy import pi as π
 from scipy.spatial import Delaunay  # for AllRAD decoder
 
 import ray_triangle_intersection as rti
@@ -375,16 +374,18 @@ def allrad_v2r(Su, Vu):
 
 # unit tests
 def unit_test():
+    import SpeakerArray as sa
 
     # horitontal square array
-    s_az = (π/4, 3 * π/4, -3 * π/4, -π/4)
-    s_el = (0, 0, 0, 0)
+    s = sa.from_vectors((45, 135, -135, -45), 0, 1,
+                        coord_code=('az', 'el', 'radius'),
+                        unit_code=('degrees', 'degrees', 'meters'))
 
     l = (0, 1, 1)
     m = (0, 1, -1)
 
-    M_pinv = inversion(l, m, s_az, s_el)
-    M_proj = projection(l, m, s_az, s_el)
+    M_pinv = inversion(l, m, s.az, s.el)
+    M_proj = projection(l, m, s.az, s.el)
 
     M_check = np.matmul(M_proj.T, M_pinv)
 
@@ -428,45 +429,45 @@ def unit_test2(order=3, case=1, debug=True):
     import example_speaker_arrays as esa
     import SphericalGrids as sg
     import SphericalData as sd
+    import SpeakerArray as sa
 
     if case == 0:
-        s_az = (π / 4, 3 * π / 4, -3 * π / 4, -π / 4, 0, 0)
-        s_el = (0, 0, 0, 0, π / 2, -π / 2)
+        # octagon
+        s = sa.from_vectors((45, 135, -135, -45, 0, 0),
+                            (0, 0, 0, 0, 90, -90), 1,
+                            coord_code='AER', unit_code='DDM')
         order = max(order, 1)
     elif case == 1:
         s = sg.t_design240()
-        s_az = s.az
-        s_el = s.el
     elif case == 2:
         s = esa.iem_cube().append(esa.nadir())
-        s_az = s.az
-        s_el = s.el
     else:
         print('unknown case')
         return None
 
     if debug:
-        print(s_az)
-        print(s_el)
+        print(s.az)
+        print(s.el)
+        print(s.r)
 
     sh_l, sh_m = zip(*[(l, m)
                        for l in range(order + 1)
                        for m in range(-l, l + 1)])
 
-    M_pinv = inversion(sh_l, sh_m, s_az, s_el)
+    M_pinv = inversion(sh_l, sh_m, s.az, s.el)
     # fuzz to zero
     M_pinv[np.isclose(0, M_pinv, atol=1e-10, rtol=1e-10)] = 0
 
-    M_proj = projection(sh_l, sh_m, s_az, s_el)
+    M_proj = projection(sh_l, sh_m, s.az, s.el)
 
     p = np.allclose(np.matmul(M_proj.transpose(), M_pinv), np.eye(len(sh_l)))
 
-    M_allrad = allrad(sh_l, sh_m, s_az, s_el)
+    M_allrad = allrad(sh_l, sh_m, s.az, s.el)
 
-    M_allrad2 = allrad2(sh_l, sh_m, s_az, s_el)
+    M_allrad2 = allrad2(sh_l, sh_m, s.az, s.el)
 
     rV, rE = compute_rVrE(sh_l, sh_m, M_allrad,
-                          np.array(sd.sph2cart(s_az, s_el)))
+                          np.array(sd.sph2cart(s.az, s.el)))
 
     plot_rX(rV, 'rVr', [0.5, 1])
     plot_rX(rE, 'rEr', [0.5, 1])
