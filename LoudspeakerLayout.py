@@ -24,12 +24,13 @@ Created on Thu Oct  8 21:01:24 2020
 import numpy as np
 from numpy import pi as π
 from dataclasses import dataclass, field
+import pandas as pd
 
 import SphericalData as SphD
 
 
 @dataclass
-class SpeakerArray(SphD.SphericalData):
+class LoudspeakerLayout(SphD.SphericalData):
     """A class to represent loudspeaker arrays."""
 
     is_real: np.array = field(default_factory=lambda: np.array(0,
@@ -52,6 +53,9 @@ class SpeakerArray(SphD.SphericalData):
                                      np.full_like(self.is_real, is_real,
                                                   shape=other.shape))
         return self
+
+    def to_json(self):
+        df = pd.DataFrame(self.az, self.el, self.r, ~self.is_real)
 
 
 # TODO: should there be ignore and no-op codes?
@@ -152,7 +156,7 @@ def from_array(a, coord_code='AER', unit_code='DDM',
     print("ac:", ac)
 
     # make the SA object
-    s = SpeakerArray(ids=ids, is_real=is_real, name=array_name)
+    s = LoudspeakerLayout(ids=ids, is_real=is_real, name=array_name)
     # TODO: is there a slicker way to do this?
     if ac == 'XZY':
         s.set_from_cart(*[aa[:, to_canonical[c]] for c in 'XYZ'])

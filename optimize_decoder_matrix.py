@@ -205,14 +205,14 @@ def optimize(M, Su, sh_l, sh_m,
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
         res = opt.minimize(
             objective_grad, x0,
-            args=(M_shape, Su, Y_test, W, tikhanov_lambda, sparseness_penalty, rE_goal),
+            args=(M_shape, Su, Y_test, W, tikhanov_lambda, sparseness_penalty,
+                  rE_goal),
             method='L-BFGS-B',
             jac=True,
             options=dict(
                 disp=iprint,
                 # maxls=50,
                 # maxcor=30,
-                pgtol=1e-8,  # default is 1e-5, you can make this as small as the sqrt of machine precision
                 gtol=1e-8,
                 # ftol=1e-12
                 ),

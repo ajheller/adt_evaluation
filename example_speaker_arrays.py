@@ -27,7 +27,7 @@ import numpy as np
 from numpy import pi as π
 
 # adt modules
-import SpeakerArray as SpkrAr
+import LoudspeakerLayout as LSL
 
 # data directory
 _data_dir = Path(__file__).parent/"data"
@@ -36,30 +36,30 @@ _data_dir = Path(__file__).parent/"data"
 # a single imaginary speakers for AllRAD
 def nadir(r=1):
     """Imaginary speaker at the nadir (south pole)."""
-    return SpkrAr.from_array((0, 0, -r), coord_code='XYZ', unit_code='MMM',
-                             array_name="imaginary speaker at nadir",
-                             ids=["*IN"], is_real=False)
+    return LSL.from_array((0, 0, -r), coord_code='XYZ', unit_code='MMM',
+                          array_name="imaginary speaker at nadir",
+                          ids=["*IN"], is_real=False)
 
 
 def zenith(r=1):
     """Imaginary speaker at the zenith (north pole)."""
-    return SpkrAr.from_array((0, 0, r), coord_code='XYZ', unit_code='MMM',
-                             array_name="imaginary speaker at zenith",
-                             ids=["*IA"], is_real=False)
+    return LSL.from_array((0, 0, r), coord_code='XYZ', unit_code='MMM',
+                          array_name="imaginary speaker at zenith",
+                          ids=["*IA"], is_real=False)
 
 
 def polygon(n, radius=1, unit='M', center_spkr=False, *args, **kwargs):
     """Construct regular polygon arrays."""
     az = np.linspace(0 if center_spkr else π/n, 2*π, n, endpoint=False)
-    return SpkrAr.from_vectors(az, 0, radius,
-                               unit_code='RR'+unit,
-                               coord_code='AER',
-                               **kwargs)
+    return LSL.from_vectors(az, 0, radius,
+                            unit_code='RR'+unit,
+                            coord_code='AER',
+                            **kwargs)
 
 
 def stage2017():
     """CCRMA Stage array."""
-    return SpkrAr.from_array(
+    return LSL.from_array(
         (
          # == towers 8:
          # theoretical angles, have to be calibrated
@@ -167,8 +167,8 @@ def iem_cube():
     column_units = ['m', 'm', 'm']
     column_values = [a[i] for i in column_names]
 
-    s = SpkrAr.from_vectors(*column_values,
-                            array_name="IEM_Cube",
-                            coord_code=column_coords,
-                            unit_code=column_units)
+    s = LSL.from_vectors(*column_values,
+                         array_name="IEM_Cube",
+                         coord_code=column_coords,
+                         unit_code=column_units)
     return s
