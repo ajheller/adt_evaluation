@@ -24,7 +24,7 @@ Created on Thu Oct  8 21:01:24 2020
 import numpy as np
 from numpy import pi as π
 from dataclasses import dataclass, field
-import pandas as pd
+import json
 
 import SphericalData as SphD
 
@@ -33,11 +33,12 @@ import SphericalData as SphD
 class LoudspeakerLayout(SphD.SphericalData):
     """A class to represent loudspeaker arrays."""
 
+    description: str = ""
     is_real: np.array = field(default_factory=lambda: np.array(0,
                                                                dtype=np.bool))
     ids: list = field(default_factory=lambda: [])
 
-    _primary_attrs = ['x', 'y', 'z', 'is_real', 'name', 'ids']
+    _primary_attrs = ['x', 'y', 'z', 'is_real', 'name', 'ids', 'description']
 
     def append(self, other, is_real=None):
         # TODO: should x, y, z be delegated to the base class?
@@ -54,10 +55,33 @@ class LoudspeakerLayout(SphD.SphericalData):
                                                   shape=other.shape))
         return self
 
-    def to_json(self):
-        df = pd.DataFrame(self.az, self.el, self.r, ~self.is_real)
+    #  https://plugins.iem.at/docs/configurationfiles/#the-loudspeakerlayout-object
+    def to_json(self, channels=None, gains=None):
+        """Return a JSON dictionary in IEM plugin format"""
+        #
+        if channels is None:
+            channels = range(1, len(self.ids) + 1)  # 1-based
+        if gains is None:
+            gains = np.ones_like(self.az)
 
+        records = zip(self.az*180/π, self.el*180/π, self.r,
+                      map(bool, ~self.is_real),  # json needs bool not bool_
+                      channels, gains,
+                      self.ids)
+        columns = ('Azimuth', 'Elevation', 'Radius',
+                   'IsImaginary', 'Channel', 'Gain',
+                   'id')
+        ls_dict = [dict(zip(columns, rec)) for rec in records]
+        return dict({"LoudspeakerLayout":
+                         {"Name": self.name,
+                          "Description": self.description,
+                          "Loudspeakers": ls_dict}})
 
+    def to_iem_file(self, file, **kwargs):
+        with open(file, 'w') as f:
+            json.dump(obj=self.to_json(**kwargs), indent=4,
+                      fp=f)
+#
 # TODO: should there be ignore and no-op codes?
 # unit codes and conversion factors to meters and radians
 to_base = {'R': 1,      # Radians
@@ -122,7 +146,8 @@ to_canonical = {'X': 0, 'Y': 2, 'Z': 1,
 """
 
 def from_array(a, coord_code='AER', unit_code='DDM',
-               array_name=None, ids='S', is_real=True):
+               array_name=None, description=None,
+               ids='S', is_real=True):
     # make sure it's an Nx3 numpy array
     a = np.asarray(a).reshape(-1, 3)
     num_spkrs = len(a)
@@ -186,6 +211,38 @@ def from_vectors(c0, c1, c2, *args, **kwargs):
         raise ValueError("c0, c1, c2 must be the same length, "
                          f"but were {list(map(len, (c0, c1, c2)))}.")
 
+def from_iem_file(file):
+    obj = json.load(open(file, 'r'))
+    lsl_dict = obj["LoudspeakerLayout"]
+
+    return lsl_dict
+"""
+    # TODO: remove above return and fill in rest!
+    # key problem... lsl_dict has parameters grouped by loudspeaker
+    #  from_vectors takes a vector of each parameter for all the loudspeakers
+    
+    name = None
+    description = None
+    az = None
+    el = None
+    r = None
+    ids = None
+    is_real = None
+
+    lsl = from_vectors(az, el, r, #...
+    # )
+    return lsl
+"""
+
+def unit_test_iem():
+    import example_speaker_arrays as esa
+    s = esa.stage2017()
+    # json dump, read
+    s.to_iem_file("test_iem_stage.json")
+    lsl = from_iem_file("test_iem_stage.json")
+
+    return lsl
+
 
 #
 def unit_test():
@@ -209,4 +266,6 @@ def unit_test():
     # plt.colorbar()
     plt.show()
 
-    return s
+    lsl = unit_test_iem()
+
+    return s, lsl
