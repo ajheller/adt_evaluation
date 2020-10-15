@@ -23,8 +23,17 @@ Created on Tue Oct  6 17:13:07 2020
 
 from dataclasses import dataclass, field
 import numpy as np
-from functools import cached_property
 import warnings
+
+# cached_property is only in 3.8+
+try:
+    from functools import cached_property
+except ImportError:
+    try:
+        from backports.cached_property import cached_property
+    except ImportError as ie
+        print("run 'pip install backports.cached-property' and try again")
+        raise(ie)
 
 from numpy import pi
 from numpy import pi as π
