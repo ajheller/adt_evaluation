@@ -26,6 +26,7 @@ import numpy as np
 import warnings
 
 # cached_property is only in 3.8+
+#  backport available at https://pypi.org/project/backports.cached-property/
 try:
     from functools import cached_property
 except ImportError:

@@ -349,11 +349,14 @@ def olm(C):
         pass
     # does it behave like a iterable?
     try:
+        # code analysis will flag the outer parens as unecessary, but
+        # wthout them Python <3.8 will flag the *zip as a syntax error.
         return (C[0], C[1], *zip(*rsh.lm_generator(C[0])))
     except TypeError:
         pass
     # does it behave like an integer?
     try:
+        # see above
         return  (C, C, *zip(*rsh.lm_generator(C)))
     except TypeError:
         raise ValueError(f"Can't make sense of C = {C}")
@@ -492,8 +495,8 @@ def table_ambisonics_order_vs_rE(max_order=20):
 
     df = pd.DataFrame(
         np.column_stack((order,
-                         rE2, 100 * drE2 / rE2, 2 * np.arccos(rE2) * 180 / π,
-                         rE3, 100 * drE3 / rE3, 2 * np.arccos(rE3) * 180 / π,)),
+                         rE2, 100*drE2/rE2, 2*np.arccos(rE2)*180/π,
+                         rE3, 100*drE3/rE3, 2*np.arccos(rE3)*180/π,)),
         columns=('order',
                  '2D', '% change', 'asw',
                  '3D', '% change', 'asw'))

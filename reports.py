@@ -10,13 +10,24 @@ Created on Mon Aug 31 14:28:07 2020
 #    pip install dominate
 
 import os
+try:
+    import dominate
+except ImportError as ie:
+    print("run 'pip install dominate' for reports")
+    dominate = False
+else:
+    from dominate.tags import div, table, tbody, tr, td, img
+    from dominate.tags import html, body, h1, pre
 
-from dominate.tags import div, table, tbody, tr, td, img
-from dominate.tags import html, body, h1, pre
-
-
+# TODO: rework using pathlib
 def html_report(figs, text=None, name='report', directory=None,
                 dpi=75, fig_dir='figs'):
+    """Produce an HTML report containing figs and text."""
+    #
+    # if dominate not installed, dive out here
+    if not dominate:
+        return
+
     if directory is None:
         directory = name
     try:
@@ -46,3 +57,5 @@ def html_report(figs, text=None, name='report', directory=None,
     with open(os.path.join(directory, name + '.html'), 'w') as f:
         print(h, file=f)
     return h
+
+
