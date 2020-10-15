@@ -349,12 +349,12 @@ def olm(C):
         pass
     # does it behave like a iterable?
     try:
-        return C[0], C[1], *zip(*rsh.lm_generator(C[0]))
+        return (C[0], C[1], *zip(*rsh.lm_generator(C[0])))
     except TypeError:
         pass
     # does it behave like an integer?
     try:
-        return  C, C, *zip(*rsh.lm_generator(C))
+        return  (C, C, *zip(*rsh.lm_generator(C)))
     except TypeError:
         raise ValueError(f"Can't make sense of C = {C}")
 
