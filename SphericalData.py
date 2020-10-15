@@ -31,7 +31,7 @@ try:
 except ImportError:
     try:
         from backports.cached_property import cached_property
-    except ImportError as ie
+    except ImportError as ie:
         print("run 'pip install backports.cached-property' and try again")
         raise(ie)
 
