@@ -12,7 +12,7 @@ Created on Mon Aug 31 14:28:07 2020
 import os
 try:
     import dominate
-except ImportError as ie:
+except ModuleNotFoundError as ie:
     print("run 'pip install dominate' for reports")
     dominate = False
 else:

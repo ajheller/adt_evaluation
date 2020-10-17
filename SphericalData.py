@@ -29,10 +29,10 @@ import warnings
 #  backport available at https://pypi.org/project/backports.cached-property/
 try:
     from functools import cached_property
-except ImportError:
+except ModuleNotFoundError:
     try:
         from backports.cached_property import cached_property
-    except ImportError as ie:
+    except ModuleNotFoundError as ie:
         print("run 'pip install backports.cached-property' and try again")
         raise(ie)
 
