@@ -21,10 +21,11 @@ Created on Thu Oct  8 21:01:24 2020
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import json
+from dataclasses import dataclass, field
+
 import numpy as np
 from numpy import pi as π
-from dataclasses import dataclass, field
-import json
 
 import SphericalData as SphD
 
@@ -146,7 +147,7 @@ to_canonical = {'X': 0, 'Y': 2, 'Z': 1,
 """
 
 def from_array(a, coord_code='AER', unit_code='DDM',
-               array_name=None, description=None,
+               name=None, description=None,
                ids='S', is_real=True):
     # make sure it's an Nx3 numpy array
     a = np.asarray(a).reshape(-1, 3)
@@ -162,8 +163,8 @@ def from_array(a, coord_code='AER', unit_code='DDM',
     elif len(is_real) != num_spkrs:
         raise ValueError("len(is_real) != num_spkrs")
 
-    if array_name is None:
-        array_name = 'Amb' + str(num_spkrs)
+    if name is None:
+        name = 'Amb' + str(num_spkrs)
 
     # convert the columns to base units -- meter, radians
     for (col, code) in enumerate(unit_code):
@@ -181,7 +182,7 @@ def from_array(a, coord_code='AER', unit_code='DDM',
     print("ac:", ac)
 
     # make the SA object
-    s = LoudspeakerLayout(ids=ids, is_real=is_real, name=array_name)
+    s = LoudspeakerLayout(ids=ids, is_real=is_real, name=name)
     # TODO: is there a slicker way to do this?
     if ac == 'XZY':
         s.set_from_cart(*[aa[:, to_canonical[c]] for c in 'XYZ'])
@@ -211,28 +212,26 @@ def from_vectors(c0, c1, c2, *args, **kwargs):
         raise ValueError("c0, c1, c2 must be the same length, "
                          f"but were {list(map(len, (c0, c1, c2)))}.")
 
+
+from operator import itemgetter
 def from_iem_file(file):
     obj = json.load(open(file, 'r'))
     lsl_dict = obj["LoudspeakerLayout"]
 
-    return lsl_dict
-"""
-    # TODO: remove above return and fill in rest!
-    # key problem... lsl_dict has parameters grouped by loudspeaker
-    #  from_vectors takes a vector of each parameter for all the loudspeakers
-    
-    name = None
-    description = None
-    az = None
-    el = None
-    r = None
-    ids = None
-    is_real = None
+    name = lsl_dict['Name']
+    description = lsl_dict['Description']
+    az, el, r, is_imaginary, channel, gain, ids = \
+        zip(*[itemgetter(*('Azimuth', 'Elevation', 'Radius',
+                           'IsImaginary', 'Channel', 'Gain', 'id'))(ls)
+              for ls in lsl_dict["Loudspeakers"]])
 
-    lsl = from_vectors(az, el, r, #...
-    # )
-    return lsl
-"""
+    lsl = from_vectors(az, el, r,
+                       coord_code='AER', unit_code='DDM',
+                       ids=ids, is_real=~np.array(is_imaginary),
+                       name=name, description=description)
+
+    return lsl, obj
+
 
 def unit_test_iem():
     import example_speaker_arrays as esa

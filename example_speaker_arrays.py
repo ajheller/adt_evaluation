@@ -37,14 +37,14 @@ _data_dir = Path(__file__).parent/"data"
 def nadir(r=1):
     """Imaginary speaker at the nadir (south pole)."""
     return LSL.from_array((0, 0, -r), coord_code='XYZ', unit_code='MMM',
-                          array_name="imaginary speaker at nadir",
+                          name="imaginary speaker at nadir",
                           ids=["*IN"], is_real=False)
 
 
 def zenith(r=1):
     """Imaginary speaker at the zenith (north pole)."""
     return LSL.from_array((0, 0, r), coord_code='XYZ', unit_code='MMM',
-                          array_name="imaginary speaker at zenith",
+                          name="imaginary speaker at zenith",
                           ids=["*IA"], is_real=False)
 
 
@@ -132,7 +132,7 @@ def stage2017():
          ),
         coord_code='AER',
         unit_code='DDI',
-        array_name='stage',
+        name='stage',
         ids=(
           'S01', 'S02', 'S03', 'S04',
           'S05', 'S06', 'S07', 'S08',
@@ -162,7 +162,7 @@ def iem_cube():
     print(all_column_names)
     column_names = ('x_[m]', 'y_[m]', 'z_[m]')
 
-    # TODO: partse this from the column names
+    # TODO: parse this from the column names
     column_coords = [s[0] for s in column_names]
     column_units = ['m', 'm', 'm']
     column_values = [a[i] for i in column_names]
