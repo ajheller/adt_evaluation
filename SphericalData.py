@@ -99,7 +99,7 @@ def sphz2cart(zen, az, r=1):
 
 
 def cart2sphz(x, y, z):
-    """Cartesian to spherical using Physics convention
+    """Cartesian to spherical using Physics convention.
 
     Parameters
     ----------
@@ -132,11 +132,10 @@ axis_names = dict(x=(1.0, 0.0, 0.0),
 
 
 def spherical_cap(T, u, angle, min_angle=0):
-    """return boolean array of points in T within 'angle' of unit vector 'u'
+    """Return boolean array of points in T within 'angle' of unit vector 'u'.
 
     Parameters
     ----------
-
         T: collection of unit vectors
             a spherical grid object
 
@@ -166,7 +165,7 @@ def spherical_cap(T, u, angle, min_angle=0):
 
         https://en.wikipedia.org/wiki/Spherical_cap
     """
-
+    #
     # convert axis name to unit vector
     try:
         u = axis_names[u.lower()]
@@ -205,6 +204,8 @@ def spherical_cap(T, u, angle, min_angle=0):
 
 @dataclass
 class SphericalData():
+    """A class to hold spherical data and provide conversions."""
+
     x: np.ndarray = field(default_factory=lambda: np.array(None))
     y: np.ndarray = field(default_factory=lambda: np.array(None))
     z: np.ndarray = field(default_factory=lambda: np.array(None))
@@ -236,7 +237,7 @@ class SphericalData():
         keys = list(self.__dict__.keys())
         for key in keys:
             if key not in self._primary_attrs:
-                #print(f"   clearing: {key}")
+                # print(f"   clearing: {key}")
                 delattr(self, key)
 
     def set_from_cart(self, x, y, z):

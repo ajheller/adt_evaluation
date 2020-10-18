@@ -23,6 +23,8 @@ Created on Thu Oct  8 21:01:24 2020
 
 import json
 from dataclasses import dataclass, field
+from operator import itemgetter
+from collections.abc import Sequence  # for type declarations
 
 import numpy as np
 from numpy import pi as π
@@ -41,29 +43,38 @@ class LoudspeakerLayout(SphD.SphericalData):
 
     _primary_attrs = ['x', 'y', 'z', 'is_real', 'name', 'ids', 'description']
 
-    def append(self, other, is_real=None):
-        # TODO: should x, y, z be delegated to the base class?
-        self.x = np.append(self.x, other.x)
-        self.y = np.append(self.y, other.y)
-        self.z = np.append(self.z, other.z)
-        self.ids += other.ids
-        if is_real is None:
-            self.is_real = np.append(self.is_real, other.is_real)
-        else:
-            # override the is_real field with the optional value
-            self.is_real = np.append(self.is_real,
-                                     np.full_like(self.is_real, is_real,
-                                                  shape=other.shape))
+    def __add__(self, other):
+        """Append two layouts."""
+        return append_layouts(self, other)
+
+    def set_is_real(self, is_real=True):
+        """Set the is_real attribute of self, broadcasting if necessary."""
+        try:
+            # assume it is a sequence
+            if len(is_real) == len(self.is_real):
+                self.is_real = is_real
+            else:
+                raise ValueError("len(is_real) != len(self.is_real)")
+        except TypeError:
+            # assume it is a scalar
+            self.is_real = np.full(self.shape, is_real, dtype=np.bool_)
         return self
 
-    #  https://plugins.iem.at/docs/configurationfiles/#the-loudspeakerlayout-object
-    def to_json(self, channels=None, gains=None):
-        """Return a JSON dictionary in IEM plugin format"""
+    def set_imaginary(self):
+        """Set the is_real attribute of the array to False."""
+        self.set_is_real(False)
+        return self
+
+    def to_json(self, /, channels=None, gains=None):
+        """Return a JSON dictionary in IEM plugin format."""
         #
         if channels is None:
             channels = range(1, len(self.ids) + 1)  # 1-based
         if gains is None:
             gains = np.ones_like(self.az)
+
+        # IEM format documented here:
+        #  https://plugins.iem.at/docs/configurationfiles/#the-loudspeakerlayout-object
 
         records = zip(self.az*180/π, self.el*180/π, self.r,
                       map(bool, ~self.is_real),  # json needs bool not bool_
@@ -74,14 +85,35 @@ class LoudspeakerLayout(SphD.SphericalData):
                    'id')
         ls_dict = [dict(zip(columns, rec)) for rec in records]
         return dict({"LoudspeakerLayout":
-                         {"Name": self.name,
-                          "Description": self.description,
-                          "Loudspeakers": ls_dict}})
+                     {"Name": self.name,
+                      "Description": self.description,
+                      "Loudspeakers": ls_dict}})
 
     def to_iem_file(self, file, **kwargs):
+        """Write LoudspeakerLayout to IEM JSON file."""
         with open(file, 'w') as f:
             json.dump(obj=self.to_json(**kwargs), indent=4,
                       fp=f)
+
+
+def append_layouts(l1, l2, /,
+                   name=None, description=None):
+    """Append two layouts."""
+    #
+    if name is None:
+        name = l1.name
+    if description is None:
+        description = l1.description
+
+    xyz = np.append(l1.xyz, l2.xyz, axis=0)
+    ids = np.append(l1.ids, l2.ids, axis=0)
+    is_real = np.append(l1.is_real, l2.is_real, axis=0)
+
+    l3 = LoudspeakerLayout(*xyz.T, name=name, description=description,
+                           ids=ids, is_real=is_real)
+    return l3
+
+
 #
 # TODO: should there be ignore and no-op codes?
 # unit codes and conversion factors to meters and radians
@@ -146,9 +178,17 @@ to_canonical = {'X': 0, 'Y': 2, 'Z': 1,
 %
 """
 
-def from_array(a, coord_code='AER', unit_code='DDM',
-               name=None, description=None,
-               ids='S', is_real=True):
+
+def from_array(a: Sequence, /,
+               coord_code: Sequence = 'AER',
+               unit_code: Sequence = 'DDM',
+               name: str = None,
+               description=None,
+               ids='S', is_real=True) -> LoudspeakerLayout:
+    """
+
+    :type unit_code: object
+    """
     # make sure it's an Nx3 numpy array
     a = np.asarray(a).reshape(-1, 3)
     num_spkrs = len(a)
@@ -182,7 +222,8 @@ def from_array(a, coord_code='AER', unit_code='DDM',
     print("ac:", ac)
 
     # make the SA object
-    s = LoudspeakerLayout(ids=ids, is_real=is_real, name=name)
+    s = LoudspeakerLayout(ids=ids, is_real=is_real,
+                          name=name, description=description)
     # TODO: is there a slicker way to do this?
     if ac == 'XZY':
         s.set_from_cart(*[aa[:, to_canonical[c]] for c in 'XYZ'])
@@ -199,7 +240,7 @@ def from_array(a, coord_code='AER', unit_code='DDM',
 
 
 # convenience function that takes three vectors (or scalars) of coordinates
-def from_vectors(c0, c1, c2, *args, **kwargs):
+def from_vectors(c0, c1, c2, /, **kwargs) -> LoudspeakerLayout:
     if np.isscalar(c1):
         c1 = np.full_like(c0, c1, dtype=np.float)
     if np.isscalar(c2):
@@ -207,14 +248,15 @@ def from_vectors(c0, c1, c2, *args, **kwargs):
 
     if len(c0) == len(c1) == len(c2):
         return from_array(np.column_stack((c0, c1, c2)).astype(np.float),
-                          *args, **kwargs)
+                          **kwargs)
     else:
         raise ValueError("c0, c1, c2 must be the same length, "
                          f"but were {list(map(len, (c0, c1, c2)))}.")
 
 
-from operator import itemgetter
+
 def from_iem_file(file):
+    """Load a layout from an IEM-format file."""
     obj = json.load(open(file, 'r'))
     lsl_dict = obj["LoudspeakerLayout"]
 
