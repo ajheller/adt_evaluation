@@ -18,21 +18,28 @@ import localization_models as lm
 s = esa.uniform240()
 
 M = dict()
-for order_h in range(1, 10):
-    for order_v in range(1, order_h+1):
-        for mos in ('HV', 'HP'):
-            key = (order_h, order_v, mos)
-            c = pg.ChannelsAmbiX(order_h, order_v, mixed_order_scheme=mos)
+try:
+    for order_h in range(1, 10):
+        for order_v in range(1, order_h+1):
+            for mos in ('HV', 'HP'):
+                key = (order_h, order_v, mos)
+                print(key)
+                c = pg.ChannelsAmbiX(order_h, order_v, mixed_order_scheme=mos)
 
-            M_pinv = bd.inversion(c.sh_l, c.sh_m, s.az, s.el)
-            M[key, 'pinv'] = M_pinv
+                M_pinv = bd.inversion(c.sh_l, c.sh_m, s.az, s.el)
+                M[key, 'pinv'] = M_pinv
 
-            M_allrad = bd.allrad(c.sh_l, c.sh_m, s.az, s.el)
-            M[key, 'allrad'] = M_pinv
+                M_allrad = bd.allrad(c.sh_l, c.sh_m, s.az, s.el)
+                M[key, 'allrad'] = M_pinv
+                try:
+                    M_opt = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m)
+                except RuntimeError as rte:
+                    print(rte)
+                M[key, 'opt'] = M_pinv
 
-            M_opt = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m)
-            M[key, 'opt'] = M_pinv
+                #lm.plot_performance(M_pinv, s.u.T, *c.sh(), title=key)
 
-            #lm.plot_performance(M_pinv, s.u.T, *c.sh(), title=key)
 
-pickle.dump(M, 'Mixed-Order-maxrE.pkl')
+finally:
+    print(key)
+    pickle.dump(M, 'Mixed-Order-maxrE.pkl')
