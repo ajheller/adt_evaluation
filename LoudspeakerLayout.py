@@ -254,7 +254,6 @@ def from_vectors(c0, c1, c2, /, **kwargs) -> LoudspeakerLayout:
                          f"but were {list(map(len, (c0, c1, c2)))}.")
 
 
-
 def from_iem_file(file):
     """Load a layout from an IEM-format file."""
     obj = json.load(open(file, 'r'))

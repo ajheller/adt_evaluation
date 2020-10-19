@@ -63,9 +63,11 @@ def projection(degree, order,
         This is here mostly for comparison to other methods.
     """
     if np.isscalar(degree):
-        degree, order = zip(*channel_spec(degree, order))
+        sh_l, sh_m, *_ = zip(*channel_spec(degree, order))
+    else:
+        sh_l, sh_m = degree, order
 
-    M = rsh.real_sph_harm_transform(degree, order,
+    M = rsh.real_sph_harm_transform(sh_l, sh_m,
                                     np.array(speakers_azimuth).ravel(),
                                     np.array(speakers_elevation).ravel())
     return M.transpose()

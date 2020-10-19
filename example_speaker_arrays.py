@@ -167,3 +167,14 @@ def iem_cube():
                          coord_code=column_coords,
                          unit_code=column_units)
     return s
+
+
+def uniform240(name='Uniform240'):
+    """Return 240-speaker uniform layout."""
+    #
+    import SphericalGrids as sg
+    g = sg.t_design240()
+
+    s = LSL.from_array(g.xyz, name=name,
+                       coord_code='XYZ', unit_code='MMM')
+    return s

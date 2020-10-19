@@ -323,6 +323,9 @@ class Channels(object):
     def order(self):
         return max(self.h_order, self.v_order)
 
+    def sh(self):
+        return self.sh_l, self.sh_m
+
 
 class ChannelsAmbisonic(Channels):
     "This class fills in defaults and does sanity checks"

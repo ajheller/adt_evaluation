@@ -19,6 +19,7 @@ else:
     from dominate.tags import div, table, tbody, tr, td, img
     from dominate.tags import html, body, h1, pre
 
+
 # TODO: rework using pathlib
 def html_report(figs, text=None, name='report', directory=None,
                 dpi=75, fig_dir='figs'):
@@ -57,5 +58,3 @@ def html_report(figs, text=None, name='report', directory=None,
     with open(os.path.join(directory, name + '.html'), 'w') as f:
         print(h, file=f)
     return h
-
-
