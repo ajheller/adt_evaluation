@@ -29,7 +29,7 @@ import warnings
 #  backport available at https://pypi.org/project/backports.cached-property/
 try:
     from functools import cached_property
-except ModuleNotFoundError:
+except ImportError:
     try:
         from backports.cached_property import cached_property
     except ModuleNotFoundError as ie:

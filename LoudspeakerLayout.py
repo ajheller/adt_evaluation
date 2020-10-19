@@ -65,7 +65,7 @@ class LoudspeakerLayout(SphD.SphericalData):
         self.set_is_real(False)
         return self
 
-    def to_json(self, /, channels=None, gains=None):
+    def to_json(self, channels=None, gains=None):
         """Return a JSON dictionary in IEM plugin format."""
         #
         if channels is None:
@@ -96,7 +96,7 @@ class LoudspeakerLayout(SphD.SphericalData):
                       fp=f)
 
 
-def append_layouts(l1, l2, /,
+def append_layouts(l1, l2,
                    name=None, description=None):
     """Append two layouts."""
     #
@@ -179,7 +179,7 @@ to_canonical = {'X': 0, 'Y': 2, 'Z': 1,
 """
 
 
-def from_array(a: Sequence, /,
+def from_array(a: Sequence,
                coord_code: Sequence = 'AER',
                unit_code: Sequence = 'DDM',
                name: str = None,
@@ -240,7 +240,7 @@ def from_array(a: Sequence, /,
 
 
 # convenience function that takes three vectors (or scalars) of coordinates
-def from_vectors(c0, c1, c2, /, **kwargs) -> LoudspeakerLayout:
+def from_vectors(c0, c1, c2, **kwargs) -> LoudspeakerLayout:
     if np.isscalar(c1):
         c1 = np.full_like(c0, c1, dtype=np.float)
     if np.isscalar(c2):

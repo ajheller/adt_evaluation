@@ -48,7 +48,7 @@ def zenith(r=1):
                           is_real=False)
 
 
-def polygon(n, /, radius=1, unit='M', center_spkr=False, *args, **kwargs):
+def polygon(n, radius=1, unit='M', center_spkr=False, *args, **kwargs):
     """Construct regular polygon arrays."""
     az = np.linspace(0 if center_spkr else π/n, 2*π, n, endpoint=False)
     return LSL.from_vectors(az, 0, radius,
