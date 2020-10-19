@@ -35,11 +35,13 @@ try:
                     M_opt = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m)
                 except RuntimeError as rte:
                     print(rte)
-                M[key, 'opt'] = M_pinv
+                    M[key, 'opt'] = rte
+                else:
+                    M[key, 'opt'] = M_pinv
 
                 #lm.plot_performance(M_pinv, s.u.T, *c.sh(), title=key)
 
 
 finally:
     print(key)
-    pickle.dump(M, 'Mixed-Order-maxrE.pkl')
+    pickle.dump(M, open('Mixed-Order-maxrE.pkl', 'wb'))
