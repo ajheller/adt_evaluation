@@ -162,9 +162,9 @@ def objective(x,
 def optimize(M, Su, sh_l, sh_m,
              W=None,
              iprint=50,
-             tikhanov_lambda=1e-3,
+             tikhanov_lambda=1.0e-3,
              sparseness_penalty=1,
-             rE_goal=1,
+             rE_goal=1.0,
              raise_error_on_failure=True):
     """Optimize psychoacoustic criteria."""
     #
@@ -206,6 +206,7 @@ def optimize(M, Su, sh_l, sh_m,
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
         res = opt.minimize(
             objective_grad, x0,
+            bounds=opt.Bounds(-1, 1),
             args=(M_shape, Su, Y_test, W, tikhanov_lambda, sparseness_penalty,
                   rE_goal),
             method='L-BFGS-B',
@@ -222,7 +223,7 @@ def optimize(M, Su, sh_l, sh_m,
     if True:
         print()
         print("Execution time: %0.3f" % t.interval)
-        print(res)
+        print(res.message)
         print()
 
     if res.status != 0 and raise_error_on_failure:
@@ -234,7 +235,7 @@ def optimize(M, Su, sh_l, sh_m,
 
 
 def unit_test(ambisonic_order=13):
-    """Run unit test for optimizer with uniform array."""
+    """Run unit test for the optimizer with uniform array."""
     #
     sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
     # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
@@ -302,9 +303,10 @@ def emb(z_low=-0.2, z_high=1):
     ITU with center with elevated, additional height at left, right, back
     4 meters wide
     As deep as we want
-    Earlevel stands are 1.1 meters, acoustic center speaker is .1 meters higher
+    Ear-level stands are 1.1 meters, acoustic center speaker is .1 meters
+    higher
 
-    Ceiling 2.44 metersß, acoustic center .2 lower
+    Ceiling 2.44 meters, acoustic center .2 lower
 
     """
     #
@@ -338,9 +340,10 @@ def csv2spk(path='stage2.csv'):
 
     return hf, df
 
+
 # this belongs in ProgramChannels or real_spherical_harmonics
 def olm(C):
-    """Get order, l, and m from either a ProgramChannels object or a tuple or an integer """
+    """Get order, l, and m from a ProgramChannels object or a tuple or an integer """
     # use duck typing
     # does it behave like a ProgramChannels object?
     try:
@@ -349,25 +352,25 @@ def olm(C):
         pass
     # does it behave like a iterable?
     try:
-        # code analysis will flag the outer parens as unecessary, but
-        # wthout them Python <3.8 will flag the *zip as a syntax error.
+        # code analysis will flag the outer parens as unnecessary, but
+        # without them Python <3.8 will flag the *zip as a syntax error.
         return (C[0], C[1], *zip(*rsh.lm_generator(C[0])))
     except TypeError:
         pass
     # does it behave like an integer?
     try:
         # see above
-        return  (C, C, *zip(*rsh.lm_generator(C)))
+        return (C, C, *zip(*rsh.lm_generator(C)))
     except TypeError:
         raise ValueError(f"Can't make sense of C = {C}")
 
 
 def stage_test(ambisonic_order=3,
                el_lim=-π / 8,
-               tikhanov_lambda=0, #1e-3,
+               tikhanov_lambda=0,  # 1e-3,
                sparseness_penalty=1,
                do_report=False,
-               rE_goal=1.1 # 'auto'
+               rE_goal=1.1  # 'auto'
                ):
     """Test optimizer with CCRMA Stage array."""
     #
@@ -427,7 +430,8 @@ def stage_test(ambisonic_order=3,
     # Objective for E
     cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π / 2 - el_lim)
     E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
-    # FIXME: rE0 = np.array([0.4, 1.0])[cap.astype(np.int8)]
+    # objective for rE
+    rE_goal = np.array([0.4, 1.0])[cap.astype(np.int8)]
 
     M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
                           iprint=50, tikhanov_lambda=tikhanov_lambda,
@@ -472,9 +476,9 @@ def stage_test(ambisonic_order=3,
 def plot_rE_vs_ambisonic_order():
     """Plot magnitude of rE for uniform loudspeaker arrays."""
     #
-    rE = np.linspace(0.5, 1, 100)
-    plt.plot(rE, shelf.rE_to_ambisonic_order_3d(rE), label='3D')
-    plt.plot(rE, shelf.rE_to_ambisonic_order_2d(rE), label='2D')
+    rE_range = np.linspace(0.5, 1, 100)
+    plt.plot(rE_range, shelf.rE_to_ambisonic_order_3d(rE_range), label='3D')
+    plt.plot(rE_range, shelf.rE_to_ambisonic_order_2d(rE_range), label='2D')
     plt.scatter([shelf.max_rE_3d(o) for o in range(1, 10)], range(1, 10))
     plt.scatter([shelf.max_rE_2d(o) for o in range(1, 10)], range(1, 10))
     plt.grid(True)
@@ -486,7 +490,7 @@ def plot_rE_vs_ambisonic_order():
 
 def table_ambisonics_order_vs_rE(max_order=20):
     """Return a dataframe with rE as a function of order."""
-    order = np.arange(20, dtype=np.int32)
+    order = np.arange(1, max_order+1, dtype=np.int32)
     rE3 = np.array(list(map(shelf.max_rE_3d, order)))
     drE3 = np.append(np.nan, rE3[1:] - rE3[:-1])
 
@@ -507,7 +511,7 @@ def table_ambisonics_order_vs_rE(max_order=20):
 #
 """
 # %% Try to use jax.scipy.optimize.minimize to keep everything in the GPU
-#    sadly, this part of Jax apprears to be totally broken
+#    sadly, this part of Jax appears to be totally broken
 # source code at site-packages/jax/scipy/optimize/_minimize.py,
 #  _bfgs.py, _line_search.py
 
@@ -520,7 +524,7 @@ def table_ambisonics_order_vs_rE(max_order=20):
 import jax.scipy.optimize as jopt
 
 def loss2(M_shape0, M_shape1, Su, Y, M):
-    return loss(M, M_shape0, M_shape1, Su, Y )
+    return loss(M, M_shape0, M_shape1, Su, Y)
 
 
 def o2(M=None, Su=Su, Y_test=Y_test, iprint=50):
