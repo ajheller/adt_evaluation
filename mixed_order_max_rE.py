@@ -32,7 +32,8 @@ try:
                 M_allrad = bd.allrad(c.sh_l, c.sh_m, s.az, s.el)
                 M[(*key, 'allrad')] = M_pinv
                 try:
-                    M_opt, res = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m)
+                    M_opt, res = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m,
+                                              raise_error_on_failure=False)
                 except RuntimeError as rte:
                     print(rte)
                     M[(*key, 'opt')] = dict(M_opt=None, res=rte)
@@ -44,3 +45,10 @@ try:
 
 finally:
     pickle.dump(M, open('Mixed-Order-maxrE.pkl', 'wb'))
+
+
+def review():
+    a = pickle.load(open('Mixed-Order-maxrE.pkl', 'rb'))
+    for k, v in a.items():
+        print(v['res'])
+

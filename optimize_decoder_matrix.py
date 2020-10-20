@@ -164,7 +164,8 @@ def optimize(M, Su, sh_l, sh_m,
              iprint=50,
              tikhanov_lambda=1e-3,
              sparseness_penalty=1,
-             rE_goal=1):
+             rE_goal=1,
+             raise_error_on_failure=True):
     """Optimize psychoacoustic criteria."""
     #
     # handle defaults
@@ -224,12 +225,11 @@ def optimize(M, Su, sh_l, sh_m,
         print(res)
         print()
 
-    if res.status == 0:
-        M_opt = res.x.reshape(M_shape)
-    else:
+    if res.status != 0 and raise_error_on_failure:
         print('bummer:', res.message)
         raise RuntimeError(res.message)
 
+    M_opt = res.x.reshape(M_shape)
     return M_opt, res
 
 
