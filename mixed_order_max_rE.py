@@ -32,14 +32,14 @@ try:
                 M_allrad = bd.allrad(c.sh_l, c.sh_m, s.az, s.el)
                 M[(*key, 'allrad')] = M_pinv
                 try:
-                    M_opt = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m)
+                    M_opt, res = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m)
                 except RuntimeError as rte:
                     print(rte)
-                    M[(*key, 'opt')] = rte
+                    M[(*key, 'opt')] = dict(M_opt=None, res=rte)
                 else:
-                    M[(*key, 'opt')] = M_pinv
+                    M[(*key, 'opt')] = dict(M_opt=M_opt, res=res)
 
-                #lm.plot_performance(M_pinv, s.u.T, *c.sh(), title=key)
+                # lm.plot_performance(M_pinv, s.u.T, *c.sh(), title=key)
 
 
 finally:
