@@ -15,10 +15,13 @@ import optimize_decoder_matrix as odm
 import program_channels as pg
 import localization_models as lm
 
-s = esa.uniform240()
+_pickle_file = 'Mixed-Order-maxrE.pkl'
 
-M = dict()
-try:
+def generate(file=_pickle_file):
+    s = esa.uniform240()
+
+    M = dict()
+
     for order_h in range(1, 16):
         for order_v in range(1, order_h+1):
             for mos in ('HV', 'HP'):
@@ -42,13 +45,15 @@ try:
 
                 # lm.plot_performance(M_pinv, s.u.T, *c.sh(), title=key)
 
-
-finally:
-    pickle.dump(M, open('Mixed-Order-maxrE.pkl', 'wb'))
+        pickle.dump(M, open(file, 'wb'))
 
 
-def review():
-    a = pickle.load(open('Mixed-Order-maxrE.pkl', 'rb'))
+def review(file=_pickle_file):
+    a = pickle.load(open(file, 'rb'))
     for k, v in a.items():
         print(v['res'])
 
+
+if __name__ == '__main__':
+    generate()
+    review()
