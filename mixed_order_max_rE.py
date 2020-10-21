@@ -17,13 +17,14 @@ import localization_models as lm
 
 _pickle_file = 'Mixed-Order-maxrE.pkl'
 
+
 def generate(file=_pickle_file):
     s = esa.uniform240()
 
     M = dict()
 
     for order_h in range(1, 16):
-        for order_v in range(1, order_h+1):
+        for order_v in range(1, order_h + 1):
             for mos in ('HV', 'HP'):
                 key = (order_h, order_v, mos)
                 print(key)

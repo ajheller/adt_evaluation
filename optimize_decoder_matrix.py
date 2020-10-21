@@ -430,8 +430,9 @@ def stage_test(ambisonic_order=3,
     # Objective for E
     cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π / 2 - el_lim)
     E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
-    # objective for rE
-    rE_goal = np.array([0.4, 1.0])[cap.astype(np.int8)]
+    # objective for rE order+2 inside the cap, order-2 outside
+    rE_goal = np.array([shelf.max_rE_3d(max(order-2, 1)),
+                        shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
 
     M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
                           iprint=50, tikhanov_lambda=tikhanov_lambda,
