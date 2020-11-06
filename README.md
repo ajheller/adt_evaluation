@@ -28,21 +28,34 @@ To make Plotly plots of decoder performance:
 This code is tested with Python3.8, although I think it should run
 in version 3.6 or newer as it uses f-strings.  The core code also
 needs:
-* NumPy
-* SciPy
-* SymPy
-* Pandas
-* Matplotlib
+
+ - NumPy
+ 
+ - SciPy
+ 
+ - SymPy
+ 
+ - Pandas
+ 
+ - Matplotlib
 
 These are all available with the Anaconda distribution of Python
 
 The optimizer needs:
-* Google JAX, https://github.com/google/jax#installation
-* Dominate, pip install dominate
+
+ - Google JAX, https://github.com/google/jax#installation
+ 
+ - Dominate, pip install dominate
 
 The fancy 3D graphics need:
-* Plotly, pip install plotly
 
+ - Plotly, pip install plotly
+ 
+## Running in the cloud
+
+The code has been tested in Google's Colaboratory ( <https://colab.research.google.com/notebooks/intro.ipynb> ).
+The optimizer will run somewhat faster in a runtime with a GPU, 
+though it is not necessary. More instructions pending. 
 
 ## License
 
@@ -95,15 +108,15 @@ desired result, but the printing is awkward, as it shows row-major.
 The use of [N x 1] arrays for vectors is consistent with NumPy and
 SciPy linear algebra writeups, such as:
 
-* <https://docs.scipy.org/doc/scipy/reference/tutorial/linalg.html>
+ * <https://docs.scipy.org/doc/scipy/reference/tutorial/linalg.html>
 
-* <http://www2.lawrence.edu/fast/GREGGJ/Python/numpy/numpyLA.html>
+ * <http://www2.lawrence.edu/fast/GREGGJ/Python/numpy/numpyLA.html>
 
 There is a NumPy matrix object that has the semantics of MATLAB's 2-D
 arrays, however its use is discouraged, and it may be removed in the
 future.
 
-* <https://docs.scipy.org/doc/numpy/reference/generated/numpy.matrix.html>
+ * <https://docs.scipy.org/doc/numpy/reference/generated/numpy.matrix.html>
 
 
 So far so good... but now when we look at some SciPy functions that
