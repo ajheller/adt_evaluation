@@ -69,7 +69,13 @@ import real_spherical_harmonics as rsh
 import reports
 import shelf
 import spherical_grids as sg
+import program_channels as pc
 from Timer import Timer
+
+import warnings
+warnings.filterwarnings(action='once')
+
+#from ArrayHash import hashable
 
 
 #  need a local definition so np is jax.np
@@ -198,7 +204,13 @@ def optimize(M, Su, sh_l, sh_m,
         # fortran order.  Check with g.flags
         return v, onp.array(g, order='F')  # onp.asfortranarray(g)
 
-    #
+
+    # FIXME: make Su and Y_test hashable -- doesn't work...
+    # Su.flags.writeable = False
+    # Y_test.flags.writeable = False
+
+    Su_h = Su #hashable(Su)
+    Y_test_h = Y_test #hashable(Y_test)
 
     x0 = M.ravel()  # initial guess
 
@@ -207,7 +219,8 @@ def optimize(M, Su, sh_l, sh_m,
         res = opt.minimize(
             objective_grad, x0,
             bounds=opt.Bounds(-1, 1),
-            args=(M_shape, Su, Y_test, W, tikhanov_lambda, sparseness_penalty,
+            args=(M_shape, Su_h, Y_test_h, W,
+                  tikhanov_lambda, sparseness_penalty,
                   rE_goal),
             method='L-BFGS-B',
             jac=True,
@@ -234,10 +247,11 @@ def optimize(M, Su, sh_l, sh_m,
     return M_opt, res
 
 
-def unit_test(ambisonic_order=13):
+def unit_test(C):
     """Run unit test for the optimizer with uniform array."""
     #
-    sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
+    #sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
+    h_order, v_order, sh_l, sh_m = pc.olm(C)
     # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
     S240 = sg.t_design240()
     Su = S240.u
@@ -341,29 +355,6 @@ def csv2spk(path='stage2.csv'):
     return hf, df
 
 
-# this belongs in ProgramChannels or real_spherical_harmonics
-def olm(C):
-    """Get order, l, and m from a ProgramChannels object or a tuple or an integer """
-    # use duck typing
-    # does it behave like a ProgramChannels object?
-    try:
-        return C.h_order, C.v_order, C.sh_l, C.sh_m
-    except AttributeError:
-        pass
-    # does it behave like a iterable?
-    try:
-        # code analysis will flag the outer parens as unnecessary, but
-        # without them Python <3.8 will flag the *zip as a syntax error.
-        return (C[0], C[1], *zip(*rsh.lm_generator(C[0])))
-    except TypeError:
-        pass
-    # does it behave like an integer?
-    try:
-        # see above
-        return (C, C, *zip(*rsh.lm_generator(C)))
-    except TypeError:
-        raise ValueError(f"Can't make sense of C = {C}")
-
 
 def stage_test(ambisonic_order=3,
                el_lim=-π / 8,
@@ -375,8 +366,8 @@ def stage_test(ambisonic_order=3,
     """Test optimizer with CCRMA Stage array."""
     #
     #
-    order_h, order_v, sh_l, sh_m = olm(ambisonic_order)
-    order = max(order_h, order_v)  # FIXME
+    order_h, order_v, sh_l, sh_m = pc.olm(ambisonic_order)
+    #order = max(order_h, order_v)  # FIXME
     is_3D = order_v > 0
 
     if True:

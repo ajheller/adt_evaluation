@@ -48,6 +48,7 @@ The optimizer needs:
  - Dominate, pip install dominate
 
 The fancy 3D graphics need:
+* Plotly, pip install plotly
 
  - Plotly, pip install plotly
  

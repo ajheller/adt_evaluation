@@ -191,6 +191,7 @@ def is_tesseral_sh(sh_l, sh_m):
 
 
 def channel_mask_HP(sh_l, sh_m, h_order, v_order):
+    """Return True for mixed-order components by HP rule."""
     if h_order != v_order:
         # sectoral harmonics are the horizontal
         sectoral_sh = is_sectoral_sh(sh_l, sh_m)
@@ -202,12 +203,15 @@ def channel_mask_HP(sh_l, sh_m, h_order, v_order):
 
 
 def channel_mask_HV(sh_l, sh_m, h_order, v_order):
+    """Return True for mixed-order components by HV rule."""
     if h_order != v_order:
-        ch_mask = ((sh_l - np.abs(sh_m)) <= v_order &
+        ch_mask = (((sh_l - np.abs(sh_m)) <= v_order) &
                    (sh_l <= max(h_order, v_order)))
     else:
         # this handles the case where sh_l has entries greater than h_order
         ch_mask = sh_l <= h_order
+
+    # print(sh_l, sh_m, h_order, v_order, ch_mask)
 
     return ch_mask
 
@@ -264,11 +268,12 @@ def ambisonic_channels_sid(ambisonic_order):
 
 
 def ambisonic_channels_fuma(ambisonic_order):
-    for l, m in zip(_FuMa_sh_l, _FuMa_sh_m):
-        if l > ambisonic_order:
+    """Return sh_l and sh_m for Furse-Malham order."""
+    for sh_l, sh_m in zip(_FuMa_sh_l, _FuMa_sh_m):
+        if sh_l > ambisonic_order:
             break
         else:
-            yield l, m
+            yield sh_l, sh_m
 
 
 def ambisonic_channel_name(l, m):
@@ -330,6 +335,8 @@ class Channels(object):
 class ChannelsAmbisonic(Channels):
     "This class fills in defaults and does sanity checks"
 
+    mixed_order_scheme = attrib()
+
     def __init__(self, h_order, v_order,
                  sh_l, sh_m,
                  normalization,
@@ -337,15 +344,21 @@ class ChannelsAmbisonic(Channels):
                  mixed_order_scheme='HV',
                  name=None):
 
+        # Sanity checks
+        if v_order > h_order:
+            pass  # FIXME raise a value exception
+
         h_order = int(h_order)
         v_order = int(v_order)
-        if v_order > h_order:
-            pass  # FIXME raise a domain exception
 
-        # make sure they're NumPy arrays
-        sh_l = np.array(sh_l)
-        sh_m = np.array(sh_m)
-        normalization = np.array(normalization)
+        if len(sh_l) == len(sh_m) == len(normalization):
+            # make sure they're NumPy arrays
+            sh_l = np.asarray(sh_l)
+            sh_m = np.asarray(sh_m)
+            normalization = np.asarray(normalization)
+        else:
+            raise ValueError("sh_l, sh_m, normalization should be same length, "
+                             f"not {len(sh_l), len(sh_m), len(normalization)}")
 
         if cs_phase:
             pass  # FIXME check that it is the same length as sh_l
@@ -363,6 +376,12 @@ class ChannelsAmbisonic(Channels):
             ch_mask,
             ambisonic_channel_names(sh_l[ch_mask], sh_m[ch_mask]),
             name)
+        self.mixed_order_scheme = mixed_order_scheme.upper()
+
+    def id_string(self):
+        return (f"{self.h_order}{self.mixed_order_scheme[0]}" +
+                f"{self.v_order}{self.mixed_order_scheme[1]}"
+                )
 
 
 class ChannelsAmbiX(ChannelsAmbisonic):
@@ -435,3 +454,25 @@ class ChannelsFuMa(ChannelsAmbisonic):
             _FuMa_sh_l, _FuMa_sh_m, norm,
             mixed_order_scheme=mixed_order_scheme,
             name="FuMa")
+
+
+#
+# utility funciton
+def olm(C):
+    """Get h_order, v_order, sh_l, and sh_m flexibly."""
+    # use duck typing
+    # does it behave like a ProgramChannels object?
+    try:
+        return C.h_order, C.v_order, C.sh_l, C.sh_m
+    except AttributeError:
+        pass
+    # does it behave like a iterable?
+    try:
+        return olm(ChannelsAmbiX(C[0], C[1]))
+    except (TypeError, IndexError):
+        pass
+    # does it behave like an integer?
+    try:
+        return olm(ChannelsAmbiX(C, C))
+    except TypeError:
+        raise ValueError(f"Can't make sense of C = {C}")

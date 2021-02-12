@@ -195,7 +195,7 @@ def plot_performance(M, Su, sh_l, sh_m,
             (shelf.rE_to_ambisonic_order_3d(
                 rEr.reshape(test_dirs.shape)) - ambisonic_order).round(),
             title=(f'{title}\n' +
-                   'ambisonic order vs. test direction'),
+                   f'relative ambisonic order ({ambisonic_order}) vs. test direction'),
             clim=(-3, +3),
             cmap='Spectral_r',
             show=False)

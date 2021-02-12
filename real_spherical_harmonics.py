@@ -28,7 +28,8 @@ from __future__ import print_function
 
 import numpy as np
 from numpy import meshgrid
-from scipy import special, pi, sin, cos, sqrt
+from numpy import pi, sin, cos, sqrt
+from scipy import special
 from scipy.integrate import dblquad
 
 
@@ -90,7 +91,8 @@ def real_sph_harm(l, m, theta, phi, phi_is_elevation=False, cs_phase=False):
     if Y_scalar:
         return Y_real[0, 0]
     else:
-        return Y_real
+        # copy to make sure it is not a view
+        return np.copy(Y_real)
 
 
 def lm_broadcast(l, m, theta, phi,

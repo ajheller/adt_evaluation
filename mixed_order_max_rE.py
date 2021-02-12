@@ -15,7 +15,39 @@ import optimize_decoder_matrix as odm
 import program_channels as pg
 import localization_models as lm
 
+import reports
+
 _pickle_file = 'Mixed-Order-maxrE.pkl'
+
+
+def uniform_decoder(s, order_h, order_v, mixed_order_scheme):
+    c = pg.ChannelsAmbiX(order_h, order_v, mixed_order_scheme)
+
+    M = {}
+
+    M_pinv = bd.inversion(c.sh_l, c.sh_m, s.az, s.el)
+    M['pinv'] = M_pinv
+
+    M_allrad = bd.allrad(c.sh_l, c.sh_m, s.az, s.el)
+    M['allrad'] = M_allrad
+
+    M_opt, res = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m,
+                              raise_error_on_failure=False)
+    M['opt'] = M_opt
+
+    figs_opt = lm.plot_performance(M_opt, s.u.T, *c.sh(),
+                                   title=f"LS Array: {s.name}\n"
+                                         f"Decoder: Optimized {c.id_string()}")
+
+    reports.html_report(zip(*(figs_opt,)),
+                        name=c.id_string(),
+                             directory=c.id_string())
+    if res.status == 0:
+        M['opt'] = M_opt
+    else:
+        M['opt'] = res
+
+    return M
 
 
 def generate(file=_pickle_file):
@@ -28,21 +60,10 @@ def generate(file=_pickle_file):
             for mos in ('HV', 'HP'):
                 key = (order_h, order_v, mos)
                 print(key)
-                c = pg.ChannelsAmbiX(order_h, order_v, mixed_order_scheme=mos)
 
-                M_pinv = bd.inversion(c.sh_l, c.sh_m, s.az, s.el)
-                M[(*key, 'pinv')] = M_pinv
-
-                M_allrad = bd.allrad(c.sh_l, c.sh_m, s.az, s.el)
-                M[(*key, 'allrad')] = M_pinv
-
-                M_opt, res = odm.optimize(M_pinv, s.u.T, c.sh_l, c.sh_m,
-                                          raise_error_on_failure=False)
-
-                if res.status == 0:
-                    M[(*key, 'opt')] = M_opt
-                else:
-                    M[(*key, 'opt')] = res
+                M_dict = uniform_decoder(s, order_h, order_v,
+                                         mixed_order_scheme=mos)
+                M[key] = M_dict
 
                 # lm.plot_performance(M_pinv, s.u.T, *c.sh(), title=key)
 
