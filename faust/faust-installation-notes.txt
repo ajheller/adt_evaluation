@@ -1,0 +1,16 @@
+On RPi4B
+https://faust.grame.fr/doc/manual/index.html#unix-systems
+
+sudo apt-get install -y build-essential cmake git libmicrohttpd-dev
+
+git clone https://github.com/grame-cncm/faust.git
+
+cd faust
+make
+sudo make install
+
+# install alsa, jack, and qt4 libs
+sudo apt-get install -y libasound2-dev libjack-jackd2-dev libqt4-dev
+
+sudo apt-get install libgtk-3-dev
+
