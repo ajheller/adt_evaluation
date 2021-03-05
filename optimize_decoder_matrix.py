@@ -141,7 +141,7 @@ def objective(x,
               Su: np.array,
               Y_test: np.array,
               W: float,
-              tikhanov_lambda: float,
+              tikhonov_lambda: float,
               sparseness_penalty: float,
               rE_goal: float,
               ) -> float:
@@ -155,8 +155,8 @@ def objective(x,
     # uniform loudness loss
     ulu = np.sum((E - W) ** 2) / 10
 
-    # Tikhanov regularization term
-    trt = np.sum(M ** 2) * tikhanov_lambda
+    # Tikhonov regularization term
+    trt = np.sum(M ** 2) * tikhonov_lambda
 
     # don't turn off speakers
     sp = np.sum(np.abs(1 - np.sum(M**2, axis=1))) * 100 * sparseness_penalty
@@ -168,7 +168,7 @@ def objective(x,
 def optimize(M, Su, sh_l, sh_m,
              W=None,
              iprint=50,
-             tikhanov_lambda=1.0e-3,
+             tikhonov_lambda=1.0e-3,
              sparseness_penalty=1,
              rE_goal=1.0,
              raise_error_on_failure=True):
@@ -224,7 +224,7 @@ def optimize(M, Su, sh_l, sh_m,
             objective_grad, x0,
             bounds=opt.Bounds(-1, 1),
             args=(M_shape, Su_h, Y_test_h, W,
-                  tikhanov_lambda, sparseness_penalty,
+                  tikhonov_lambda, sparseness_penalty,
                   rE_goal),
             method='L-BFGS-B',
             jac=True,
@@ -362,7 +362,7 @@ def csv2spk(path='stage2.csv'):
 
 def stage_test(ambisonic_order=3,
                el_lim=-π / 8,
-               tikhanov_lambda=0,  # 1e-3,
+               tikhonov_lambda=0,  # 1e-3,
                sparseness_penalty=1,
                do_report=False,
                rE_goal=1.1  # 'auto'
@@ -430,7 +430,7 @@ def stage_test(ambisonic_order=3,
                         shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
 
     M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
-                          iprint=50, tikhanov_lambda=tikhanov_lambda,
+                          iprint=50, tikhonov_lambda=tikhonov_lambda,
                           sparseness_penalty=sparseness_penalty,
                           rE_goal=rE_goal)
 
@@ -445,7 +445,7 @@ def stage_test(ambisonic_order=3,
     with io.StringIO() as f:
         print(f"ambisonic_order = {order}\n" +
               f"el_lim = {el_lim * 180 / π}\n" +
-              f"tikhanov_lambda = {tikhanov_lambda}\n" +
+              f"tikhonov_lambda = {tikhonov_lambda}\n" +
               f"sparseness_penalty = {sparseness_penalty}\n",
               file=f)
 
