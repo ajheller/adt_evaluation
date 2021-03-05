@@ -26,6 +26,8 @@ import numpy as np
 
 from attr import attrs, attrib
 
+import re
+
 """
  NOTE:
   Ambisonics traditionally calls degree "order", and order "channel". A&S
@@ -68,8 +70,9 @@ from attr import attrs, attrib
 """
 
 
-def np_array(a):
-    return a if isinstance(a, np.ndarray) else np.array(a)
+# np.asarray has same functionality
+# def np_array(a):
+#     return a if isinstance(a, np.ndarray) else np.array(a)
 
 
 # Normalization Conventions
@@ -117,7 +120,7 @@ def normalization_full(sh_l, sh_m=None):
 #                      W   X   Y   Z |  R   S   T   U   V |  K   L   M   N   O   P   Q
 _FuMa_sh_l = np.array((0,  1,  1,  1,   2,  2,  2,  2,  2,   3,  3,  3,  3,  3,  3,  3))
 _FuMa_sh_m = np.array((0,  1, -1,  0,   0,  1, -1,  2, -2,   0,  1, -1,  2, -2,  3, -3))
-_FuMa_sh_lm = zip(_FuMa_sh_l, _FuMa_sh_m)
+_FuMa_sh_lm = list(zip(_FuMa_sh_l, _FuMa_sh_m))
 _FuMa_sh_acn = [l ** 2 + l + m for l, m in _FuMa_sh_lm]
 _FuMa_channel_names = np.array(tuple("W" + "XYZ" + "RSTUV" + "KLMNOPQ"))
 
@@ -357,7 +360,7 @@ class ChannelsAmbisonic(Channels):
             sh_m = np.asarray(sh_m)
             normalization = np.asarray(normalization)
         else:
-            raise ValueError("sh_l, sh_m, normalization should be same length, "
+            raise ValueError("sh_l, sh_m, normalization must be same length, "
                              f"not {len(sh_l), len(sh_m), len(normalization)}")
 
         if cs_phase:
@@ -379,10 +382,26 @@ class ChannelsAmbisonic(Channels):
         self.mixed_order_scheme = mixed_order_scheme.upper()
 
     def id_string(self):
-        return (f"{self.h_order}{self.mixed_order_scheme[0]}" +
-                f"{self.v_order}{self.mixed_order_scheme[1]}"
-                )
+        return channels_id_string(self)
 
+def channels_id_string(channel_object):
+    c = channel_object
+    s = c.mixed_order_scheme
+    return (f"{c.name} " +
+            f"{c.h_order}{s[0]}" +
+            f"{c.v_order}{s[1]}")
+
+
+_id_string_re = re.compile("(AMBIX|FUMA)?\s*(\d+)(\D)(\d+)(\D)\s*$")
+
+def parse_channels_id_string(id_str):
+    match = _id_string_re.match(id_str.upper())
+    if match:
+        convention, l_str, h, m_str, vp = match.groups()
+        return int(l_str), int(m_str), h+vp, convention
+
+    else:
+        raise ValueError(f"Cannot parse '{id_str}'")
 
 class ChannelsAmbiX(ChannelsAmbisonic):
     def __init__(self, h_order, v_order=None, mixed_order_scheme='HV'):
@@ -442,23 +461,24 @@ Channels
 
 class ChannelsFuMa(ChannelsAmbisonic):
     def __init__(self, h_order, v_order=None, mixed_order_scheme='HP'):
-        if h_order > 3:
-            pass  # FIXME: raise domain error
         if v_order is None:
             v_order = h_order
-
-        norm = _FuMa_channel_normalization
+        if h_order > 3:
+            raise ValueError(f"h_order should be <= 3, not {h_order}")
+        if v_order > h_order:
+            raise ValueError(f"v_order should be <= h_order {h_order, v_order}")
 
         super().__init__(
             h_order, v_order,
-            _FuMa_sh_l, _FuMa_sh_m, norm,
+            _FuMa_sh_l, _FuMa_sh_m,
+            _FuMa_channel_normalization,
             mixed_order_scheme=mixed_order_scheme,
             name="FuMa")
 
 
 #
-# utility funciton
-def olm(C):
+# factory function
+def ambisonic_channels(C, convention=None, *args):
     """Get h_order, v_order, sh_l, and sh_m flexibly."""
     # use duck typing
     # does it behave like a ProgramChannels object?
@@ -466,13 +486,24 @@ def olm(C):
         return C.h_order, C.v_order, C.sh_l, C.sh_m
     except AttributeError:
         pass
+
     # does it behave like a iterable?
     try:
-        return olm(ChannelsAmbiX(C[0], C[1]))
-    except (TypeError, IndexError):
-        pass
-    # does it behave like an integer?
-    try:
-        return olm(ChannelsAmbiX(C, C))
-    except TypeError:
-        raise ValueError(f"Can't make sense of C = {C}")
+        h_order, v_order = C
+    except (TypeError, ValueError, IndexError):
+        # does it behave like an integer?
+        try:
+            h_order, v_order = int(C), int(C)
+        except ValueError:
+            raise ValueError(f"Can't make sense of C = {C}")
+
+    if convention is None:
+        convention = 'FuMa' if h_order <= 3 else 'AmbiX'
+
+
+    if convention.upper() == 'AMBIX':
+        return ambisonic_channels(ChannelsAmbiX(h_order, v_order, *args))
+    elif convention.upper() == 'FUMA':
+        return ambisonic_channels(ChannelsFuMa(h_order, v_order, *args))
+    else:
+        raise ValueError('Unknown convention {convention}')

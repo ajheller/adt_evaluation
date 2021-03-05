@@ -118,6 +118,70 @@ def real_sph_harm_transform(l, m, az, el, cs_phase=False):
     return real_sph_harm(*lm_broadcast(l, m, theta=az, phi=el),
                          phi_is_elevation=True, cs_phase=cs_phase)
 
+# utility functions
+
+#
+def is_zonal_sh(sh_l, sh_m):
+    """
+    Return True for zonal spherical harmonics.
+
+    http://mathworld.wolfram.com/ZonalHarmonic.html
+
+    Parameters
+    ----------
+    sh_l : TYPE
+        DESCRIPTION.
+    sh_m : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    return sh_m == 0
+
+
+def is_sectoral_sh(sh_l, sh_m):
+    """
+    Return True for sectoral spherical harmonics.
+
+    http://mathworld.wolfram.com/SectorialHarmonic.html
+
+
+    Parameters
+    ----------
+    sh_l : TYPE
+        DESCRIPTION.
+    sh_m : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    return sh_l == np.abs(sh_m)
+
+
+def is_tesseral_sh(sh_l, sh_m):
+    """Return True for tesseral spherical harmonics.
+
+    http://mathworld.wolfram.com/TesseralHarmonic.html
+    """
+    return ~is_sectoral_sh(sh_l, sh_m) & ~is_zonal_sh(sh_l, sh_m)
+
+
+
+def lm_generator(max_degree: int = 3, pred=lambda l, m: True):
+    return ((l, m)
+            for l in range(max_degree + 1)
+            for m in range(-l, l + 1)
+            if pred(l, m))
+
+
 
 # ---------------------- Unit tests --------------------------- #
 
@@ -133,13 +197,6 @@ def dblquad_test():
         lambda x: 0, lambda y: pi)
 
     return qq, ee
-
-
-def lm_generator(max_degree: int = 3, pred=lambda l, m: True):
-    return ((l, m)
-            for l in range(max_degree + 1)
-            for m in range(-l, l + 1)
-            if pred(l, m))
 
 
 def real_sph_harm_inner_product(l1, m1, l2, m2):

@@ -195,8 +195,12 @@ def optimize(M, Su, sh_l, sh_m,
         M_shape = M.shape
 
     # Need to define these here so JAX's jit recompiles it for each run
-    val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
-                              static_argnums=range(1, 7))
+
+    val_and_grad_fn = jax.value_and_grad(objective)
+    #val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
+    #                          static_argnums=range(1, 7))
+
+
 
     def objective_grad(x, *args):
         v, g = val_and_grad_fn(x, *args)
@@ -251,7 +255,7 @@ def unit_test(C):
     """Run unit test for the optimizer with uniform array."""
     #
     #sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
-    h_order, v_order, sh_l, sh_m = pc.olm(C)
+    h_order, v_order, sh_l, sh_m = pc.ambisonic_channels(C)
     # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
     S240 = sg.t_design240()
     Su = S240.u
@@ -366,8 +370,8 @@ def stage_test(ambisonic_order=3,
     """Test optimizer with CCRMA Stage array."""
     #
     #
-    order_h, order_v, sh_l, sh_m = pc.olm(ambisonic_order)
-    #order = max(order_h, order_v)  # FIXME
+    order_h, order_v, sh_l, sh_m = pc.ambisonic_channels(ambisonic_order)
+    order = max(order_h, order_v)  # FIXME
     is_3D = order_v > 0
 
     if True:
@@ -407,7 +411,7 @@ def stage_test(ambisonic_order=3,
         print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
         for n, g in zip(Sr.name.values,
                         10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
-            print(f"{n}: {g:6.2f}")
+            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}")
 
     else:
         M_start = 'Random'
