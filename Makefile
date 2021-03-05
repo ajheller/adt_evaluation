@@ -1,3 +1,5 @@
+.phony: rsync adt-pull plots clean git-push git-pull
+
 rsync:
 	rsync --delete-after -avurP  plotly "ajh-dh:ambisonics/"
 
@@ -21,3 +23,7 @@ git-push:
 
 git-pull:
 	git pull --ff-only
+
+requirements.txt:
+	echo $@
+#	pip freeze 
