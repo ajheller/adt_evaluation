@@ -171,6 +171,6 @@ def gamma(sh_l, decoder_type: str = 'max_rE', decoder_3d: bool = True,
         raise ValueError(f'Unknown decoder type: {decoder_type}')
 
     if return_matrix:
-        ret = np.diag(ret)
+        ret = np.diag(list(map(float, ret)))
 
     return ret
