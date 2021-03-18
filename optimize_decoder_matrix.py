@@ -150,18 +150,22 @@ def objective(x,
     rExyz, E = rE(M, Su, Y_test)
 
     # truncation loss due to finite order
-    tl = np.sum((rExyz - T.u * rE_goal) ** 2)
+    truncation_loss = np.sum((rExyz - T.u * rE_goal) ** 2)
 
     # uniform loudness loss
-    ulu = np.sum((E - W) ** 2) / 10
+    uniform_loudness_loss = np.sum((E - W) ** 2) / 10
 
     # Tikhonov regularization term
-    trt = np.sum(M ** 2) * tikhonov_lambda
+    tikhonov_regularization_term = np.sum(M ** 2) * tikhonov_lambda
 
     # don't turn off speakers
-    sp = np.sum(np.abs(1 - np.sum(M**2, axis=1))) * 100 * sparseness_penalty
-    # + np.sum(np.abs(M - 0.1)) * sparseness_penalty
-    f = tl + ulu + trt + sp
+    # pull coefficients for each speaker away from zero
+    sparsness_term = (np.sum(np.abs(1 - np.sum(M**2, axis=1))) *
+                      100 * sparseness_penalty)
+
+    # the entire loss function
+    f = (truncation_loss + uniform_loudness_loss +
+         tikhonov_regularization_term + sparsness_term)
     return f
 
 
