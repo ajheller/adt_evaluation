@@ -140,7 +140,9 @@ def cardioid_gamma_3d(sh_l):
 
 
 # full-featured API
-def gamma(sh_l, decoder_type: str = 'max_rE', decoder_3d: bool = True,
+def gamma(sh_l,
+          decoder_type: str = 'max_rE',
+          decoder_3d: bool = True,
           return_matrix: bool = False) -> np.ndarray:
     #
     # fill in defaults
