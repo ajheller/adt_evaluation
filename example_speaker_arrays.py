@@ -34,16 +34,16 @@ _data_dir = Path(__file__).parent/"data"
 
 
 # a single imaginary speakers for AllRAD
-def nadir(r=1):
-    """Imaginary speaker at the nadir (south pole)."""
-    return LSL.from_array((0, 0, -r), coord_code='XYZ', unit_code='MMM',
+def nadir(radius=1, is_imaginary=False):
+    """Speaker at the nadir (south pole)."""
+    return LSL.from_array((0, 0, -radius), coord_code='XYZ', unit_code='MMM',
                           name="imaginary speaker at nadir", ids=["*IN"],
                           is_real=False)
 
 
-def zenith(r=1):
-    """Imaginary speaker at the zenith (north pole)."""
-    return LSL.from_array((0, 0, r), coord_code='XYZ', unit_code='MMM',
+def zenith(radius=1, is_imaginary=False):
+    """Speaker at the zenith (north pole)."""
+    return LSL.from_array((0, 0, radius), coord_code='XYZ', unit_code='MMM',
                           name="imaginary speaker at zenith", ids=["*IA"],
                           is_real=False)
 
