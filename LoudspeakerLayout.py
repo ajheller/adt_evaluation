@@ -47,6 +47,22 @@ class LoudspeakerLayout(SphD.SphericalData):
         """Append two layouts."""
         return append_layouts(self, other)
 
+    def __getitem__(self, index, new_name=None, new_description=None):
+        """Return a new LL with only the indexed items."""
+        xyz = self.xyz[index]
+        ids = np.asarray(self.ids)[index]
+        is_real = np.asarray(self.is_real)[index]
+        #
+        name = new_name or self.name
+        description = new_description or self.description
+
+        l3 = LoudspeakerLayout(*xyz.T, name=name, description=description,
+                           ids=ids, is_real=is_real)
+        return l3
+
+    def real_only(self):
+        return self[self.is_real]
+
     def set_is_real(self, is_real=True):
         """Set the is_real attribute of self, broadcasting if necessary."""
         try:

@@ -153,9 +153,9 @@ def objective(x,
     truncation_loss = np.sum((rExyz - T.u * rE_goal) ** 2)
 
     # uniform loudness loss
-    uniform_loudness_loss = np.sum((E - W) ** 2) / 10
+    uniform_loudness_loss = np.sum((E - W) ** 2) / 100  # was 10
 
-    # Tikhonov regularization term
+    # Tikhonov regularization term - typical value = 1e-3
     tikhonov_regularization_term = np.sum(M ** 2) * tikhonov_lambda
 
     # don't turn off speakers
@@ -183,7 +183,10 @@ def optimize(M, Su, sh_l, sh_m,
         W = 1
 
     if rE_goal == 'auto' or rE_goal is None:
+        #FIXME This assumes 3D arrays
         rE_goal = shelf.max_rE_3d(np.max(sh_l) + 2)
+
+    print(f"rE_goal min={np.min(rE_goal)} max={np.max(rE_goal)}")
 
     # the test directions
     T = sg.t_design5200()
@@ -203,14 +206,28 @@ def optimize(M, Su, sh_l, sh_m,
     val_and_grad_fn = jax.value_and_grad(objective)
     #val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
     #                          static_argnums=range(1, 7))
+    if False:
+        # jax.jit has become finicky about needeing "hashable" static arguments
+        # so it knows if they change.  Unfortunately, NumPy arrays are not
+        # hashable, so no jit until I figure out how to deal with that.  Also
+        # I can't get static_argnames to work.
+        val_and_grad_fn = jax.jit(val_and_grad_fn,
+                                  static_argnums=range(1,7),
+                                  #static_argnames=("M_shape", "Su", "Y_test",
+                                  #                 "W", "tikhonov_lambda",
+                                  #                 "sparseness_penalty",
+                                  #                 "rE_goal")
+                                  )
 
 
 
-    def objective_grad(x, *args):
+    def objective_and_gradient(x, *args):
         v, g = val_and_grad_fn(x, *args)
         # I'm not to happy about having to copy g but L-BGFS needs it in
         # fortran order.  Check with g.flags
-        return v, onp.array(g, order='F')  # onp.asfortranarray(g)
+        # NOTE: asarray() and asfortranarray() don't work correctly here
+        g = onp.array(g, order='F')
+        return v, g
 
 
     # FIXME: make Su and Y_test hashable -- doesn't work...
@@ -225,7 +242,7 @@ def optimize(M, Su, sh_l, sh_m,
     with Timer() as t:
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
         res = opt.minimize(
-            objective_grad, x0,
+            objective_and_gradient, x0,
             bounds=opt.Bounds(-1, 1),
             args=(M_shape, Su_h, Y_test_h, W,
                   tikhonov_lambda, sparseness_penalty,
@@ -276,18 +293,18 @@ def unit_test(C):
 
     M240_hf = M240 @ gamma
 
-    lm.plot_performance(M240_hf, Su, sh_l, sh_m, 'Pinv unit test')
+    lm.plot_performance(M240_hf, Su, sh_l, sh_m, title='Pinv unit test')
     lm.plot_matrix(M240_hf, title='Pinv unit test')
 
     # 2 - AllRAD
     M240_allrad = bd.allrad(sh_l, sh_m, S240.az, S240.el)
     M240_allrad_hf = M240_allrad @ gamma
-    lm.plot_performance(M240_allrad_hf, Su, sh_l, sh_m, 'AllRAD unit test')
+    lm.plot_performance(M240_allrad_hf, Su, sh_l, sh_m, title='AllRAD unit test')
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # 3 - NLOpt
     M_opt, res = optimize(None, Su, sh_l, sh_m, W=1, sparseness_penalty=0)
-    lm.plot_performance(M_opt, Su, sh_l, sh_m, 'Optimized unit test')
+    lm.plot_performance(M_opt, Su, sh_l, sh_m, title='Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
 
@@ -297,6 +314,8 @@ def unit_test(C):
 def stage(path='stage.csv'):
     """Load CCRMA Stage loudspeaker array."""
     #
+
+    raise DeprecationWarning("Use esa.stage()")
     S = pd.read_csv(path)
     S['name'] = S["Name:Stage"]
 
@@ -363,14 +382,17 @@ def csv2spk(path='stage2.csv'):
     return hf, df
 
 
+# TODO: this is a copy of stage_test that will morph into a more general
+# TODO: function
+# TODO: need to clean up the handling of imaginary speakers
 
-def stage_test(ambisonic_order=3,
-               el_lim=-π / 8,
-               tikhonov_lambda=0,  # 1e-3,
-               sparseness_penalty=1,
-               do_report=False,
-               rE_goal=1.1  # 'auto'
-               ):
+def optimize_dome(ambisonic_order=3,
+                  el_lim=-π / 8,
+                  tikhonov_lambda=0,  # 1e-3,
+                  sparseness_penalty=1,
+                  do_report=False,
+                  rE_goal=1.1  # 'auto'
+                  ):
     """Test optimizer with CCRMA Stage array."""
     #
     #
@@ -393,6 +415,115 @@ def stage_test(ambisonic_order=3,
 
     figs = []
     if True:
+        M_start = 'AllRAD'
+
+        M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
+
+        # remove imaginary speaker
+        # FIXME: this is too messy, need a better way to handle imaginary LSs
+        M_allrad = M_allrad[S.Real, :]
+        S_u = S_u[:, S.Real.values]
+        Sr = S[S.Real.values]
+        M_allrad_hf = M_allrad @ gamma
+
+        # performance plots
+        plot_title = f"AllRAD, Ambisonic order={order_h}H{order_v}V"
+        figs.append(
+            lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
+                                title=plot_title))
+
+        lm.plot_matrix(M_allrad_hf, title=plot_title)
+
+        print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
+        for n, g in zip(Sr.name.values,
+                        10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
+            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}")
+
+    else:
+        M_start = 'Random'
+        # let optimizer dream up a decoder on its own
+        M_allrad = None
+        # more mess from imaginary speakers
+        S_u = S_u[:, S.Real.values]
+        Sr = S[S.Real]
+
+    # M_allrad = None
+
+    # Objective for E
+    cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π / 2 - el_lim)
+    E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
+    # objective for rE order+2 inside the cap, order-2 outside
+    rE_goal = np.array([shelf.max_rE_3d(max(order-2, 1)),
+                        shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
+
+    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
+                          iprint=50, tikhonov_lambda=tikhonov_lambda,
+                          sparseness_penalty=sparseness_penalty,
+                          rE_goal=rE_goal)
+
+    plot_title = f'Optimized {M_start}, Ambisonic order={order_h}H{order_v}V'
+    figs.append(
+        lm.plot_performance(M_opt, S_u, sh_l, sh_m,
+                            title=plot_title
+                            ))
+
+    lm.plot_matrix(M_opt, title=plot_title)
+
+    with io.StringIO() as f:
+        print(f"ambisonic_order = {order}\n" +
+              f"el_lim = {el_lim * 180 / π}\n" +
+              f"tikhonov_lambda = {tikhonov_lambda}\n" +
+              f"sparseness_penalty = {sparseness_penalty}\n",
+              file=f)
+
+        off = np.isclose(np.sum(M_opt ** 2, axis=1), 0, rtol=1e-6)  # 60dB down
+        print("Using:\n", Sr.name[~off.copy()].values, file=f)
+        print("Turned off:\n", Sr.name[off.copy()].values, file=f)
+
+        print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
+        for n, g in zip(Sr.name.values,
+                        10 * np.log10(np.sum(M_opt ** 2, axis=1))):
+            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}", file=f)
+        report = f.getvalue()
+        print(report)
+
+    if do_report:
+        reports.html_report(zip(*figs),
+                            text=report,
+                            directory=spkr_array_name,
+                            name=f"{spkr_array_name}-order-{order}")
+
+    return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
+
+def stage_test(ambisonic_order=3,
+               el_lim=-π / 4,
+               tikhonov_lambda=0,  # 1e-3,
+               sparseness_penalty=1,
+               do_report=False,
+               rE_goal=1.1,  # 'auto'
+               allrad_start=True):
+    """Test optimizer with CCRMA Stage array."""
+    #
+    #
+    order_h, order_v, sh_l, sh_m = pc.ambisonic_channels(ambisonic_order)
+    order = max(order_h, order_v)  # FIXME
+    is_3D = order_v > 0
+
+    if True:
+        S = stage()
+        spkr_array_name = 'Stage'
+    else:
+        # hack to enter Eric's array
+        S = emb()
+        spkr_array_name = 'EMB'
+
+    S_u = np.array(sg.sph2cart(S.az, S.el, 1))
+
+    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=is_3D,
+                        return_matrix=True)
+
+    figs = []
+    if allrad_start:
         M_start = 'AllRAD'
 
         M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
@@ -471,6 +602,8 @@ def stage_test(ambisonic_order=3,
                             name=f"{spkr_array_name}-order-{order}")
 
     return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
+
+
 
 
 def plot_rE_vs_ambisonic_order():

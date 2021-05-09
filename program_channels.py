@@ -507,3 +507,30 @@ def ambisonic_channels(C, convention=None, *args):
         return ambisonic_channels(ChannelsFuMa(h_order, v_order, *args))
     else:
         raise ValueError('Unknown convention {convention}')
+
+#
+# utility functions
+def adapter_matrix(Cin, Cout):
+    n_Cin = len(Cin.normalization)
+    n_Cout = len(Cout.normalization)
+    A = np.zeros((n_Cout, n_Cin))
+
+    for i_in in range(n_Cin):
+        i_out = np.flatnonzero((Cout.sh_l == Cin.sh_l[i_in]) &
+                               (Cout.sh_m == Cin.sh_m[i_in]))
+        print(i_in, i_out)
+        if i_out.size > 0:
+            A[i_out, i_in] = Cout.normalization[i_out]/Cin.normalization[i_in]
+    return A
+
+
+def mask_matrix(in_sh_l, in_sh_m, out_sh_l, out_sh_m):
+    "Simulate unconnected inputs."
+    n_out = len(out_sh_l)
+    A = np.zeros((n_out, n_out))
+    for i_out in range(n_out):
+        i_in = np.flatnonzero((out_sh_l[i_out] == in_sh_l) &
+                              (out_sh_m[i_out] == in_sh_m))
+        if i_in.size > 0:
+            A[i_out, i_out] = 1
+    return A

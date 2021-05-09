@@ -150,7 +150,8 @@ def plot_loudspeakers(Su: np.ndarray, **plot_args) -> None:
     plt.scatter(S_az * 180 / π, S_el * 180 / π, c='k', marker='.', **plot_args)
 
 
-def plot_performance(M, Su, sh_l, sh_m,
+def plot_performance(M, Su, sh_l, sh_m, /,
+                     mask_matrix=None,
                      title="",
                      plot_spkrs=True,
                      test_dirs=None):
@@ -168,6 +169,8 @@ def plot_performance(M, Su, sh_l, sh_m,
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
                                               test_dirs.az.ravel(),
                                               test_dirs.el.ravel())
+    if mask_matrix is not None:
+        Y_test_dirs = mask_matrix @ Y_test_dirs
 
     P, rVxyz, E, rExyz = compute_rVrE_fast(M, Su, Y_test_dirs)
 
