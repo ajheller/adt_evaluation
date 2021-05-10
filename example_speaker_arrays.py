@@ -34,34 +34,64 @@ _data_dir = Path(__file__).parent/"data"
 
 
 # a single imaginary speakers for AllRAD
-def nadir(radius=1, is_imaginary=False):
+def nadir(radius=1.0, is_imaginary=False):
     """Speaker at the nadir (south pole)."""
     return LSL.from_array((0, 0, -radius), coord_code='XYZ', unit_code='MMM',
                           name="imaginary speaker at nadir", ids=["*IN"],
                           is_real=False)
 
 
-def zenith(radius=1, is_imaginary=False):
+def zenith(radius=1.0, is_imaginary=False):
     """Speaker at the zenith (north pole)."""
     return LSL.from_array((0, 0, radius), coord_code='XYZ', unit_code='MMM',
                           name="imaginary speaker at zenith", ids=["*IA"],
                           is_real=False)
 
 
-def polygon(n, radius=1, unit='M', center_spkr=False, *args, **kwargs):
+def polygon(n, radius=1.0, unit='M', center_spkr=False, *args, **kwargs):
     """Construct regular polygon arrays."""
     az = np.linspace(0, 2*π, n, endpoint=False)
     if not center_spkr:
         az += π/n
-    return LSL.from_vectors(az, 0, radius,
+    return LSL.from_vectors(az, 0.0, radius,
                             unit_code='RR'+unit,
                             coord_code='AER',
                             **kwargs)
 
 
-def stage2017():
+def nando_dome(add_imaginary=True):
+    """Nando's home array."""
+    lsl = LSL.from_array(
+        a=(
+        # a regular octagon (LR) at lower level
+        22.5, 0, 1.6,
+        -22.5, 0, 1.6,
+        67.5, 0, 1.6,
+        -67.5, 0, 1.6,
+        112.5, 0, 1.6,
+        -112.5, 0, 1.6,
+        157.5, 0, 1.6,
+        -157.5, 0, 1.6,
+        # a regular pentagon at upper level, rotated
+        # +-72 + 12, +-144 + 12 (L R C SL SR)
+        84, 45, 1.35,
+        -60, 45, 1.35,
+        12, 45, 1.35,
+        156, 45, 1.35,
+        -132, 45, 1.35),
+        coord_code='AER', unit_code='DDM', name='NandoDome',
+        ids=('1', '2', '3', '4', '5', '6', '7', '8',
+             'UL', 'UR', 'UC', 'USL', 'USR'),
+        description="Nando's home array")
+    if add_imaginary:
+        lsl += nadir(radius=1.6, is_imaginary=True)
+
+    return lsl
+
+
+def stage2017(add_imaginary=True):
     """CCRMA Stage array."""
-    return LSL.from_array((
+    lsl = LSL.from_array((
         # == towers 8:
         # theoretical angles, have to be calibrated
         27, 3.9, 216,
@@ -130,8 +160,9 @@ def stage2017():
         -117, -14, 162,
         153, -10, 216,
         -153, -10, 216,
-    ), coord_code='AER', unit_code='DDI', name='stage',
-            ids=(
+    ),
+    coord_code='AER', unit_code='DDI', name='stage',
+    ids=(
         'S01', 'S02', 'S03', 'S04',
         'S05', 'S06', 'S07', 'S08',
         'S09', 'S10', 'S11', 'S12',
@@ -144,6 +175,9 @@ def stage2017():
         'L01', 'L02', 'L03', 'L04',
         'L05', 'L06', 'L07', 'L08',
     ))
+    if add_imaginary:
+        lsl += nadir(radius=1.6, is_imaginary=True)
+    return lsl
 
 
 # TODO: generalize this to load speaker arrays from spreadsheets

@@ -153,7 +153,7 @@ def objective(x,
     truncation_loss = np.sum((rExyz - T.u * rE_goal) ** 2)
 
     # uniform loudness loss
-    uniform_loudness_loss = np.sum((E - W) ** 2) / 100  # was 10
+    uniform_loudness_loss = np.sum((E - W) ** 2) / 10  # was 10
 
     # Tikhonov regularization term - typical value = 1e-3
     tikhonov_regularization_term = np.sum(M ** 2) * tikhonov_lambda
@@ -170,7 +170,7 @@ def objective(x,
 
 
 def optimize(M, Su, sh_l, sh_m,
-             W=None,
+             E_goal=None,
              iprint=50,
              tikhonov_lambda=1.0e-3,
              sparseness_penalty=1,
@@ -179,8 +179,8 @@ def optimize(M, Su, sh_l, sh_m,
     """Optimize psychoacoustic criteria."""
     #
     # handle defaults
-    if W is None:
-        W = 1
+    if E_goal is None:
+        E_goal = 1
 
     if rE_goal == 'auto' or rE_goal is None:
         #FIXME This assumes 3D arrays
@@ -214,7 +214,7 @@ def optimize(M, Su, sh_l, sh_m,
         val_and_grad_fn = jax.jit(val_and_grad_fn,
                                   static_argnums=range(1,7),
                                   #static_argnames=("M_shape", "Su", "Y_test",
-                                  #                 "W", "tikhonov_lambda",
+                                  #                 "E_goal", "tikhonov_lambda",
                                   #                 "sparseness_penalty",
                                   #                 "rE_goal")
                                   )
@@ -244,7 +244,7 @@ def optimize(M, Su, sh_l, sh_m,
         res = opt.minimize(
             objective_and_gradient, x0,
             bounds=opt.Bounds(-1, 1),
-            args=(M_shape, Su_h, Y_test_h, W,
+            args=(M_shape, Su_h, Y_test_h, E_goal,
                   tikhonov_lambda, sparseness_penalty,
                   rE_goal),
             method='L-BFGS-B',
@@ -303,7 +303,7 @@ def unit_test(C):
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # 3 - NLOpt
-    M_opt, res = optimize(None, Su, sh_l, sh_m, W=1, sparseness_penalty=0)
+    M_opt, res = optimize(None, Su, sh_l, sh_m, E_goal=1, sparseness_penalty=0)
     lm.plot_performance(M_opt, Su, sh_l, sh_m, title='Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
@@ -456,7 +456,7 @@ def optimize_dome(ambisonic_order=3,
     rE_goal = np.array([shelf.max_rE_3d(max(order-2, 1)),
                         shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
 
-    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
+    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
                           iprint=50, tikhonov_lambda=tikhonov_lambda,
                           sparseness_penalty=sparseness_penalty,
                           rE_goal=rE_goal)
@@ -564,7 +564,7 @@ def stage_test(ambisonic_order=3,
     rE_goal = np.array([shelf.max_rE_3d(max(order-2, 1)),
                         shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
 
-    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
+    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
                           iprint=50, tikhonov_lambda=tikhonov_lambda,
                           sparseness_penalty=sparseness_penalty,
                           rE_goal=rE_goal)

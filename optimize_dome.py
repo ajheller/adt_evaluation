@@ -26,9 +26,10 @@ from optimize_decoder_matrix import emb, optimize
 # TODO: function
 # TODO: need to clean up the handling of imaginary speakers
 
-def optimize_dome(ambisonic_order=3,
+def optimize_dome(S,  # the speaker array
+                  ambisonic_order=3,
                   el_lim=-π / 8,
-                  tikhonov_lambda=0,  # 1e-3,
+                  tikhonov_lambda=1e-3,
                   sparseness_penalty=1,
                   do_report=False,
                   rE_goal='auto',
@@ -50,16 +51,17 @@ def optimize_dome(ambisonic_order=3,
     mask_matrix = pc.mask_matrix(eval_sh_l, eval_sh_m, sh_l, sh_m)
     print(mask_matrix)
 
-    if True:
-        S = esa.stage2017() + esa.nadir()#stage()
-        spkr_array_name = S.name
-    else:
-        # hack to enter Eric's array
-        S = emb()
-        spkr_array_name = 'EMB'
+    # if True:
+    #     S = esa.stage2017() + esa.nadir()#stage()
+    #     spkr_array_name = S.name
+    # else:
+    #     # hack to enter Eric's array
+    #     S = emb()
+    #     spkr_array_name = 'EMB'
 
-    # domes need an imaginary speaker at the nadir
-    S = S + esa.nadir()
+    spkr_array_name = S.name
+
+
 
     print('speaker array = ', spkr_array_name)
 
@@ -127,7 +129,7 @@ def optimize_dome(ambisonic_order=3,
     #np.array([shelf.max_rE_3d(max(order-2, 1)),
     #                    shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
 
-    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
+    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
                           iprint=50, tikhonov_lambda=tikhonov_lambda,
                           sparseness_penalty=sparseness_penalty,
                           rE_goal=rE_goal)
@@ -241,7 +243,7 @@ def optimize_dome(ambisonic_order=3,
 #     rE_goal = np.array([shelf.max_rE_3d(max(order-2, 1)),
 #                         shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
 
-#     M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, W=E0,
+#     M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
 #                           iprint=50, tikhonov_lambda=tikhonov_lambda,
 #                           sparseness_penalty=sparseness_penalty,
 #                           rE_goal=rE_goal)

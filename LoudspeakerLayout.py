@@ -29,6 +29,8 @@ from collections.abc import Sequence  # for type declarations
 import numpy as np
 from numpy import pi as π
 
+from plot_utils import plot_lsl
+
 import SphericalData as SphD
 
 
@@ -110,6 +112,15 @@ class LoudspeakerLayout(SphD.SphericalData):
         with open(file, 'w') as f:
             json.dump(obj=self.to_json(**kwargs), indent=4,
                       fp=f)
+
+    def plot(self, backend='matplotlib'):
+        if backend == 'matplotlib':
+            plot_lsl(self)
+        elif backend == 'plotly':
+            pass
+        else:
+            raise ValueError(f"Unknown plot backend {backend}")
+
 
 
 def append_layouts(l1, l2,
