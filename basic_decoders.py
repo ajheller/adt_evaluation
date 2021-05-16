@@ -198,7 +198,7 @@ def allrad(degree, order,
     Mv = inversion(degree, order, v_az, v_el)
     M = np.matmul(V2R, Mv)
 
-    if speaker_is_real:
+    if speaker_is_real is not None:
         # get rid of rows corresponding to imaginary speakers
         M = M[speaker_is_real]
 

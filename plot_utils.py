@@ -52,17 +52,21 @@ def axis_demo():
     set_axes_equal(ax)
     plt.show()
 
-def plot_lsl(S):
+def plot_lsl(S, speaker_stands=True):
     fig = plt.figure(figsize=(10,10))
     ax = fig.gca(projection='3d')
     #ax.set_aspect('equal')
 
-    ax.scatter(*S.xyz.T, c=S.z)
+    ax.scatter(*S.xyz.T, c=S.z, marker='s')
     ax.scatter(0, 0, 0, marker='d')
 
     # text() is not vectorized
+    z_floor = -2.5
     for x, y, z, id in zip(*S.xyz.T, S.ids):
         ax.text(x, y, z, id)
+        plt.plot([x, x], [y, y], [z, z_floor], '-.k')
+        plt.plot([0, x], [0, y], [z_floor, z_floor], '-.k')
+
 
     set_axes_equal(ax)
     ax.set(xlabel='X', ylabel='Y', zlabel='Z')

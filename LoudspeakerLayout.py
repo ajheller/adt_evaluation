@@ -28,6 +28,7 @@ from collections.abc import Sequence  # for type declarations
 
 import numpy as np
 from numpy import pi as π
+import pandas as pd
 
 from plot_utils import plot_lsl
 
@@ -299,6 +300,19 @@ def from_iem_file(file):
                        name=name, description=description)
 
     return lsl, obj
+
+# work in progress... doesn't decode coords or units
+def from_csv_file(file,
+                  coord_code='AER',
+                  unit_code='DDM',
+                  name=None):
+    df=pd.read_csv(file)
+    lsl=from_array(df.iloc[:,1 :4],
+                   is_real=df.iloc[:, 4].to_numpy()=='T',
+                   ids=df.iloc[:, 0].tolist(),
+                   coord_code=coord_code,
+                   unit_code=unit_code)
+    return lsl
 
 
 def unit_test_iem():

@@ -140,7 +140,7 @@ def objective(x,
               M_shape: tuple,
               Su: np.array,
               Y_test: np.array,
-              W: float,
+              E_goal: float,
               tikhonov_lambda: float,
               sparseness_penalty: float,
               rE_goal: float,
@@ -153,13 +153,13 @@ def objective(x,
     truncation_loss = np.sum((rExyz - T.u * rE_goal) ** 2)
 
     # uniform loudness loss
-    uniform_loudness_loss = np.sum((E - W) ** 2) / 10  # was 10
+    uniform_loudness_loss = np.sum((E - E_goal) ** 2) / 10  # was 10
 
     # Tikhonov regularization term - typical value = 1e-3
     tikhonov_regularization_term = np.sum(M ** 2) * tikhonov_lambda
 
     # don't turn off speakers
-    # pull coefficients for each speaker away from zero
+    # pull diffuse-field gain for each speaker away from zero
     sparsness_term = (np.sum(np.abs(1 - np.sum(M**2, axis=1))) *
                       100 * sparseness_penalty)
 
@@ -272,6 +272,96 @@ def optimize(M, Su, sh_l, sh_m,
     return M_opt, res
 
 
+def optimize_LF(M, Su, sh_l, sh_m, W=1):
+
+    M_shape = M.shape
+     # the test directions
+    T = sg.t_design5200()
+    cap = sg.spherical_cap(T.u, (0, 0, 1), 5*np.pi/6)[0]
+    W = np.where(cap, 1, 1)
+
+
+    Y_test = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
+    rExyz, E = rE(M, Su, Y_test)
+    rEu, rEr = xyz2ur(rExyz)
+
+    def o(x):
+        M = x.reshape(M_shape)
+        rVxyz, P = rV(M, Su, Y_test)
+
+        # dir loss mag(rVxyz) should be 1
+        direction_loss = np.sum( W * ((rVxyz - rEu) ** 2))
+        P_loss = np.sum(W * ((P - 1)**2))
+        return (direction_loss +
+                P_loss/100000
+                )
+
+    val_and_grad_fn = jax.value_and_grad(o)
+    val_and_grad_fn = jax.jit(val_and_grad_fn)
+
+    def objective_and_gradient(x):
+        v, g = val_and_grad_fn(x)
+        g = onp.array(g, order='F')
+        return v, g
+
+    x0 = M.ravel()
+    res = opt.minimize(
+        objective_and_gradient, x0,
+        bounds=opt.Bounds(-1, 1),
+        method='L-BFGS-B',
+        jac=True,
+        options=dict(
+             disp=50,
+             # maxls=50,
+             # maxcor=30,
+             gtol=1e-8,
+             # ftol=1e-12
+             ),
+         # callback=callback,
+        )
+    M_opt = res.x.reshape(M_shape)
+    return M_opt, res
+
+def test_optimize_LF(M, C=3):
+    import example_speaker_arrays as esa
+    h_order, v_order, sh_l, sh_m = pc.ambisonic_channels(C)
+    S = esa.nando_dome(False)
+
+    M_opt, ret = optimize_LF(M, S.u.T, sh_l, sh_m)
+
+    return M_opt, ret
+
+def performance(M, C=3):
+    import localization_models as lm
+
+    import example_speaker_arrays as esa
+    h_order, v_order, sh_l, sh_m = pc.ambisonic_channels(C)
+    S = esa.nando_dome(False)
+    Su = S.u.T
+
+    T = sg.az_el()
+    Y_test = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
+    rExyz, E = rE(M, Su, Y_test)
+    rEu, rEr = xyz2ur(rExyz)
+
+    rVxyz, P = rV(M, Su, Y_test)
+    rVu, rVr = xyz2ur(rVxyz)
+
+    lm.plot_rX(np.clip(rVr.reshape(T.shape), a_min=0.5, a_max=1.1)
+                       , title="rV")
+
+    dir_diff = np.clip(np.arccos(np.sum(rEu * rVu, axis=0)) * 180/np.pi,
+                       a_max=20)
+    lm.plot_rX(dir_diff.reshape(T.shape), title="rV dir diff (degrees)")
+
+    return rVr.reshape(T.shape)
+
+
+
+
+
+
+
 def unit_test(C):
     """Run unit test for the optimizer with uniform array."""
     #
@@ -307,303 +397,6 @@ def unit_test(C):
     lm.plot_performance(M_opt, Su, sh_l, sh_m, title='Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
-
-
-# TODO: define a class for the speaker array,
-#       still use pandas to read the csv files
-def stage(path='stage.csv'):
-    """Load CCRMA Stage loudspeaker array."""
-    #
-
-    raise DeprecationWarning("Use esa.stage()")
-    S = pd.read_csv(path)
-    S['name'] = S["Name:Stage"]
-
-    # add columns for canonical coordinates
-    S['x'], S['y'], S['z'] = \
-        sg.sph2cart(S["Azimuth:Degrees"] / 180 * π,
-                    S["Elevation:Degrees"] / 180 * π,
-                    S["Radius:Inches"] * 2.54 / 100)
-
-    # round trip thru Cartesian to make sure angles are in principal range
-    S['az'], S['el'], S['r'] = sg.cart2sph(S.x, S.y, S.z)
-
-    # Nando says this causes an error
-    # TODO: where can we put metadata in a Pandas dataframe?
-    # S.attrs["Name"] = "Stage"
-
-    # convert "Real" to boolean
-    S.Real = (S.Real == "T") | (S.Real == 1)
-
-    return S
-
-
-def emb(z_low=-0.2, z_high=1):
-    """Return geometry of EMB's loudspeaker array.
-
-    ITU with center with elevated, additional height at left, right, back
-    4 meters wide
-    As deep as we want
-    Ear-level stands are 1.1 meters, acoustic center speaker is .1 meters
-    higher
-
-    Ceiling 2.44 meters, acoustic center .2 lower
-
-    """
-    #
-    S = pd.DataFrame(columns=['name', 'az', 'el', 'r', 'x', 'y', 'z', 'Real'])
-    az_deg = np.array([30, 120, -120, -30, 0, 90, 180, -90, 0, 0])
-    z = np.array([z_low] * 4 + [z_high] * 4 + [2] + [-2])
-    r = np.array([2] * 8 + [0] * 2)
-
-    S.name = ['L', 'LS', 'RS', 'R', 'CU', 'LU', 'BU', 'RU', '*IZ', '*IN']
-    S.x, S.y, *_ = \
-        sg.sph2cart(az_deg / 180 * π, 0, r)
-    S.z = z
-    S.az, S.el, S.r = sg.cart2sph(S.x, S.y, S.z)
-
-    S['Real'] = ['*' not in n for n in S.name]
-
-    return S
-
-
-def csv2spk(path='stage2.csv'):
-    """TODO; Load a loudspeaker array form a CSV file. Work in progress."""
-    hf = pd.read_table(path, delimiter=',', nrows=1, comment='#')
-    units = hf.iloc[0].value
-    df = pd.read_table(path,
-                       header=1, names=hf.columns,
-                       delimiter=',', index_col=False,
-                       comment='#', skip_blank_lines=True)
-    # remove empty rows
-    df.dropna(inplace=True)
-    df.reset_index(drop=True, inplace=True)
-
-    return hf, df
-
-
-# TODO: this is a copy of stage_test that will morph into a more general
-# TODO: function
-# TODO: need to clean up the handling of imaginary speakers
-
-def optimize_dome(ambisonic_order=3,
-                  el_lim=-π / 8,
-                  tikhonov_lambda=0,  # 1e-3,
-                  sparseness_penalty=1,
-                  do_report=False,
-                  rE_goal=1.1  # 'auto'
-                  ):
-    """Test optimizer with CCRMA Stage array."""
-    #
-    #
-    order_h, order_v, sh_l, sh_m = pc.ambisonic_channels(ambisonic_order)
-    order = max(order_h, order_v)  # FIXME
-    is_3D = order_v > 0
-
-    if True:
-        S = stage()
-        spkr_array_name = 'Stage'
-    else:
-        # hack to enter Eric's array
-        S = emb()
-        spkr_array_name = 'EMB'
-
-    S_u = np.array(sg.sph2cart(S.az, S.el, 1))
-
-    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=is_3D,
-                        return_matrix=True)
-
-    figs = []
-    if True:
-        M_start = 'AllRAD'
-
-        M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
-
-        # remove imaginary speaker
-        # FIXME: this is too messy, need a better way to handle imaginary LSs
-        M_allrad = M_allrad[S.Real, :]
-        S_u = S_u[:, S.Real.values]
-        Sr = S[S.Real.values]
-        M_allrad_hf = M_allrad @ gamma
-
-        # performance plots
-        plot_title = f"AllRAD, Ambisonic order={order_h}H{order_v}V"
-        figs.append(
-            lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
-                                title=plot_title))
-
-        lm.plot_matrix(M_allrad_hf, title=plot_title)
-
-        print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
-        for n, g in zip(Sr.name.values,
-                        10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
-            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}")
-
-    else:
-        M_start = 'Random'
-        # let optimizer dream up a decoder on its own
-        M_allrad = None
-        # more mess from imaginary speakers
-        S_u = S_u[:, S.Real.values]
-        Sr = S[S.Real]
-
-    # M_allrad = None
-
-    # Objective for E
-    cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π / 2 - el_lim)
-    E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
-    # objective for rE order+2 inside the cap, order-2 outside
-    rE_goal = np.array([shelf.max_rE_3d(max(order-2, 1)),
-                        shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
-
-    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
-                          iprint=50, tikhonov_lambda=tikhonov_lambda,
-                          sparseness_penalty=sparseness_penalty,
-                          rE_goal=rE_goal)
-
-    plot_title = f'Optimized {M_start}, Ambisonic order={order_h}H{order_v}V'
-    figs.append(
-        lm.plot_performance(M_opt, S_u, sh_l, sh_m,
-                            title=plot_title
-                            ))
-
-    lm.plot_matrix(M_opt, title=plot_title)
-
-    with io.StringIO() as f:
-        print(f"ambisonic_order = {order}\n" +
-              f"el_lim = {el_lim * 180 / π}\n" +
-              f"tikhonov_lambda = {tikhonov_lambda}\n" +
-              f"sparseness_penalty = {sparseness_penalty}\n",
-              file=f)
-
-        off = np.isclose(np.sum(M_opt ** 2, axis=1), 0, rtol=1e-6)  # 60dB down
-        print("Using:\n", Sr.name[~off.copy()].values, file=f)
-        print("Turned off:\n", Sr.name[off.copy()].values, file=f)
-
-        print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
-        for n, g in zip(Sr.name.values,
-                        10 * np.log10(np.sum(M_opt ** 2, axis=1))):
-            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}", file=f)
-        report = f.getvalue()
-        print(report)
-
-    if do_report:
-        reports.html_report(zip(*figs),
-                            text=report,
-                            directory=spkr_array_name,
-                            name=f"{spkr_array_name}-order-{order}")
-
-    return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
-
-def stage_test(ambisonic_order=3,
-               el_lim=-π / 4,
-               tikhonov_lambda=0,  # 1e-3,
-               sparseness_penalty=1,
-               do_report=False,
-               rE_goal=1.1,  # 'auto'
-               allrad_start=True):
-    """Test optimizer with CCRMA Stage array."""
-    #
-    #
-    order_h, order_v, sh_l, sh_m = pc.ambisonic_channels(ambisonic_order)
-    order = max(order_h, order_v)  # FIXME
-    is_3D = order_v > 0
-
-    if True:
-        S = stage()
-        spkr_array_name = 'Stage'
-    else:
-        # hack to enter Eric's array
-        S = emb()
-        spkr_array_name = 'EMB'
-
-    S_u = np.array(sg.sph2cart(S.az, S.el, 1))
-
-    gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=is_3D,
-                        return_matrix=True)
-
-    figs = []
-    if allrad_start:
-        M_start = 'AllRAD'
-
-        M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el)
-
-        # remove imaginary speaker
-        # FIXME: this is too messy, need a better way to handle imaginary LSs
-        M_allrad = M_allrad[S.Real, :]
-        S_u = S_u[:, S.Real.values]
-        Sr = S[S.Real.values]
-        M_allrad_hf = M_allrad @ gamma
-
-        # performance plots
-        plot_title = f"AllRAD, Ambisonic order={order_h}H{order_v}V"
-        figs.append(
-            lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
-                                title=plot_title))
-
-        lm.plot_matrix(M_allrad_hf, title=plot_title)
-
-        print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
-        for n, g in zip(Sr.name.values,
-                        10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
-            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}")
-
-    else:
-        M_start = 'Random'
-        # let optimizer dream up a decoder on its own
-        M_allrad = None
-        S_u = S_u[:, S.Real.values]
-        Sr = S[S.Real]
-
-    # M_allrad = None
-
-    # Objective for E
-    cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π / 2 - el_lim)
-    E0 = np.array([0.1, 1.0])[cap.astype(np.int8)]
-    # objective for rE order+2 inside the cap, order-2 outside
-    rE_goal = np.array([shelf.max_rE_3d(max(order-2, 1)),
-                        shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
-
-    M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
-                          iprint=50, tikhonov_lambda=tikhonov_lambda,
-                          sparseness_penalty=sparseness_penalty,
-                          rE_goal=rE_goal)
-
-    plot_title = f'Optimized {M_start}, Ambisonic order={order_h}H{order_v}V'
-    figs.append(
-        lm.plot_performance(M_opt, S_u, sh_l, sh_m,
-                            title=plot_title
-                            ))
-
-    lm.plot_matrix(M_opt, title=plot_title)
-
-    with io.StringIO() as f:
-        print(f"ambisonic_order = {order}\n" +
-              f"el_lim = {el_lim * 180 / π}\n" +
-              f"tikhonov_lambda = {tikhonov_lambda}\n" +
-              f"sparseness_penalty = {sparseness_penalty}\n",
-              file=f)
-
-        off = np.isclose(np.sum(M_opt ** 2, axis=1), 0, rtol=1e-6)  # 60dB down
-        print("Using:\n", Sr.name[~off.copy()].values, file=f)
-        print("Turned off:\n", Sr.name[off.copy()].values, file=f)
-
-        print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
-        for n, g in zip(Sr.name.values,
-                        10 * np.log10(np.sum(M_opt ** 2, axis=1))):
-            print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}", file=f)
-        report = f.getvalue()
-        print(report)
-
-    if do_report:
-        reports.html_report(zip(*figs),
-                            text=report,
-                            directory=spkr_array_name,
-                            name=f"{spkr_array_name}-order-{order}")
-
-    return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
-
-
 
 
 def plot_rE_vs_ambisonic_order():
@@ -682,5 +475,8 @@ def o2(M=None, Su=Su, Y_test=Y_test, iprint=50):
 
 if __name__ == '__main__':
     # unit_test()
-    for d in range(1, 8):
-        stage_test(d, do_report=True)
+    try:
+        for d in range(7, 8):
+            unit_test(d)
+    except KeyboardInterrupt:
+        print('Bye')

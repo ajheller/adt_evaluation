@@ -89,6 +89,21 @@ def nando_dome(add_imaginary=True):
     return lsl
 
 
+def emb_dome(add_imaginary=True):
+    """EMB's home array."""
+    # Eric's array is an octagon at ear level and a square 30-deg elevation
+    # speakers lie on a 2-meter sphere
+    lsl = LSL.append_layouts(
+        polygon(8, radius=2, unit='M', center_spkr=False),
+        LSL.from_vectors(np.arange(0, 360, 90), 30, 2,
+                         name='EMB',
+                         description="EMB's home array")
+        )
+    if add_imaginary:
+        lsl += nadir(radius=2)
+    return lsl
+
+
 def stage2017(add_imaginary=True):
     """CCRMA Stage array."""
     lsl = LSL.from_array((
