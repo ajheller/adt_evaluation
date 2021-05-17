@@ -221,8 +221,9 @@ def optimize(M, Su, sh_l, sh_m,
            )
     if True:
         print()
-        print("Execution time: %0.3f" % t.interval)
+        print(f"Execution time: {t.interval:0.3f} sec.")
         print(res.message)
+        print(res)
         print()
 
     if res.status != 0 and raise_error_on_failure:
@@ -259,13 +260,13 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
         df_gain_loss = (g_total - df_gain)**2
 
         # Tikhonov regularization term - typical value = 1e-3
-        tikhonov_regularization_term = np.sum(M ** 2) * 1e-3 #tikhonov_lambda
+        tikhonov_regularization_term = np.sum(M ** 2) * 1e-2 #tikhonov_lambda
 
         # dir loss mag(rVxyz) should be 1
         direction_loss = np.sum( W * ((rVxyz - rEu) ** 2))
         P_loss = np.sum(W * ((P - 1)**2))
         return (direction_loss +
-                df_gain_loss/10 +
+                df_gain_loss +
                 P_loss/100000 +
                 tikhonov_regularization_term
                 )
@@ -289,14 +290,14 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
                  disp=50,
                  # maxls=50,
                  # maxcor=30,
-                 gtol=1e-8,
+                 # gtol=1e-8,
                  # ftol=1e-12
                  ),
              # callback=callback,
             )
     if True:
         print()
-        print(f"Execution time: {t.interval:0.3f}")
+        print(f"Execution time: {t.interval:0.3f} sec.")
         print(res.message)
         print(res)
         print()
