@@ -95,6 +95,12 @@ def compute_rVrE(sh_l, sh_m, M, Su, test_dirs=sg.az_el()):
     return rVr.reshape(test_dirs.shape), rEr.reshape(test_dirs.shape)
 
 
+def diffuse_field_gain(M):
+    g_spkr = np.sum(M*M, axis=1)
+    g_total = np.sum(g_spkr)
+    return g_spkr, g_total
+
+
 def plot_rX(rX, title, clim=None, cmap='jet', show=True):
     """
     Plot rV or rE magnitude.
@@ -269,7 +275,6 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m):
     plt.show()
 
     ev_dot = np.sum(rEu * rVu, axis=0)
-    print(ev_dot.shape)
     dir_diff = np.arccos(np.clip(ev_dot, -1, 1)) * 180/np.pi
     fig = plot_rX(dir_diff.reshape(T.shape),
                   title="rE rV direction difference (degrees)",

@@ -233,9 +233,11 @@ def optimize(M, Su, sh_l, sh_m,
     return M_opt, res
 
 
-def optimize_LF(M, Su, sh_l, sh_m, W=1):
+def optimize_LF(M, Su, sh_l, sh_m, W=1,
+                raise_error_on_failure=False):
 
     M_shape = M.shape
+    g_spkr, g_total = lm.diffuse_field_gain(M)
 
      # the test directions
     T = sg.t_design5200()
@@ -252,11 +254,20 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1):
         M = x.reshape(M_shape)
         rVxyz, P = rV(M, Su, Y_test)
 
+        df_gain = np.sum(M*M)
+
+        df_gain_loss = (g_total - df_gain)**2
+
+        # Tikhonov regularization term - typical value = 1e-3
+        tikhonov_regularization_term = np.sum(M ** 2) * 1e-3 #tikhonov_lambda
+
         # dir loss mag(rVxyz) should be 1
         direction_loss = np.sum( W * ((rVxyz - rEu) ** 2))
         P_loss = np.sum(W * ((P - 1)**2))
         return (direction_loss +
-                P_loss/100000
+                df_gain_loss/10 +
+                P_loss/100000 +
+                tikhonov_regularization_term
                 )
 
     val_and_grad_fn = jax.value_and_grad(o)
@@ -268,20 +279,32 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1):
         return v, g
 
     x0 = M.ravel()
-    res = opt.minimize(
-        objective_and_gradient, x0,
-        bounds=opt.Bounds(-1, 1),
-        method='L-BFGS-B',
-        jac=True,
-        options=dict(
-             disp=50,
-             # maxls=50,
-             # maxcor=30,
-             gtol=1e-8,
-             # ftol=1e-12
-             ),
-         # callback=callback,
-        )
+    with Timer() as t:
+        res = opt.minimize(
+            objective_and_gradient, x0,
+            bounds=opt.Bounds(-1, 1),
+            method='L-BFGS-B',
+            jac=True,
+            options=dict(
+                 disp=50,
+                 # maxls=50,
+                 # maxcor=30,
+                 gtol=1e-8,
+                 # ftol=1e-12
+                 ),
+             # callback=callback,
+            )
+    if True:
+        print()
+        print(f"Execution time: {t.interval:0.3f}")
+        print(res.message)
+        print(res)
+        print()
+
+    if res.status != 0 and raise_error_on_failure:
+        print('bummer:', res.message)
+        raise RuntimeError(res.message)
+
     M_opt = res.x.reshape(M_shape)
     return M_opt, res
 
