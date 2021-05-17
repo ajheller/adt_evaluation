@@ -19,7 +19,7 @@ import reports
 
 import example_speaker_arrays as esa
 import LoudspeakerLayout as ll
-from optimize_decoder_matrix import optimize
+from optimize_decoder_matrix import optimize, optimize_LF
 
 
 # TODO: this is a copy of stage_test that will morph into a more general
@@ -28,12 +28,13 @@ from optimize_decoder_matrix import optimize
 
 def optimize_dome(S,  # the speaker array
                   ambisonic_order=3,
-                  el_lim=-π / 8,
+                  el_lim=-π/8,
                   tikhonov_lambda=1e-3,
                   sparseness_penalty=1,
                   do_report=False,
                   rE_goal='auto',
-                  eval_order = None
+                  eval_order=None,
+                  random_start=False
                   ):
     """Test optimizer with CCRMA Stage array."""
     #
@@ -71,7 +72,7 @@ def optimize_dome(S,  # the speaker array
                         return_matrix=True)
 
     figs = []
-    if True:
+    if not random_start:
         M_start = 'AllRAD'
 
         M_allrad = bd.allrad(sh_l, sh_m, S.az, S.el,
@@ -169,6 +170,24 @@ def optimize_dome(S,  # the speaker array
                             name=f"{spkr_array_name}-order-{order}")
 
     return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
+
+
+def optimize_dome_LF(M_hf,
+                     S,
+                     ambisonic_order=3,
+                     el_lim=-π/8):
+
+    order_h, order_v, sh_l, sh_m = pc.ambisonic_channels(ambisonic_order)
+
+    # the test directions
+    T = sg.t_design5200()
+    cap = sg.spherical_cap(T.u, (0, 0, 1), 5*np.pi/6)[0]
+    W = np.where(cap, 0.1, 1)
+
+    M_lf, res = optimize_LF(M_hf, S.u.T, sh_l, sh_m, W)
+
+    return M_lf, res
+
 
 
 def stage_test(ambisonic_order=3, **kwargs):

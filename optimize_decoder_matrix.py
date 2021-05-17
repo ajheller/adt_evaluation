@@ -113,10 +113,6 @@ key = random.PRNGKey(1)
 T = sg.t_design5200()
 
 
-# directions for plotting
-# T_azel = sg.az_el()
-# Y_azel = rsh.real_sph_harm_transform(l, m, T_azel.az, T_azel.el)
-
 
 # %%
 
@@ -135,46 +131,14 @@ T = sg.t_design5200()
 #         print(ii)
 
 
-def objective(x,
-              # remainder of arguments are static
-              M_shape: tuple,
-              Su: np.array,
-              Y_test: np.array,
-              E_goal: float,
-              tikhonov_lambda: float,
-              sparseness_penalty: float,
-              rE_goal: float,
-              ) -> float:
-    """Return value of objective function for a given decoder matrix."""
-    M = x.reshape(M_shape)
-    rExyz, E = rE(M, Su, Y_test)
-
-    # truncation loss due to finite order
-    truncation_loss = np.sum((rExyz - T.u * rE_goal) ** 2)
-
-    # uniform loudness loss
-    uniform_loudness_loss = np.sum((E - E_goal) ** 2) / 10  # was 10
-
-    # Tikhonov regularization term - typical value = 1e-3
-    tikhonov_regularization_term = np.sum(M ** 2) * tikhonov_lambda
-
-    # don't turn off speakers
-    # pull diffuse-field gain for each speaker away from zero
-    sparsness_term = (np.sum(np.abs(1 - np.sum(M**2, axis=1))) *
-                      100 * sparseness_penalty)
-
-    # the entire loss function
-    f = (truncation_loss + uniform_loudness_loss +
-         tikhonov_regularization_term + sparsness_term)
-    return f
-
-
 def optimize(M, Su, sh_l, sh_m,
              E_goal=None,
              iprint=50,
              tikhonov_lambda=1.0e-3,
              sparseness_penalty=1,
+             uniform_loudness_penalty=0.1,  #0.01
              rE_goal=1.0,
+             maxcor=100, # how accurate is the Hessian, more is better but slower
              raise_error_on_failure=True):
     """Optimize psychoacoustic criteria."""
     #
@@ -197,64 +161,61 @@ def optimize(M, Su, sh_l, sh_m,
         M_shape = (Su.shape[1],  # number of loudspeakers
                    Y_test.shape[0],  # number of program channels
                    )
-        M = random.uniform(key, shape=M_shape, minval=-0.25, maxval=0.25)
+        M = random.uniform(key, shape=M_shape, minval=-1.0, maxval=1.0)
     else:
         M_shape = M.shape
 
-    # Need to define these here so JAX's jit recompiles it for each run
+    # the loss function
+    def o(x) -> float:
+        M = x.reshape(M_shape)
+        rExyz, E = rE(M, Su, Y_test)
 
-    val_and_grad_fn = jax.value_and_grad(objective)
-    #val_and_grad_fn = jax.jit(jax.value_and_grad(objective),
-    #                          static_argnums=range(1, 7))
-    if False:
-        # jax.jit has become finicky about needeing "hashable" static arguments
-        # so it knows if they change.  Unfortunately, NumPy arrays are not
-        # hashable, so no jit until I figure out how to deal with that.  Also
-        # I can't get static_argnames to work.
-        val_and_grad_fn = jax.jit(val_and_grad_fn,
-                                  static_argnums=range(1,7),
-                                  #static_argnames=("M_shape", "Su", "Y_test",
-                                  #                 "E_goal", "tikhonov_lambda",
-                                  #                 "sparseness_penalty",
-                                  #                 "rE_goal")
-                                  )
+        # truncation loss due to finite order
+        truncation_loss = np.sum((rExyz - T.u * rE_goal) ** 2)
 
+        # uniform loudness loss
+        uniform_loudness_loss = (np.sum((E - E_goal) ** 2) *
+                                 uniform_loudness_penalty)  # was 10
 
+        # Tikhonov regularization term - typical value = 1e-3
+        tikhonov_regularization_term = np.sum(M ** 2) * tikhonov_lambda
+
+        # don't turn off speakers
+        # pull diffuse-field gain for each speaker away from zero
+        sparsness_term = (np.sum(np.abs(1 - np.sum(M**2, axis=1))) *
+                          100 * sparseness_penalty)
+
+        # the entire loss function
+        f = (truncation_loss + uniform_loudness_loss +
+             tikhonov_regularization_term + sparsness_term)
+        return f
+
+    # consult the automatic differentiation oracle
+    val_and_grad_fn = jax.value_and_grad(o)
+    val_and_grad_fn = jax.jit(val_and_grad_fn)
 
     def objective_and_gradient(x, *args):
         v, g = val_and_grad_fn(x, *args)
         # I'm not to happy about having to copy g but L-BGFS needs it in
-        # fortran order.  Check with g.flags
+        # Fortran order and JAX only does C order.  Check with g.flags
         # NOTE: asarray() and asfortranarray() don't work correctly here
         g = onp.array(g, order='F')
         return v, g
 
-
-    # FIXME: make Su and Y_test hashable -- doesn't work...
-    # Su.flags.writeable = False
-    # Y_test.flags.writeable = False
-
-    Su_h = Su #hashable(Su)
-    Y_test_h = Y_test #hashable(Y_test)
-
     x0 = M.ravel()  # initial guess
-
     with Timer() as t:
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
-        res = opt.minimize(
-            objective_and_gradient, x0,
+        res = opt.minimize(objective_and_gradient, x0,
             bounds=opt.Bounds(-1, 1),
-            args=(M_shape, Su_h, Y_test_h, E_goal,
-                  tikhonov_lambda, sparseness_penalty,
-                  rE_goal),
             method='L-BFGS-B',
             jac=True,
             options=dict(
+                maxcor=maxcor,
                 disp=iprint,
-                # maxls=50,
+                maxls=500,
                 # maxcor=30,
                 gtol=1e-8,
-                # ftol=1e-12
+                #ftol=1e-12
                 ),
             # callback=callback,
            )
@@ -275,6 +236,7 @@ def optimize(M, Su, sh_l, sh_m,
 def optimize_LF(M, Su, sh_l, sh_m, W=1):
 
     M_shape = M.shape
+
      # the test directions
     T = sg.t_design5200()
     cap = sg.spherical_cap(T.u, (0, 0, 1), 5*np.pi/6)[0]
@@ -285,6 +247,7 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1):
     rExyz, E = rE(M, Su, Y_test)
     rEu, rEr = xyz2ur(rExyz)
 
+    # define the loss function
     def o(x):
         M = x.reshape(M_shape)
         rVxyz, P = rV(M, Su, Y_test)
@@ -330,36 +293,6 @@ def test_optimize_LF(M, C=3):
     M_opt, ret = optimize_LF(M, S.u.T, sh_l, sh_m)
 
     return M_opt, ret
-
-def performance(M, C=3):
-    import localization_models as lm
-
-    import example_speaker_arrays as esa
-    h_order, v_order, sh_l, sh_m = pc.ambisonic_channels(C)
-    S = esa.nando_dome(False)
-    Su = S.u.T
-
-    T = sg.az_el()
-    Y_test = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
-    rExyz, E = rE(M, Su, Y_test)
-    rEu, rEr = xyz2ur(rExyz)
-
-    rVxyz, P = rV(M, Su, Y_test)
-    rVu, rVr = xyz2ur(rVxyz)
-
-    lm.plot_rX(np.clip(rVr.reshape(T.shape), a_min=0.5, a_max=1.1)
-                       , title="rV")
-
-    dir_diff = np.clip(np.arccos(np.sum(rEu * rVu, axis=0)) * 180/np.pi,
-                       a_max=20)
-    lm.plot_rX(dir_diff.reshape(T.shape), title="rV dir diff (degrees)")
-
-    return rVr.reshape(T.shape)
-
-
-
-
-
 
 
 def unit_test(C):

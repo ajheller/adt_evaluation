@@ -248,6 +248,39 @@ def plot_performance(M, Su, sh_l, sh_m, /,
     return out_figs
 
 
+def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m):
+
+    T = sg.az_el()
+    Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
+
+    P, rVxyz, _, _ = compute_rVrE_fast(M_lf, Su, Y_test_dirs)
+    rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
+
+    _, _, E, rExyz = compute_rVrE_fast(M_hf, Su, Y_test_dirs)
+    rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
+
+    out_figs=[]
+
+    fig = plot_rX(rVr.reshape(T.shape),
+                  title="Magnitude of rV vs. test direction",
+                  clim=(0.7, 1.1),
+                  show=False)
+    out_figs.append(fig)
+    plt.show()
+
+    ev_dot = np.sum(rEu * rVu, axis=0)
+    print(ev_dot.shape)
+    dir_diff = np.arccos(np.clip(ev_dot, -1, 1)) * 180/np.pi
+    fig = plot_rX(dir_diff.reshape(T.shape),
+                  title="rE rV direction difference (degrees)",
+                  clim=(0, 20),
+                  show=False)
+    out_figs.append(fig)
+    plt.show()
+
+    return out_figs
+
+
 def plot_matrix(M, title=""):
     """Display the matrix as an image."""
     fig = plt.figure()
