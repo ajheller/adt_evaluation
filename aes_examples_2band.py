@@ -54,3 +54,9 @@ lm.plot_performance_LF(M_lf, M_hf, S_stage_real.u.T, sh_l, sh_m,
 print("AllRAD", lm.diffuse_field_gain(M))
 print("HF", lm.diffuse_field_gain(M_hf))
 print("LF", lm.diffuse_field_gain(M_lf))
+
+# %%
+import write_faust_decoder as wfd
+wfd.write_faust_decoder_vienna('amb.dsp', 'amb',
+                               M_lf, M_hf,
+                               sh_l, S_stage_real.r)

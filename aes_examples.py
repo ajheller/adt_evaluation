@@ -17,6 +17,8 @@ S_stage = esa.stage2017(add_imaginary=True)
 C31 = pc.ChannelsAmbiX(3, 1)
 C33 = pc.ChannelsAmbiX(3, 3)
 
+# %%
+
 # good directionality result
 res_31 = od.optimize_dome(S_stage,
                        ambisonic_order=C31,

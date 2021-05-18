@@ -166,15 +166,15 @@ c = 331.3 * sqrt(1.0 + (temp_celcius/273.15)); // speed of sound m/s
 // ---- NFC filters ----
 //  see BesselPoly.m for coefficient calculations
 //
-// [1] J. Daniel, “Spatial Sound Encoding Including Near Field Effect:
+// [1] J. Daniel, "Spatial Sound Encoding Including Near Field Effect:
 //     Introducing Distance Coding Filters and a Viable, New Ambisonic 
-//     Format ,” Preprints 23rd AES International Conference, Copenhagen,
+//     Format," Preprints 23rd AES International Conference, Copenhagen,
 //     2003.
 // [2] Weisstein, Eric W. "Bessel Polynomial." From MathWorld--A Wolfram 
 //     Web Resource. http://mathworld.wolfram.com/BesselPolynomial.html
-// [3] F. Adriaensen, “Near Field filters for Higher Order
-//     Ambisonics,” Jul. 2006.
-// [4] J. O. Smith, “Digital State-Variable Filters,” CCRMA, May 2013.
+// [3] F. Adriaensen, "Near Field filters for Higher Order
+//     Ambisonics," Jul. 2006.
+// [4] J. O. Smith, "Digital State-Variable Filters," CCRMA, May 2013.
 //
 // [5] "A Filter Primer", https://www.maximintegrated.com/en/app-notes/index.mvp/id/733
 

@@ -141,21 +141,24 @@ def faust_decoder_description(path,
     return s
 
 
-def faust_decoder_configuration(name, nbands=2, decoder_type=2,
-                                xover_freq=380, lfhf_ratio_dB=0,
-                                decoder_order=3,
-                                co=(0,
-                                    1, 1, 1,
-                                    2, 2, 2, 2, 2,
-                                    3, 3, 3, 3, 3, 3, 3, 3),
+def faust_decoder_configuration(name,
+                                nbands,
+                                decoder_type,
+                                decoder_order,
+                                channel_order,
+                                nspkrs,
+                                rspkrs,
+                                gamma0,
+                                gamma1=None,
+                                xover_freq=380,
+                                lfhf_ratio_dB=0,
                                 input_full_set=False,
-                                delay_comp=True, level_comp=True,
-                                nfc_output=True, nfc_input=False,
+                                delay_comp=True,
+                                level_comp=True,
+                                nfc_output=True,
+                                nfc_input=False,
                                 output_gain_muting=True,
-                                nspkrs=24,
-                                rspkrs=24*(1,),
-                                gamma0=(1, 1, 1, 1),
-                                gamma1=(1, 1, 1, 1)):
+                                ):
     """
     Write the config for the ADT's decoder in FAUST.
 
@@ -203,11 +206,16 @@ def faust_decoder_configuration(name, nbands=2, decoder_type=2,
     """
 #
 
+# error checking
+    if len(rspkrs) != nspkrs:
+        raise ValueError("len(rspkrs) != nspkrs")
+
     radius_str = array2faust_vector(rspkrs, prefix='rs = ', suffix=';\n')
     gamma_str = array2faust_vector(gamma0, prefix="gamma(0) = ", suffix=';\n')
-    if gamma1:
+    if gamma1 is not None:
         gamma_str += array2faust_vector(gamma1, prefix="gamma(1) = ",
                                         suffix=';\n')
+
 
     s = f"""
 // start decoder configuration
@@ -231,10 +239,14 @@ lfhf_ratio = hslider("lf/hf [unit:dB]", {lfhf_ratio_dB}, -3, +3, 0.1) :
 decoder_order = {decoder_order};
 
 // ambisonic order of each input component
-co = {co};
+co = {tuple(channel_order)};
 
 // use full or reduced input set
 input_full_set = {int(input_full_set)};
+
+// mask for full ambisonic set to channels in use
+input_mask(0) = bus(nc);
+//FIXME: input_mask(1) = ????
 
 // delay compensation
 delay_comp = {int(delay_comp)};
@@ -259,8 +271,11 @@ ns = {nspkrs};
 //  Used to implement shelf filters, or to modify velocity matrix
 //  for max_rE decoding, and so forth.  See Appendix A of BLaH6.
 {gamma_str}
+
+
 """
     return s
+
 
 
 def write_faust_decoder(path, name, decoder_matrix, sh_l, r):
@@ -272,3 +287,29 @@ def write_faust_decoder(path, name, decoder_matrix, sh_l, r):
         f.write(matrix2faust(decoder_matrix, prefix="s(%03d, 0) = "))
         # append the implementation
         f.write(open("ambi-decoder_preamble2.dsp", 'r').read())
+
+
+def write_faust_decoder_vienna(path, name, M_lf, M_hf, sh_l, r):
+    if M_lf.shape != M_hf.shape:
+        raise ValueError("M_lf.shape != M_hf.shape"
+                         f" {M_lf.shape}, {M_hf.shape}")
+    if M_lf.shape != (len(r), len(sh_l)):
+        raise ValueError("M_lf.shape != (len(r), len(sh_l))"
+                         f"{M_lf.shape} {(len(r), len(sh_l))}")
+
+    with open(path, 'w') as f:
+        f.write(
+            faust_decoder_configuration(name,
+                                        nbands=2,
+                                        decoder_type=3,
+                                        decoder_order=np.max(sh_l),
+                                        channel_order=sh_l,
+                                        nspkrs=len(r),
+                                        rspkrs=r,
+                                        gamma0=np.ones(np.max(sh_l)+1),
+                                        gamma1=np.ones(np.max(sh_l)+1)
+                                        ))
+        f.write(matrix2faust(M_lf, prefix="s(%03d, 0) = "))
+        f.write(matrix2faust(M_hf, prefix="s(%03d, 1) = "))
+        with open("ambi-decoder_preamble2.dsp", 'r') as adp:
+            f.write(adp.read())

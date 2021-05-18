@@ -344,8 +344,12 @@ class ChannelsAmbisonic(Channels):
                  sh_l, sh_m,
                  normalization,
                  cs_phase=None,
-                 mixed_order_scheme='HV',
+                 mixed_order_scheme=None,
                  name=None):
+
+        # defaults
+        if mixed_order_scheme is None:
+            mixed_order_scheme = 'HV'
 
         # Sanity checks
         if v_order > h_order:
@@ -384,6 +388,9 @@ class ChannelsAmbisonic(Channels):
     def id_string(self):
         return channels_id_string(self)
 
+    def __str__(self):
+        return f"<{channels_id_string(self)}>"
+
 def channels_id_string(channel_object):
     c = channel_object
     s = c.mixed_order_scheme
@@ -392,7 +399,7 @@ def channels_id_string(channel_object):
             f"{c.v_order}{s[1]}")
 
 
-_id_string_re = re.compile("(AMBIX|FUMA)?\s*(\d+)(\D)(\d+)(\D)\s*$")
+_id_string_re = re.compile(r"(AMBIX|FUMA)?\s*(\d+)(\D)(\d+)(\D)\s*$")
 
 def parse_channels_id_string(id_str):
     match = _id_string_re.match(id_str.upper())
@@ -404,7 +411,7 @@ def parse_channels_id_string(id_str):
         raise ValueError(f"Cannot parse '{id_str}'")
 
 class ChannelsAmbiX(ChannelsAmbisonic):
-    def __init__(self, h_order, v_order=None, mixed_order_scheme='HV'):
+    def __init__(self, h_order, v_order=None, mixed_order_scheme=None):
         if v_order is None:
             v_order = h_order
 
@@ -460,13 +467,16 @@ Channels
 
 
 class ChannelsFuMa(ChannelsAmbisonic):
-    def __init__(self, h_order, v_order=None, mixed_order_scheme='HP'):
+    def __init__(self, h_order, v_order=None, mixed_order_scheme=None):
         if v_order is None:
             v_order = h_order
         if h_order > 3:
             raise ValueError(f"h_order should be <= 3, not {h_order}")
         if v_order > h_order:
             raise ValueError(f"v_order should be <= h_order {h_order, v_order}")
+
+        if mixed_order_scheme is None:
+            mixed_order_scheme = 'HP'
 
         super().__init__(
             h_order, v_order,
@@ -478,7 +488,7 @@ class ChannelsFuMa(ChannelsAmbisonic):
 
 #
 # factory function
-def ambisonic_channels(C, convention=None, *args):
+def ambisonic_channels(C, convention=None, **kwargs):
     """Get h_order, v_order, sh_l, and sh_m flexibly."""
     # use duck typing
     # does it behave like a ProgramChannels object?
@@ -495,16 +505,20 @@ def ambisonic_channels(C, convention=None, *args):
         try:
             h_order, v_order = int(C), int(C)
         except ValueError:
+            # is it a string?
+            h_order, v_order, mixed_order_scheme, convention = \
+                parse_channels_id_string(C)
+            kwargs['mixed_order_scheme'] = mixed_order_scheme
+        except ValueError:
             raise ValueError(f"Can't make sense of C = {C}")
 
     if convention is None:
         convention = 'FuMa' if h_order <= 3 else 'AmbiX'
 
-
     if convention.upper() == 'AMBIX':
-        return ambisonic_channels(ChannelsAmbiX(h_order, v_order, *args))
+        return ambisonic_channels(ChannelsAmbiX(h_order, v_order, **kwargs))
     elif convention.upper() == 'FUMA':
-        return ambisonic_channels(ChannelsFuMa(h_order, v_order, *args))
+        return ambisonic_channels(ChannelsFuMa(h_order, v_order, **kwargs))
     else:
         raise ValueError('Unknown convention {convention}')
 
