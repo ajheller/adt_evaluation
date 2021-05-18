@@ -483,7 +483,7 @@ def ambisonic_channels(C, convention=None, *args):
     # use duck typing
     # does it behave like a ProgramChannels object?
     try:
-        return C.h_order, C.v_order, C.sh_l, C.sh_m
+        return C.h_order, C.v_order, C.sh_l, C.sh_m, C.id_string()
     except AttributeError:
         pass
 

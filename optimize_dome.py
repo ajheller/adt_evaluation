@@ -39,14 +39,17 @@ def optimize_dome(S,  # the speaker array
     """Test optimizer with CCRMA Stage array."""
     #
     #
-    order_h, order_v, sh_l, sh_m = pc.ambisonic_channels(ambisonic_order)
+    order_h, order_v, sh_l, sh_m, id_string = pc.ambisonic_channels(ambisonic_order)
     order = max(order_h, order_v)  # FIXME
     is_3D = order_v > 0
 
     if eval_order is None:
         eval_order = ambisonic_order
+        eval_order_given = False
+    else:
+        eval_order_given = True
 
-    eval_order_h, eval_order_v, eval_sh_l, eval_sh_m = \
+    eval_order_h, eval_order_v, eval_sh_l, eval_sh_m, eval_id_string = \
         pc.ambisonic_channels(eval_order)
 
     mask_matrix = pc.mask_matrix(eval_sh_l, eval_sh_m, sh_l, sh_m)
@@ -85,9 +88,12 @@ def optimize_dome(S,  # the speaker array
         M_allrad_hf = M_allrad @ gamma
 
         # performance plots
-        plot_title = f"AllRAD, Ambisonic order={order_h}H{order_v}V"
-        if eval_order is not None:
-            plot_title += f", Input order={eval_order_h}H{eval_order_v}V"
+        plot_title = "AllRAD, "
+        if eval_order_given:
+            plot_title += f"Design: {id_string}, Test: {eval_id_string}"
+        else:
+            plot_title += f"Signal set={id_string}"
+
         figs.append(
             lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
                                 mask_matrix = mask_matrix,
@@ -133,9 +139,11 @@ def optimize_dome(S,  # the speaker array
                           sparseness_penalty=sparseness_penalty,
                           rE_goal=rE_goal)
 
-    plot_title = f'Optimized {M_start}, Ambisonic order={order_h}H{order_v}V'
-    if eval_order is not None:
-            plot_title += f", Input order={eval_order_h}H{eval_order_v}V"
+    plot_title = f"Optimized {M_start}, "
+    if eval_order_given:
+        plot_title += f"Design: {id_string}, Test: {eval_id_string}"
+    else:
+        plot_title += f"Signal set={id_string}"
 
     figs.append(
         lm.plot_performance(M_opt, S_u, sh_l, sh_m,
@@ -177,7 +185,7 @@ def optimize_dome_LF(M_hf,
                      ambisonic_order=3,
                      el_lim=-π/8):
 
-    order_h, order_v, sh_l, sh_m = pc.ambisonic_channels(ambisonic_order)
+    order_h, order_v, sh_l, sh_m, id_string = pc.ambisonic_channels(ambisonic_order)
 
     # the test directions
     T = sg.t_design5200()

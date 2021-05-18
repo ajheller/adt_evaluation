@@ -254,7 +254,7 @@ def plot_performance(M, Su, sh_l, sh_m, /,
     return out_figs
 
 
-def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m):
+def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, title=""):
 
     T = sg.az_el()
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
@@ -268,7 +268,7 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m):
     out_figs=[]
 
     fig = plot_rX(rVr.reshape(T.shape),
-                  title="Magnitude of rV vs. test direction",
+                  title=f"{title}\nMagnitude of rV vs. test direction",
                   clim=(0.7, 1.1),
                   show=False)
     out_figs.append(fig)
@@ -277,7 +277,7 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m):
     ev_dot = np.sum(rEu * rVu, axis=0)
     dir_diff = np.arccos(np.clip(ev_dot, -1, 1)) * 180/np.pi
     fig = plot_rX(dir_diff.reshape(T.shape),
-                  title="rE rV direction difference (degrees)",
+                  title=f"{title}\nrE vs. rV direction difference (degrees)",
                   clim=(0, 20),
                   show=False)
     out_figs.append(fig)
