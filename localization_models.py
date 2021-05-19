@@ -156,7 +156,7 @@ def plot_loudspeakers(Su: np.ndarray, **plot_args) -> None:
     plt.scatter(S_az * 180 / π, S_el * 180 / π, c='k', marker='.', **plot_args)
 
 
-def plot_performance(M, Su, sh_l, sh_m, /,
+def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
                      mask_matrix=None,
                      title="",
                      plot_spkrs=True,
