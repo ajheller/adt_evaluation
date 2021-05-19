@@ -138,6 +138,20 @@ def cardioid_gamma_3d(sh_l):
             (sp.factorial(l + m + 1) * sp.factorial(l - m))
             for m in sh_l]
 
+# function to match LF and HF perceptual gains
+#  note that gammas here is the set for all the channels
+def gamma0(gammas, matching_type='rms', n_spkrs=None):
+    E_gain = np.sum(gammas**2)
+    if matching_type in ('energy', 1):
+        g2 = n_spkrs / E_gain
+    elif matching_type in ('rms', 2):
+        g2 = len(gammas) / E_gain
+    elif matching_type in ('amp', 3):
+        g2 = 1
+    else:
+        raise ValueError(f"Unknown matching_type = {matching_type}")
+    return np.sqrt(g2)
+
 
 # full-featured API
 def gamma(sh_l,
