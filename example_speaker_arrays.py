@@ -44,7 +44,7 @@ def nadir(radius=1.0, is_imaginary=False):
 def zenith(radius=1.0, is_imaginary=False):
     """Speaker at the zenith (north pole)."""
     return LSL.from_array((0, 0, radius), coord_code='XYZ', unit_code='MMM',
-                          name="imaginary speaker at zenith", ids=["*IA"],
+                          name="imaginary speaker at zenith", ids=["*IZ"],
                           is_real=False)
 
 
@@ -85,6 +85,7 @@ def nando_dome(add_imaginary=True):
         description="Nando's home array")
     if add_imaginary:
         lsl += nadir(radius=1.6, is_imaginary=True)
+        lsl += zenith(radius=1.6, is_imaginary=True)
 
     return lsl
 
