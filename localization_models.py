@@ -95,6 +95,64 @@ def compute_rVrE(sh_l, sh_m, M, Su, test_dirs=sg.az_el()):
     return rVr.reshape(test_dirs.shape), rEr.reshape(test_dirs.shape)
 
 
+def compute_rVrE_dict(sh_l, sh_m, M, Su, test_dirs=sg.az_el()):
+    """Compute rV and rE, single call interface."""
+    Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
+                                              test_dirs.az.ravel(),
+                                              test_dirs.el.ravel())
+
+    P, rVxyz, E, rExyz = compute_rVrE_fast(M, Su, Y_test_dirs)
+
+    P = P.reshape(test_dirs.shape)
+    #rVxyz = rVxyz.reshape(3, *test_dirs.shape)
+    E = E.reshape(test_dirs.shape)
+    #rExyz = rExyz.reshape(3, *test_dirs.shape)
+
+    rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
+    rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
+
+    rEaz = rEaz.reshape(test_dirs.shape)
+    rEel = rEel.reshape(test_dirs.shape)
+
+    return dict(P=P, rVxyz=rVxyz, E=E, rExyz=rExyz,
+                rVaz=rVaz, rVel=rVel, rVr=rVr, rVu=rVu,
+                rEaz=rEaz, rEel=rEel, rEr=rEr, rEu=rEu,
+                M=M, sh_l=sh_l, sh_m=sh_m, test_dirs=test_dirs)
+
+
+def plot_az_el_grid(sh_l, sh_m, M, Su, title=None, show=True):
+    p = compute_rVrE_dict(sh_l, sh_m, M, Su)
+    az = p['rEaz']
+    el = p['rEel']
+    el = np.unwrap(el, axis=0)
+    az = np.unwrap(az, axis=1)
+
+    el = np.unwrap(el, axis=1)
+    az = np.unwrap(az, axis=0)
+
+    while np.mean(az) > np.pi:
+        az -= 2*np.pi
+    while np.mean(az) < -np.pi:
+        az += 2*np.pi
+
+    taz = p['test_dirs'].az
+    tel = p['test_dirs'].el
+
+    #fig = plt.figure(figsize=(12,8))
+    for i in range(0, 180, 10):
+        if tel[0, i] > -π/4:
+            plt.plot(az[1:-1, i]*180/np.pi, el[1:-1, i]*180/np.pi)
+    for i in range(0, 361, 10):
+        plt.plot(az[i, 85:-1]*180/np.pi, el[i, 85:-1]*180/np.pi)
+
+    plt.grid()
+    if title is not None:
+        plt.title(title)
+    if show:
+        plt.show()
+
+
+
 def diffuse_field_gain(M):
     g_spkr = np.sum(M*M, axis=1)
     g_total = np.sum(g_spkr)
@@ -250,6 +308,14 @@ def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
 
         out_figs.append(fig)
         plt.show()
+
+    if True:
+        fig = plt.figure(figsize=(10,4))
+        plot_az_el_grid(sh_l, sh_m, M, Su,
+                        title=f"{title}\nrE directions",
+                        show=False)
+        if plot_spkrs:
+            plot_loudspeakers(Su)
 
     return out_figs
 
