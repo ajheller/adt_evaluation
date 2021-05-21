@@ -25,7 +25,9 @@ Created on Fri Dec 27 18:40:20 2019
 import numpy as np
 import getpass
 import platform
-import time
+from datetime import datetime
+
+import shelf
 
 
 def array2faust_vector(a, prefix=None, suffix=None):
@@ -116,7 +118,7 @@ def faust_decoder_description(path,
 
     run_by = getpass.getuser()
     on_node = platform.node() + " (" + platform.platform() + ")"
-    at_time = time.time()  # make this human readable!
+    at_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     s = f"""
 // Faust Decoder Configuration File
@@ -206,7 +208,7 @@ def faust_decoder_configuration(name,
     """
 #
 
-# error checking
+    # error checking
     if len(rspkrs) != nspkrs:
         raise ValueError("len(rspkrs) != nspkrs")
 
@@ -277,16 +279,65 @@ ns = {nspkrs};
     return s
 
 
+def gamma2faust(*gammas, comment=True):
+    o = []
+    if comment:
+        o.append("""
+// per order gains, 0 for LF, 1 for HF.
+//  Used to implement shelf filters, or to modify velocity matrix
+//  for max_rE decoding, and so forth.  See Appendix A of BLaH6.""")
+
+    for (i, g) in enumerate(gammas):
+        o.append(array2faust_vector(g, prefix=f"gamma({i}) = ", suffix=';'))
+    return "\n".join(o)
+
+
 
 def write_faust_decoder(path, name, decoder_matrix, sh_l, r):
     with open(path, 'w') as f:
         f.write(
-            faust_decoder_configuration(name, nbands=1, decoder_type=1,
-                                        decoder_order=np.max(sh_l), co=sh_l,
-                                        nspkrs=len(r), rspkrs=r))
+            faust_decoder_configuration(name,
+                                        nbands=1,
+                                        decoder_type=1,
+                                        decoder_order=np.max(sh_l),
+                                        channel_order=sh_l,
+                                        nspkrs=len(r),
+                                        rspkrs=r))
         f.write(matrix2faust(decoder_matrix, prefix="s(%03d, 0) = "))
         # append the implementation
         f.write(open("ambi-decoder_preamble2.dsp", 'r').read())
+
+
+def write_faust_decoder_dual_band(path, name, M, sh_l, r):
+    if M.shape != (len(r), len(sh_l)):
+        raise ValueError("M.shape != (len(r), len(sh_l))"
+                         f"{M.shape} {(len(r), len(sh_l))}")
+
+    order = np.max(sh_l)
+    g0 = np.sqrt(shelf.gamma0(shelf.gamma(sh_l),
+                              matching_type='rms', n_spkrs=len(r)))
+    gamma = shelf.gamma(range(order+1))
+
+
+    with open(path, 'w') as f:
+        f.write(faust_decoder_description(path,
+                                          name,
+                                          name,
+                                          None,None))
+        f.write(
+            faust_decoder_configuration(name,
+                                        nbands=2,
+                                        decoder_type=2,
+                                        decoder_order=np.max(sh_l),
+                                        channel_order=sh_l,
+                                        nspkrs=len(r),
+                                        rspkrs=r,
+                                        gamma0=gamma/g0,
+                                        gamma1=gamma*g0
+                                        ))
+        f.write(matrix2faust(M, prefix="s(%03d, 0) = "))
+        with open("ambi-decoder_preamble2.dsp", 'r') as adp:
+            f.write(adp.read())
 
 
 def write_faust_decoder_vienna(path, name, M_lf, M_hf, sh_l, r):
@@ -298,6 +349,10 @@ def write_faust_decoder_vienna(path, name, M_lf, M_hf, sh_l, r):
                          f"{M_lf.shape} {(len(r), len(sh_l))}")
 
     with open(path, 'w') as f:
+        f.write(faust_decoder_description(path,
+                                          name,
+                                          name,
+                                          None,None))
         f.write(
             faust_decoder_configuration(name,
                                         nbands=2,
