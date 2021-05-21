@@ -175,7 +175,7 @@ def optimize_dome(S,  # the speaker array
         reports.html_report(zip(*figs),
                             text=report,
                             directory=spkr_array_name,
-                            name=f"{spkr_array_name}-order-{order}")
+                            name=f"{spkr_array_name}-{id_string}")
 
     return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
 
