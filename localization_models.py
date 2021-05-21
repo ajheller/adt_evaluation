@@ -138,7 +138,8 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, title=None, show=True):
     taz = p['test_dirs'].az
     tel = p['test_dirs'].el
 
-    #fig = plt.figure(figsize=(12,8))
+    # magic incantation to flip the x-axis of the plot
+    plt.gca().invert_xaxis()
     for i in range(0, 180, 10):
         if tel[0, i] > -π/4:
             plt.plot(az[1:-1, i]*180/np.pi, el[1:-1, i]*180/np.pi)
@@ -316,6 +317,9 @@ def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
                         show=False)
         if plot_spkrs:
             plot_loudspeakers(Su)
+
+        out_figs.append(fig)
+        plt.show()
 
     return out_figs
 
