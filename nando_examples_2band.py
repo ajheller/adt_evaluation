@@ -14,6 +14,8 @@ import program_channels as pc
 import basic_decoders as bd
 import write_faust_decoder as wfd
 import shelf
+import io
+import reports
 
 figs = []
 
@@ -87,6 +89,12 @@ M_hf, res_hf = od.optimize_dome(S,
                                 sparseness_penalty=0.0,
                                 el_lim=el_lim)
 
+M_hf, res_hf = od.optimize_dome(S,
+                                ambisonic_order=C,
+                                sparseness_penalty=0.0,
+                                el_lim=el_lim,
+                                do_report=True)
+
 df_gain_spk, df_gain_tot = lm.diffuse_field_gain(M_hf)
 print(f"""
 {title}\n
@@ -108,6 +116,26 @@ M_lf, res_lf = od.optimize_dome_LF(M_hf, S_real,
 
 figs.append(lm.plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
                                    title=title_opt))
+
+def write_plot_performance_LF(
+        M_lf, M_hf, S_real, sh_l, sh_m, title):
+    """Write reports for LF performance plots."""
+    figs = []
+    figs.append(lm.plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
+                                       title=title_opt))
+    with io.StringIO() as f:
+        print(f"LF optimization report\n",
+              file=f)
+        report = f.getvalue()
+        print(report)
+    spkr_array_name = S_real.name
+    reports.html_report(zip(*figs),
+                        text=report,
+                        directory=spkr_array_name,
+                        name=f"{spkr_array_name}-{id_string}")
+
+
+write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m, title)
 
 # %%  Are diffuse field gains the same?
 print(f"\n\n{title}\nDiffuse field gain of each loudspeaker (dB)")

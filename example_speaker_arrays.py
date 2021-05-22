@@ -85,7 +85,7 @@ def nando_dome(add_imaginary=True):
         description="Nando's home array")
     if add_imaginary:
         lsl += nadir(radius=1.6, is_imaginary=True)
-        lsl += zenith(radius=1.6, is_imaginary=True)
+        ## lsl += zenith(radius=1.6, is_imaginary=True)
 
     return lsl
 

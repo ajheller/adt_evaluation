@@ -15,7 +15,7 @@ import basic_decoders as bd
 # %%
 S = esa.stage2017(add_imaginary=True)
 
-C = pc.ChannelsAmbiX(5, 5)
+C = pc.ChannelsAmbiX(6, 6)
 order_h, order_v, sh_l, sh_m, id_string = pc.ambisonic_channels(C)
 
 title=f"{S.name}: AllRAD {C.id_string()}"
@@ -39,6 +39,26 @@ M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
                                 sparseness_penalty=.50,
                                 el_lim=el_lim)
+
+M_hf, res_hf = od.optimize_dome(S,
+                                ambisonic_order=C,
+                                sparseness_penalty=.50,
+                                el_lim=el_lim,
+                                do_report=True)
+
+# %% sparseness penalty = 1.0 (best horizontal performance)
+M_hf, res_hf = od.optimize_dome(S,
+                                ambisonic_order=C,
+                                sparseness_penalty=1.0,
+                                el_lim=el_lim,
+                                do_report=True)
+
+# %% sparseness penalty = 0.0 (speakers are turned off?)
+M_hf, res_hf = od.optimize_dome(S,
+                                ambisonic_order=C,
+                                sparseness_penalty=0.0,
+                                el_lim=el_lim,
+                                do_report=True)
 
 # %%
 S_real = esa.stage2017(add_imaginary=False)

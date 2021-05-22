@@ -99,8 +99,6 @@ def optimize_dome(S,  # the speaker array
                                 mask_matrix = mask_matrix,
                                 title=plot_title))
 
-        lm.plot_matrix(M_allrad_hf, title=plot_title)
-
         print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
         for n, g in zip(Sr.ids,
                         10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
@@ -150,8 +148,6 @@ def optimize_dome(S,  # the speaker array
                             mask_matrix = mask_matrix,
                             title=plot_title
                             ))
-
-    lm.plot_matrix(M_opt, title=plot_title)
 
     with io.StringIO() as f:
         print(f"ambisonic_order = {order}\n" +
