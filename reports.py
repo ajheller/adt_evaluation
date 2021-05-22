@@ -52,7 +52,7 @@ def html_report(figs, text=None, name='report', directory=None,
                 for i, item in enumerate(row):
                     url = os.path.join(fig_dir, f"{name}-fig-{j}_{i}.png")
                     item.savefig(os.path.join(directory, url),
-                                 dpi=dpi)
+                                 dpi=dpi, bbox_inches='tight')
                     r += td(img(src=url))
 
     with open(os.path.join(directory, name + '.html'), 'w') as f:
