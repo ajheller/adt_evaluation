@@ -20,45 +20,42 @@ order_h, order_v, sh_l, sh_m, id_string = pc.ambisonic_channels(C)
 
 title=f"{S.name}: AllRAD {C.id_string()}"
 
-M = bd.allrad(sh_l, sh_m,
-              S.az, S.el,
-              speaker_is_real=S.is_real)
+if False:
+    M = bd.allrad(sh_l, sh_m,
+                  S.az, S.el,
+                  speaker_is_real=S.is_real)
 
-lm.plot_performance(M, S.u[S.is_real].T, sh_l, sh_m,
-                    title=title)
+    lm.plot_performance(M, S.u[S.is_real].T, sh_l, sh_m,
+                        title=title)
 
-lm.plot_matrix(M, title=title)
+    lm.plot_matrix(M, title=title)
 
-df_gain_spk, df_gain_tot = lm.diffuse_field_gain(M)
+    df_gain_spk, df_gain_tot = lm.diffuse_field_gain(M)
 
-
+    print(df_gain_spk, df_gain_tot)
 # %%
 
 el_lim = -π/4
-M_hf, res_hf = od.optimize_dome(S,
-                                ambisonic_order=C,
-                                sparseness_penalty=.50,
-                                el_lim=el_lim)
 
 M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
                                 sparseness_penalty=.50,
                                 el_lim=el_lim,
-                                do_report=True)
+                                do_report="sp-0.50")
 
 # %% sparseness penalty = 1.0 (best horizontal performance)
 M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
                                 sparseness_penalty=1.0,
                                 el_lim=el_lim,
-                                do_report=True)
+                                do_report="sp-1.0")
 
 # %% sparseness penalty = 0.0 (speakers are turned off?)
 M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
                                 sparseness_penalty=0.0,
                                 el_lim=el_lim,
-                                do_report=True)
+                                do_report="sp-0.0")
 
 # %%
 S_real = esa.stage2017(add_imaginary=False)

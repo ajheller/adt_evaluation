@@ -22,7 +22,7 @@ else:
 
 # TODO: rework using pathlib
 def html_report(figs, text=None, name='report', directory=None,
-                dpi=75, fig_dir='figs'):
+                dpi=300, fig_dir='figs'):
     """Produce an HTML report containing figs and text."""
     #
     # if dominate not installed, dive out here
@@ -52,8 +52,9 @@ def html_report(figs, text=None, name='report', directory=None,
                 for i, item in enumerate(row):
                     url = os.path.join(fig_dir, f"{name}-fig-{j}_{i}.png")
                     item.savefig(os.path.join(directory, url),
-                                 dpi=dpi)
-                    r += td(img(src=url))
+                                 dpi=dpi, bbox_inches="tight")
+                    # width=100% makes browser scale image
+                    r += td(img(src=url, width=f"100%"))
 
     with open(os.path.join(directory, name + '.html'), 'w') as f:
         print(h, file=f)

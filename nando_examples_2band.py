@@ -84,10 +84,6 @@ Diffuse field gain of array {df_gain_tot}
 title=f"{S.name}: Optimized HF AllRAD {C.id_string()}"
 
 el_lim = -π/4
-M_hf, res_hf = od.optimize_dome(S,
-                                ambisonic_order=C,
-                                sparseness_penalty=0.0,
-                                el_lim=el_lim)
 
 M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
@@ -122,7 +118,7 @@ def write_plot_performance_LF(
     """Write reports for LF performance plots."""
     figs = []
     figs.append(lm.plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
-                                       title=title_opt))
+                                       title=title))
     with io.StringIO() as f:
         print(f"LF optimization report\n",
               file=f)
@@ -132,10 +128,10 @@ def write_plot_performance_LF(
     reports.html_report(zip(*figs),
                         text=report,
                         directory=spkr_array_name,
-                        name=f"{spkr_array_name}-{id_string}")
+                        name=f"{spkr_array_name}-{id_string}-LF")
 
 
-write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m, title)
+write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m, title_opt)
 
 # %%  Are diffuse field gains the same?
 print(f"\n\n{title}\nDiffuse field gain of each loudspeaker (dB)")

@@ -167,11 +167,15 @@ def optimize_dome(S,  # the speaker array
         report = f.getvalue()
         print(report)
 
-    if do_report:
+    if do_report not in (None, False):
+        report_name = f"{spkr_array_name}-{id_string}"
+        if do_report != True:
+            report_name += f"-{do_report}"
+
         reports.html_report(zip(*figs),
                             text=report,
                             directory=spkr_array_name,
-                            name=f"{spkr_array_name}-{id_string}")
+                            name=report_name)
 
     return M_opt, dict(M_allrad=M_allrad, off=off, res=res)
 

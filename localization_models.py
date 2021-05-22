@@ -325,7 +325,7 @@ def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
         fig = plot_matrix(M,
                           title=f"{title}\n");
         out_figs.append(fig)
-    
+
     return out_figs
 
 
