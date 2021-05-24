@@ -59,7 +59,7 @@ def polygon(n, radius=1.0, unit='M', center_spkr=False, *args, **kwargs):
                             **kwargs)
 
 
-def nando_dome(add_imaginary=True):
+def home_dome(add_imaginary=True):
     """Nando's home array."""
     lsl = LSL.from_array(
         a=(
@@ -79,15 +79,19 @@ def nando_dome(add_imaginary=True):
         12, 45, 1.35,
         156, 45, 1.35,
         -132, 45, 1.35),
-        coord_code='AER', unit_code='DDM', name='NandoDome',
+        coord_code='AER', unit_code='DDM',
+        name='HomeDome',
         ids=('1', '2', '3', '4', '5', '6', '7', '8',
              'UL', 'UR', 'UC', 'USL', 'USR'),
-        description="Nando's home array")
+        description="Nando's home array, 8+5")
     if add_imaginary:
         lsl += nadir(radius=1.6, is_imaginary=True)
         ## lsl += zenith(radius=1.6, is_imaginary=True)
 
     return lsl
+
+# alias for backward compatibility
+nando_dome = home_dome
 
 
 def emb_dome(add_imaginary=True):
@@ -98,7 +102,7 @@ def emb_dome(add_imaginary=True):
         polygon(8, radius=2, unit='M', center_spkr=False),
         LSL.from_vectors(np.arange(0, 360, 90), 30, 2,
                          name='EMB',
-                         description="EMB's home array")
+                         description="EMB's home array, 8+4")
         )
     if add_imaginary:
         lsl += nadir(radius=2)
