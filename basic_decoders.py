@@ -235,6 +235,7 @@ def allrad2(degree, order,
         DESCRIPTION.
 
     """
+    raise NotImplementedError("Sorry... AllRAD2 not implemented yet.")
     # defaults
     if v_az is None:
         td = sg.t_design5200()
