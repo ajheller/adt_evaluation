@@ -118,7 +118,7 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 6  # <<<<<---------- change this to change datasets
+example = 2  # <<<<<---------- change this to change datasets
 interior_view = False
 
 scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
@@ -503,4 +503,3 @@ if __name__ == '__main__':
 
         with open("plotly/div" + S['name'] + ".html", 'w') as f:
             f.write(div)
-
