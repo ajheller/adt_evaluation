@@ -337,6 +337,8 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, title=""):
     P, rVxyz, _, _ = compute_rVrE_fast(M_lf, Su, Y_test_dirs)
     rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
 
+    print("mean rV", np.mean(rVr))
+
     _, _, E, rExyz = compute_rVrE_fast(M_hf, Su, Y_test_dirs)
     rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
 
@@ -351,6 +353,7 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, title=""):
 
     ev_dot = np.sum(rEu * rVu, axis=0)
     dir_diff = np.arccos(np.clip(ev_dot, -1, 1)) * 180/np.pi
+    print("mean rV/rE direction error", np.mean(dir_diff))
     fig = plot_rX(dir_diff.reshape(T.shape),
                   title=f"{title}\nrE vs. rV direction difference (degrees)",
                   clim=(0, 20),
