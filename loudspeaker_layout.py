@@ -60,7 +60,7 @@ class LoudspeakerLayout(SphD.SphericalData):
         description = new_description or self.description
 
         l3 = LoudspeakerLayout(*xyz.T, name=name, description=description,
-                           ids=ids, is_real=is_real)
+                               ids=ids, is_real=is_real)
         return l3
 
     def real_only(self):
@@ -114,14 +114,14 @@ class LoudspeakerLayout(SphD.SphericalData):
             json.dump(obj=self.to_json(**kwargs), indent=4,
                       fp=f)
 
-    def plot(self, backend='matplotlib'):
+    def plot(self, **kwargs):
+        backend = kwargs.get('backend', 'matplotlib')
         if backend == 'matplotlib':
-            plot_lsl(self)
+            plot_lsl(self, title=F"Speaker Array: {self.name}", **kwargs)
         elif backend == 'plotly':
             pass
         else:
             raise ValueError(f"Unknown plot backend {backend}")
-
 
 
 def append_layouts(l1, l2,
@@ -253,7 +253,7 @@ def from_array(a: Sequence,
     s = LoudspeakerLayout(ids=ids, is_real=is_real,
                           name=name, description=description)
     # TODO: is there a slicker way to do this?
-    if ac == 'XZY':
+    if ac == 'XZY':  # see comment on to_cannonical for why this is XZY
         s.set_from_cart(*[aa[:, to_canonical[c]] for c in 'XYZ'])
     elif ac == 'AER':
         s.set_from_aer(*[aa[:, to_canonical[c]] for c in 'AER'])
@@ -301,17 +301,18 @@ def from_iem_file(file):
 
     return lsl, obj
 
-# work in progress... doesn't decode coords or units
+
+# TODO: work in progress... doesn't decode coords or units
 def from_csv_file(file,
                   coord_code='AER',
                   unit_code='DDM',
                   name=None):
-    df=pd.read_csv(file)
-    lsl=from_array(df.iloc[:,1 :4],
-                   is_real=df.iloc[:, 4].to_numpy()=='T',
-                   ids=df.iloc[:, 0].tolist(),
-                   coord_code=coord_code,
-                   unit_code=unit_code)
+    df = pd.read_csv(file)
+    lsl = from_array(df.iloc[:, 1:4],
+                     is_real=df.iloc[:, 4].to_numpy() == 'T',
+                     ids=df.iloc[:, 0].tolist(),
+                     coord_code=coord_code,
+                     unit_code=unit_code)
     return lsl
 
 

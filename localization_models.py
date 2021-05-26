@@ -30,7 +30,6 @@ import numpy as np
 from numpy import pi as π
 
 import real_spherical_harmonics as rsh
-# import basic_decoders as bd
 import shelf
 import spherical_grids as sg
 
@@ -81,7 +80,7 @@ def xyz2aeru(xyz):
     return az, el, r, u
 
 
-def compute_rVrE(sh_l, sh_m, M, Su, test_dirs=sg.az_el()):
+def compute_rVrE(sh_l, sh_m, M, Su, *, test_dirs=sg.az_el()):
     """Compute rV and rE, single call interface."""
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
                                               test_dirs.az.ravel(),
@@ -95,27 +94,37 @@ def compute_rVrE(sh_l, sh_m, M, Su, test_dirs=sg.az_el()):
     return rVr.reshape(test_dirs.shape), rEr.reshape(test_dirs.shape)
 
 
-def compute_rVrE_dict(sh_l, sh_m, M, Su, test_dirs=sg.az_el()):
+def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None,
+                      return_dict=True):
     """Compute rV and rE, single call interface."""
+    #
+    if test_dirs is None:
+        test_dirs = sg.az_el()
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
                                               test_dirs.az.ravel(),
                                               test_dirs.el.ravel())
 
     P, rVxyz, E, rExyz = compute_rVrE_fast(M, Su, Y_test_dirs)
 
+    # FIXME: I think this works, but needs to be tested, same for rExyz
+    # FIXME: ... for now just reshape the scalar quantities
+    # rVxyz = rVxyz.reshape(3, *test_dirs.shape)
+    # rExyz = rExyz.reshape(3, *test_dirs.shape)
+
     P = P.reshape(test_dirs.shape)
-    #rVxyz = rVxyz.reshape(3, *test_dirs.shape)
     E = E.reshape(test_dirs.shape)
-    #rExyz = rExyz.reshape(3, *test_dirs.shape)
 
     rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
     rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
 
+    rVaz = rVaz.reshape(test_dirs.shape)
+    rVel = rVel.reshape(test_dirs.shape)
     rEaz = rEaz.reshape(test_dirs.shape)
     rEel = rEel.reshape(test_dirs.shape)
 
-    return dict(P=P, rVxyz=rVxyz, E=E, rExyz=rExyz,
+    return dict(P=P, rVxyz=rVxyz,
                 rVaz=rVaz, rVel=rVel, rVr=rVr, rVu=rVu,
+                E=E, rExyz=rExyz,
                 rEaz=rEaz, rEel=rEel, rEr=rEr, rEu=rEu,
                 M=M, sh_l=sh_l, sh_m=sh_m, test_dirs=test_dirs)
 
@@ -135,23 +144,56 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, title=None, show=True):
     while np.mean(az) < -np.pi:
         az += 2*np.pi
 
-    taz = p['test_dirs'].az
+    taz = p['test_dirs'].az  # not used currently
     tel = p['test_dirs'].el
 
     # magic incantation to flip the x-axis of the plot
     plt.gca().invert_xaxis()
-    for i in range(0, 180, 10):
-        if tel[0, i] > -π/4:
-            plt.plot(az[1:-1, i]*180/np.pi, el[1:-1, i]*180/np.pi)
-    for i in range(0, 361, 10):
-        plt.plot(az[i, 85:-1]*180/np.pi, el[i, 85:-1]*180/np.pi)
 
-    plt.grid()
+    # plot lines of constant elevation
+    for iy in range(0, 180, 10):
+        if tel[0, iy] > -π/4:
+            plt.plot(az[1:-1, iy]*180/np.pi,
+                     el[1:-1, iy]*180/np.pi,
+                     zorder=1000)
+
+    # plot lines of constant azimuth
+    for ix in range(0, 361, 10):
+        el_plot_range = (tel[0, :] > -π/4) & (tel[0, :] < π/2)
+        # NOTE: use the following line to get plots identical to AES150 paper
+        # el_plot_range = slice(85, -1)
+        # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
+        plt.plot(az[ix, el_plot_range]*180/np.pi,
+                 el[ix, el_plot_range]*180/np.pi,
+                 zorder=1000)
+
+    if True:
+        line_color = "xkcd:light gray"
+        # plot lines of constant azimuth
+        for iy in range(0, 180, 10):
+            if tel[0, iy] > -π/4:
+                plt.plot(taz[1:-1, iy]*180/np.pi,
+                         tel[1:-1, iy]*180/np.pi,
+                         color=line_color,
+                         zorder=0)
+
+        # plot lines of constant azimuth
+        for ix in range(0, 361, 10):
+            el_plot_range = (tel[0, :] > -π/4) & (tel[0, :] < π/2)
+            # NOTE: use the following to get plots identical to AES150 paper
+            # el_plot_range = slice(85, -1)
+            # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
+            plt.plot(taz[ix, el_plot_range]*180/np.pi,
+                     tel[ix, el_plot_range]*180/np.pi,
+                     color=line_color,
+                     zorder=0)
+
+    else:
+        plt.grid()
     if title is not None:
         plt.title(title)
     if show:
         plt.show()
-
 
 
 def diffuse_field_gain(M):
@@ -215,7 +257,7 @@ def plot_loudspeakers(Su: np.ndarray, **plot_args) -> None:
     plt.scatter(S_az * 180 / π, S_el * 180 / π, c='k', marker='.', **plot_args)
 
 
-def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
+def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
                      mask_matrix=None,
                      title="",
                      plot_spkrs=True,
@@ -262,8 +304,9 @@ def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
         fig = plot_rX(
             (shelf.rE_to_ambisonic_order_3d(
                 rEr.reshape(test_dirs.shape)) - ambisonic_order).round(),
-            title=(f'{title}\n' +
-                   f'relative ambisonic order ({ambisonic_order}) vs. test direction'),
+            title=(f'{title}\n'
+                   f'relative ambisonic order '
+                   f'({ambisonic_order}) vs. test direction'),
             clim=(-3, +3),
             cmap='Spectral_r',
             show=False)
@@ -311,19 +354,18 @@ def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
         plt.show()
 
     if True:
-        fig = plt.figure(figsize=(10,4))
+        fig = plt.figure(figsize=(10, 4))
         plot_az_el_grid(sh_l, sh_m, M, Su,
                         title=f"{title}\nrE directions",
                         show=False)
         if plot_spkrs:
-            plot_loudspeakers(Su)
+            plot_loudspeakers(Su, zorder=1500)
 
         out_figs.append(fig)
         plt.show()
 
     if True:
-        fig = plot_matrix(M,
-                          title=f"{title}\n");
+        fig = plot_matrix(M, title=f"{title}\n")
         out_figs.append(fig)
 
     return out_figs
@@ -342,7 +384,7 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, title=""):
     _, _, E, rExyz = compute_rVrE_fast(M_hf, Su, Y_test_dirs)
     rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
 
-    out_figs=[]
+    out_figs = []
 
     fig = plot_rX(rVr.reshape(T.shape),
                   title=f"{title}\nMagnitude of rV vs. test direction",
@@ -379,7 +421,6 @@ def plot_matrix(M, title=""):
 
 if __name__ == "__main__":
     import basic_decoders as bd
-
 
     def test(order=3, decoder=1, ss=False):
         """

@@ -101,11 +101,12 @@ def emb_dome(add_imaginary=True):
     # Eric's array is an octagon at ear level and a square 30-deg elevation
     # speakers lie on a 2-meter sphere
     layout = lsl.append_layouts(
-        polygon(8, radius=2, unit='M', center_spkr=False),
-        lsl.from_vectors(np.arange(0, 360, 90), 30, 2,
-                         name='EMB',
-                         description="EMB's home array, 8+4")
-        )
+        polygon(8, elevation=0, radius=2, unit='M',
+                center_spkr=False, ids='L'),
+        polygon(4, elevation=π/6, radius=2, unit='M',
+                center_spkr=True, ids='U'),
+        name='EMB',
+        description="EMB's home array, 8+4")
     if add_imaginary:
         layout += nadir(radius=2)
     return layout

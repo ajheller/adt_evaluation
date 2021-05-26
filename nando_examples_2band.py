@@ -22,6 +22,7 @@ figs = []
 # %%
 S = esa.nando_dome(add_imaginary=True)
 S_real = esa.nando_dome(add_imaginary=False)
+S.plot()
 
 
 C = pc.ChannelsAmbiX(3, 2)

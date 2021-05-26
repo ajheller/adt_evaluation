@@ -10,6 +10,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def set_axes_equal(ax):
     '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
     cubes as cubes, etc..  This is one possible solution to Matplotlib's
@@ -38,10 +39,11 @@ def set_axes_equal(ax):
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
+
 def axis_demo():
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-    #ax.set_aspect('equal')
+    # ax.set_aspect('equal')
 
     X = np.random.rand(100)*10+5
     Y = np.random.rand(100)*5+2.5
@@ -52,24 +54,26 @@ def axis_demo():
     set_axes_equal(ax)
     plt.show()
 
-def plot_lsl(S, speaker_stands=True):
-    fig = plt.figure(figsize=(10,10))
-    ax = fig.gca(projection='3d')
-    #ax.set_aspect('equal')
 
-    ax.scatter(*S.xyz.T, c=S.z, marker='s')
+def plot_lsl(S, speaker_stands=True, title=None):
+    fig = plt.figure(figsize=(10, 10))
+    # ax = fig.add_subplot(1, 1, 1)
+    ax = fig.gca(projection='3d')
+    # ax.set_aspect('equal')
+
+    ax.scatter(*S.xyz.T, c=S.z, s=200)
     ax.scatter(0, 0, 0, marker='d')
 
-    # text() is not vectorized
-    z_floor = -2.5
+    z_floor = np.min(S.z) - np.abs(np.min(S.z)/10)
     for x, y, z, id in zip(*S.xyz.T, S.ids):
-        ax.text(x, y, z, id)
+        ax.text(x, y, z, id, zorder=1000)
         plt.plot([x, x], [y, y], [z, z_floor], '-.k')
         plt.plot([0, x], [0, y], [z_floor, z_floor], '-.k')
 
-
     set_axes_equal(ax)
     ax.set(xlabel='X', ylabel='Y', zlabel='Z')
+    if title is not None:
+        plt.title(title)
     plt.show()
 
 
@@ -87,9 +91,9 @@ Functionality shown:
 - Using the text2D function to place text on a fixed position on the ax object.
 '''
 
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
 
+# from mpl_toolkits.mplot3d import Axes3D
+# import matplotlib.pyplot as plt
 def text_annotations_3d():
 
     fig = plt.figure()

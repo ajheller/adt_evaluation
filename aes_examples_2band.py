@@ -17,6 +17,8 @@ import reports
 
 # %%
 S = esa.stage2017(add_imaginary=True)
+S.plot()
+
 S_real = esa.stage2017(add_imaginary=False)
 
 C = pc.ChannelsAmbiX(6, 6)
@@ -43,9 +45,9 @@ el_lim = -π / 4
 
 M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
-                                sparseness_penalty=.50,
+                                sparseness_penalty=0.5,
                                 el_lim=el_lim,
-                                do_report="sp-0.50")
+                                do_report="sp-0.5")
 
 # %% sparseness penalty = 1.0 (best horizontal performance)
 M_hf, res_hf = od.optimize_dome(S,
