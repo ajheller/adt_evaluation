@@ -32,7 +32,7 @@ import pandas as pd
 
 from plot_utils import plot_lsl
 
-import SphericalData as SphD
+import spherical_data as SphD
 
 
 @dataclass

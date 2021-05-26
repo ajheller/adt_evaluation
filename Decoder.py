@@ -7,7 +7,7 @@ Created on Thu Oct 22 18:35:22 2020
 """
 
 from dataclasses import dataclass, field
-from LoudspeakerLayout import LoudspeakerLayout
+from loudspeaker_layout import LoudspeakerLayout
 from program_channels import Channels
 
 @dataclass

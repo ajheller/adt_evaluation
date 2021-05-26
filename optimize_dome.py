@@ -18,7 +18,7 @@ import localization_models as lm
 import reports
 
 import example_speaker_arrays as esa
-import LoudspeakerLayout as ll
+import loudspeaker_layout as ll
 from optimize_decoder_matrix import optimize, optimize_LF
 
 

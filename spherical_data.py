@@ -34,7 +34,7 @@ except ImportError:
         from backports.cached_property import cached_property
     except ModuleNotFoundError as ie:
         print("run 'pip install backports.cached-property' and try again")
-        raise(ie)
+        raise ie
 
 from numpy import pi
 from numpy import pi as π
@@ -203,7 +203,7 @@ def spherical_cap(T, u, angle, min_angle=0):
 # ---- the class definition ----
 
 @dataclass
-class SphericalData():
+class SphericalData:
     """A class to hold spherical data and provide conversions."""
 
     x: np.ndarray = field(default_factory=lambda: np.array(None))
@@ -271,12 +271,12 @@ class SphericalData():
 
     @cached_property
     def xyz(self):
-        """Return x, y, z as an iterable of vectors."""
+        """Return x, y, z as an iterable container of vectors."""
         return np.c_[self.x.ravel(), self.y.ravel(), self.z.ravel()]
 
     @cached_property
     def u(self):
-        """unit vectors as an iterable."""
+        """unit vectors as an iterable container."""
         return (self.xyz /
                 # this makes a column vector without copying
                 np.linalg.norm(self.xyz, axis=1)[None].T

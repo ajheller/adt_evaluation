@@ -27,33 +27,34 @@ import numpy as np
 from numpy import pi as π
 
 # adt modules
-import LoudspeakerLayout as LSL
+import loudspeaker_layout as lsl
 
 # data directory
 _data_dir = Path(__file__).parent/"data"
 
 
 # a single imaginary speakers for AllRAD
-def nadir(radius=1.0, is_imaginary=False):
+def nadir(radius=1.0, is_imaginary=True):
     """Speaker at the nadir (south pole)."""
-    return LSL.from_array((0, 0, -radius), coord_code='XYZ', unit_code='MMM',
+    return lsl.from_array((0, 0, -radius), coord_code='XYZ', unit_code='MMM',
                           name="imaginary speaker at nadir", ids=["*IN"],
-                          is_real=False)
+                          is_real=not is_imaginary)
 
 
-def zenith(radius=1.0, is_imaginary=False):
+def zenith(radius=1.0, is_imaginary=True):
     """Speaker at the zenith (north pole)."""
-    return LSL.from_array((0, 0, radius), coord_code='XYZ', unit_code='MMM',
+    return lsl.from_array((0, 0, radius), coord_code='XYZ', unit_code='MMM',
                           name="imaginary speaker at zenith", ids=["*IZ"],
-                          is_real=False)
+                          is_real=not is_imaginary)
 
 
-def polygon(n, radius=1.0, unit='M', center_spkr=False, *args, **kwargs):
+def polygon(n, *, elevation=0, radius=1.0, unit='M', offset=0.0,
+            center_spkr=False, **kwargs):
     """Construct regular polygon arrays."""
-    az = np.linspace(0, 2*π, n, endpoint=False)
+    az = np.linspace(0, 2*π, n, endpoint=False) + offset
     if not center_spkr:
         az += π/n
-    return LSL.from_vectors(az, 0.0, radius,
+    return lsl.from_vectors(az, elevation, radius,
                             unit_code='RR'+unit,
                             coord_code='AER',
                             **kwargs)
@@ -61,34 +62,35 @@ def polygon(n, radius=1.0, unit='M', center_spkr=False, *args, **kwargs):
 
 def home_dome(add_imaginary=True):
     """Nando's home array."""
-    lsl = LSL.from_array(
+    layout = lsl.from_array(
         a=(
-        # a regular octagon (LR) at lower level
-        22.5, 0, 1.6,
-        -22.5, 0, 1.6,
-        67.5, 0, 1.6,
-        -67.5, 0, 1.6,
-        112.5, 0, 1.6,
-        -112.5, 0, 1.6,
-        157.5, 0, 1.6,
-        -157.5, 0, 1.6,
-        # a regular pentagon at upper level, rotated
-        # +-72 + 12, +-144 + 12 (L R C SL SR)
-        84, 45, 1.35,
-        -60, 45, 1.35,
-        12, 45, 1.35,
-        156, 45, 1.35,
-        -132, 45, 1.35),
+            # a regular octagon (LR) at lower level
+            22.5, 0, 1.6,
+            -22.5, 0, 1.6,
+            67.5, 0, 1.6,
+            -67.5, 0, 1.6,
+            112.5, 0, 1.6,
+            -112.5, 0, 1.6,
+            157.5, 0, 1.6,
+            -157.5, 0, 1.6,
+            # a regular pentagon at upper level, rotated
+            # +-72 + 12, +-144 + 12 (L R C SL SR)
+            84, 45, 1.35,
+            -60, 45, 1.35,
+            12, 45, 1.35,
+            156, 45, 1.35,
+            -132, 45, 1.35),
         coord_code='AER', unit_code='DDM',
         name='HomeDome',
         ids=('1', '2', '3', '4', '5', '6', '7', '8',
              'UL', 'UR', 'UC', 'USL', 'USR'),
         description="Nando's home array, 8+5")
     if add_imaginary:
-        lsl += nadir(radius=1.6, is_imaginary=True)
-        ## lsl += zenith(radius=1.6, is_imaginary=True)
+        layout += nadir(radius=1.6, is_imaginary=True)
+        # lsl += zenith(radius=1.6, is_imaginary=True)
 
-    return lsl
+    return layout
+
 
 # alias for backward compatibility
 nando_dome = home_dome
@@ -98,20 +100,20 @@ def emb_dome(add_imaginary=True):
     """EMB's home array."""
     # Eric's array is an octagon at ear level and a square 30-deg elevation
     # speakers lie on a 2-meter sphere
-    lsl = LSL.append_layouts(
+    layout = lsl.append_layouts(
         polygon(8, radius=2, unit='M', center_spkr=False),
-        LSL.from_vectors(np.arange(0, 360, 90), 30, 2,
+        lsl.from_vectors(np.arange(0, 360, 90), 30, 2,
                          name='EMB',
                          description="EMB's home array, 8+4")
         )
     if add_imaginary:
-        lsl += nadir(radius=2)
-    return lsl
+        layout += nadir(radius=2)
+    return layout
 
 
 def stage2017(add_imaginary=True):
     """CCRMA Stage array."""
-    lsl = LSL.from_array((
+    layout = lsl.from_array((
         # == towers 8:
         # theoretical angles, have to be calibrated
         27, 3.9, 216,
@@ -181,23 +183,23 @@ def stage2017(add_imaginary=True):
         153, -10, 216,
         -153, -10, 216,
     ),
-    coord_code='AER', unit_code='DDI', name='stage',
-    ids=(
-        'S01', 'S02', 'S03', 'S04',
-        'S05', 'S06', 'S07', 'S08',
-        'S09', 'S10', 'S11', 'S12',
-        'S13', 'S14', 'S15', 'S16',
-        'D17', 'D18', 'D19', 'D20', 'D21', 'D22',
-        'D23', 'D24', 'D25', 'D26', 'D27', 'D28',
-        'D29', 'D30', 'D31', 'D32', 'D33', 'D34', 'D35',
-        'D36', 'D37', 'D38', 'D39', 'D40', 'D41', 'D42',
-        'D43', 'D44', 'D45', 'D46', 'D47', 'D48',
-        'L01', 'L02', 'L03', 'L04',
-        'L05', 'L06', 'L07', 'L08',
-    ))
+        coord_code='AER', unit_code='DDI', name='stage',
+        ids=(
+            'S01', 'S02', 'S03', 'S04',
+            'S05', 'S06', 'S07', 'S08',
+            'S09', 'S10', 'S11', 'S12',
+            'S13', 'S14', 'S15', 'S16',
+            'D17', 'D18', 'D19', 'D20', 'D21', 'D22',
+            'D23', 'D24', 'D25', 'D26', 'D27', 'D28',
+            'D29', 'D30', 'D31', 'D32', 'D33', 'D34', 'D35',
+            'D36', 'D37', 'D38', 'D39', 'D40', 'D41', 'D42',
+            'D43', 'D44', 'D45', 'D46', 'D47', 'D48',
+            'L01', 'L02', 'L03', 'L04',
+            'L05', 'L06', 'L07', 'L08',
+        ))
     if add_imaginary:
-        lsl += nadir(radius=1.6, is_imaginary=True)
-    return lsl
+        layout += nadir(radius=1.6, is_imaginary=True)
+    return layout
 
 
 # TODO: generalize this to load speaker arrays from spreadsheets
@@ -218,7 +220,7 @@ def iem_cube():
     column_units = ['m', 'm', 'm']
     column_values = [a[i] for i in column_names]
 
-    s = LSL.from_vectors(*column_values,
+    s = lsl.from_vectors(*column_values,
                          name="IEM_Cube",
                          coord_code=column_coords,
                          unit_code=column_units)
@@ -228,9 +230,9 @@ def iem_cube():
 def uniform240(name='Uniform240'):
     """Return 240-speaker uniform layout."""
     #
-    import SphericalGrids as sg
+    import spherical_grids as sg
     g = sg.t_design240()
 
-    s = LSL.from_array(g.xyz, name=name,
+    s = lsl.from_array(g.xyz, name=name,
                        coord_code='XYZ', unit_code='MMM')
     return s

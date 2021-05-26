@@ -377,10 +377,10 @@ def allrad_v2r(Su, Vu):
 
 # unit tests
 def unit_test():
-    import LoudspeakerLayout as LSL
+    import loudspeaker_layout as lsl
 
     # horitontal square array
-    s = LSL.from_vectors((45, 135, -135, -45), 0, 1,
+    s = lsl.from_vectors((45, 135, -135, -45), 0, 1,
                          coord_code=('az', 'el', 'radius'),
                          unit_code=('degrees', 'degrees', 'meters'))
 
@@ -430,9 +430,9 @@ def unit_test2(order=3, case=1, debug=True):
 
     """
     import example_speaker_arrays as esa
-    import SphericalGrids as sg
-    import SphericalData as sd
-    import LoudspeakerLayout as LSL
+    import spherical_grids as sg
+    import spherical_data as sd
+    import loudspeaker_layout as LSL
 
     if case == 0:
         # octagon

@@ -26,7 +26,7 @@ import numpy as np
 from numpy import pi
 from dataclasses import dataclass, field
 
-import SphericalData as SphD
+import spherical_data as SphD
 
 # data dir
 _data_dir = Path(__file__).parent/"data"
