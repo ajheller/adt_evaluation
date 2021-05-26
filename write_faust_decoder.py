@@ -150,7 +150,8 @@ def faust_decoder_configuration(name,
                                 channel_order,
                                 nspkrs,
                                 rspkrs,
-                                gamma0,
+                                *,
+                                gamma0=None,
                                 gamma1=None,
                                 xover_freq=380,
                                 lfhf_ratio_dB=0,
@@ -211,6 +212,9 @@ def faust_decoder_configuration(name,
     # error checking
     if len(rspkrs) != nspkrs:
         raise ValueError("len(rspkrs) != nspkrs")
+
+    if gamma0 is None:
+        gamma0=np.ones(np.max(channel_order))
 
     radius_str = array2faust_vector(rspkrs, prefix='rs = ', suffix=';\n')
     gamma_str = array2faust_vector(gamma0, prefix="gamma(0) = ", suffix=';\n')

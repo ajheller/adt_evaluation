@@ -24,7 +24,7 @@ order_h, order_v, sh_l, sh_m, id_string = pc.ambisonic_channels(C)
 
 # %%
 
-title_allrad=f"{S.name}: AllRAD {C.id_string()}"
+title_allrad = f"{S.name}: AllRAD {C.id_string()}"
 
 if False:
     M = bd.allrad(sh_l, sh_m,
@@ -39,7 +39,7 @@ if False:
     print("ALLRad", lm.diffuse_field_gain(M))
 # %%
 
-el_lim = -π/4
+el_lim = -π / 4
 
 M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
@@ -72,6 +72,7 @@ title_lf = f"Array:{S_real.name}, Signals: {C.id_string()}"
 lm.plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
                        title=title_lf)
 
+
 def write_plot_performance_LF(
         M_lf, M_hf, S_real, sh_l, sh_m, title):
     """Write reports for LF performance plots."""
@@ -98,6 +99,7 @@ print("LF", lm.diffuse_field_gain(M_lf))
 
 # %%
 import write_faust_decoder as wfd
+
 wfd.write_faust_decoder_vienna('amb.dsp', 'amb',
                                M_lf, M_hf,
                                sh_l, S_real.r)

@@ -506,11 +506,12 @@ def ambisonic_channels(C, convention=None, **kwargs):
             h_order, v_order = int(C), int(C)
         except ValueError:
             # is it a string?
-            h_order, v_order, mixed_order_scheme, convention = \
-                parse_channels_id_string(C)
-            kwargs['mixed_order_scheme'] = mixed_order_scheme
-        except ValueError:
-            raise ValueError(f"Can't make sense of C = {C}")
+            try:
+                h_order, v_order, mixed_order_scheme, convention = \
+                    parse_channels_id_string(C)
+                kwargs['mixed_order_scheme'] = mixed_order_scheme
+            except ValueError:
+                raise ValueError(f"Can't make sense of C = {C}")
 
     if convention is None:
         convention = 'FuMa' if h_order <= 3 else 'AmbiX'
