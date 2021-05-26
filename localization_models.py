@@ -244,7 +244,7 @@ def plot_performance(M, Su, sh_l, sh_m, # /,  # / instroduced in 3.8
 
     # the arg to arccos can get epsilon larger than 1 due to round off,
     # which produces NaNs, so clip to [-1, 1]
-    rE_dir_err = np.arccos(np.clip(np.sum(rEu * test_dirs.u, axis=0),
+    rE_dir_err = np.arccos(np.clip(np.sum(rEu * test_dirs.u.T, axis=0),
                                    -1, 1)) * 180 / π
 
     # magnitude of rE

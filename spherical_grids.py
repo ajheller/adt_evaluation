@@ -27,6 +27,7 @@ from numpy import pi
 from dataclasses import dataclass, field
 
 import spherical_data as SphD
+from spherical_data import sph2cart, sphz2cart, cart2sph, cart2sphz, spherical_cap
 
 # data dir
 _data_dir = Path(__file__).parent/"data"
@@ -99,6 +100,27 @@ def t_design240(*args, **kwargs) -> SphericalGrid:
 def t_design5200(*args, **kwargs) -> SphericalGrid:
     return load_t_design_sphz(_data_dir/"Design_5200_100_random.dat.txt",
                               *args, **kwargs)
+
+#  geodetic
+def az_el(resolution=180):
+    """
+    return a grid with equal sampling in azimuth and elevation
+    """
+    u = np.linspace(-pi, pi, (2 * resolution) + 1)
+    v = np.linspace(-pi / 2, pi / 2, resolution + 1)
+    el, az = np.meshgrid(v, u)
+
+    # quadrature weights (sum to 4pi, area of a unit sphere)
+    du = np.abs(u[1] - u[0])
+    dv = np.abs(v[1] - v[0])
+    w = np.cos(el) * du * dv
+    # the last row overlaps the first so set it's weights to zero
+    w[-1, :] = 0
+
+    return SphericalGrid(*sph2cart(az, el), w=w,
+                         name=f'AzEl: {len(u)}, {len(v)}')
+
+
 
 
 # %% unit tests

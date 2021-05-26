@@ -171,7 +171,7 @@ def optimize(M, Su, sh_l, sh_m,
         rExyz, E = rE(M, Su, Y_test)
 
         # truncation loss due to finite order
-        truncation_loss = np.sum((rExyz - T.u * rE_goal) ** 2)
+        truncation_loss = np.sum((rExyz - T.u.T * rE_goal) ** 2)
 
         # uniform loudness loss
         uniform_loudness_loss = (np.sum((E - E_goal) ** 2) *
