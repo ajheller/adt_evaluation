@@ -64,9 +64,6 @@ def optimize_dome(S,  # the speaker array
     #     spkr_array_name = 'EMB'
 
     spkr_array_name = S.name
-
-
-
     print('speaker array = ', spkr_array_name)
 
     S_u = np.array(sg.sph2cart(S.az, S.el, 1))
@@ -82,8 +79,8 @@ def optimize_dome(S,  # the speaker array
                              speaker_is_real=S.is_real)
 
         # remove imaginary speaker from S_u and Sr
-        S_u = S_u[:, S.is_real] #S.Real.values]
-        Sr = S[S.is_real] #S.Real.values]
+        S_u = S_u[:, S.is_real]
+        Sr = S[S.is_real]
 
         M_allrad_hf = M_allrad @ gamma
 
@@ -96,7 +93,7 @@ def optimize_dome(S,  # the speaker array
 
         figs.append(
             lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
-                                mask_matrix = mask_matrix,
+                                mask_matrix=mask_matrix,
                                 title=plot_title))
 
         print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
@@ -125,12 +122,9 @@ def optimize_dome(S,  # the speaker array
 
     # Objective for rE order+2 inside the cap, order-2 outside
     rE_goal = np.where(cap,
-                       shelf.max_rE_3d(order+2), # inside the cap
-                       shelf.max_rE_3d(max(order-2, 1)) # outside the cap
+                       shelf.max_rE_3d(order+2),  # inside the cap
+                       shelf.max_rE_3d(max(order-2, 1))  # outside the cap
                        )
-
-    #np.array([shelf.max_rE_3d(max(order-2, 1)),
-    #                    shelf.max_rE_3d(order+2)])[cap.astype(np.int8)]
 
     M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
                           iprint=50, tikhonov_lambda=tikhonov_lambda,
@@ -145,7 +139,7 @@ def optimize_dome(S,  # the speaker array
 
     figs.append(
         lm.plot_performance(M_opt, S_u, sh_l, sh_m,
-                            mask_matrix = mask_matrix,
+                            mask_matrix=mask_matrix,
                             title=plot_title
                             ))
 
@@ -197,7 +191,7 @@ def optimize_dome_LF(M_hf,
     return M_lf, res
 
 
-
+#
 def stage_test(ambisonic_order=3, **kwargs):
     S = esa.stage2017()
     return optimize_dome(S, ambisonic_order, **kwargs)

@@ -75,8 +75,6 @@ from Timer import Timer
 import warnings
 warnings.filterwarnings(action='once')
 
-#from ArrayHash import hashable
-
 
 #  need a local definition so np is jax.np
 def rE(M, Su, Y_test):
@@ -113,7 +111,6 @@ key = random.PRNGKey(1)
 T = sg.t_design5200()
 
 
-
 # %%
 
 # define a callback for use with opt.minimize
@@ -136,9 +133,9 @@ def optimize(M, Su, sh_l, sh_m,
              iprint=50,
              tikhonov_lambda=1.0e-3,
              sparseness_penalty=1,
-             uniform_loudness_penalty=0.1,  #0.01
+             uniform_loudness_penalty=0.1,  # 0.01
              rE_goal=1.0,
-             maxcor=100, # how accurate is the Hessian, more is better but slower
+             maxcor=100,  # how accurate is the Hessian, more is better but slower
              raise_error_on_failure=True):
     """Optimize psychoacoustic criteria."""
     #
@@ -156,6 +153,8 @@ def optimize(M, Su, sh_l, sh_m,
     T = sg.t_design5200()
     Y_test = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
 
+    rExyz_goal = T.u.T * rE_goal
+
     if M is None:
         # infer M_shape from Su and Y
         M_shape = (Su.shape[1],  # number of loudspeakers
@@ -171,7 +170,7 @@ def optimize(M, Su, sh_l, sh_m,
         rExyz, E = rE(M, Su, Y_test)
 
         # truncation loss due to finite order
-        truncation_loss = np.sum((rExyz - T.u.T * rE_goal) ** 2)
+        truncation_loss = np.sum((rExyz - rExyz_goal) ** 2)
 
         # uniform loudness loss
         uniform_loudness_loss = (np.sum((E - E_goal) ** 2) *
@@ -206,19 +205,19 @@ def optimize(M, Su, sh_l, sh_m,
     with Timer() as t:
         # https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
         res = opt.minimize(objective_and_gradient, x0,
-            bounds=opt.Bounds(-1, 1),
-            method='L-BFGS-B',
-            jac=True,
-            options=dict(
-                maxcor=maxcor,
-                disp=iprint,
-                maxls=500,
-                # maxcor=30,
-                gtol=1e-8,
-                #ftol=1e-12
-                ),
-            # callback=callback,
-           )
+                           #bounds=opt.Bounds(-1, 1),
+                           method='L-BFGS-B',
+                           jac=True,
+                           options=dict(
+                               maxcor=maxcor,
+                               disp=iprint,
+                               maxls=500,
+                               # maxcor=30,
+                               gtol=1e-8,
+                               # ftol=1e-12
+                               ),
+                           # callback=callback,
+                           )
     if True:
         print()
         print(f"Execution time: {t.interval:0.3f} sec.")
@@ -240,11 +239,10 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
     M_shape = M.shape
     g_spkr, g_total = lm.diffuse_field_gain(M)
 
-     # the test directions
+    # the test directions
     T = sg.t_design5200()
     cap = sg.spherical_cap(T.u, (0, 0, 1), 5*np.pi/6)[0]
     W = np.where(cap, 1, 1)
-
 
     Y_test = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
     rExyz, E = rE(M, Su, Y_test)
@@ -260,10 +258,10 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
         df_gain_loss = (g_total - df_gain)**2
 
         # Tikhonov regularization term - typical value = 1e-3
-        tikhonov_regularization_term = np.sum(M ** 2) * 1e-2 #tikhonov_lambda
+        tikhonov_regularization_term = np.sum(M ** 2) * 1e-2  # tikhonov_lambda
 
         # dir loss mag(rVxyz) should be 1
-        direction_loss = np.sum( W * ((rVxyz - rEu) ** 2))
+        direction_loss = np.sum(W * ((rVxyz - rEu) ** 2))
         P_loss = np.sum(W * ((P - 1)**2))
         return (direction_loss +
                 df_gain_loss +
@@ -283,7 +281,7 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
     with Timer() as t:
         res = opt.minimize(
             objective_and_gradient, x0,
-            bounds=opt.Bounds(-1, 1),
+            #bounds=opt.Bounds(-1, 1),
             method='L-BFGS-B',
             jac=True,
             options=dict(
@@ -293,7 +291,7 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
                  # gtol=1e-8,
                  # ftol=1e-12
                  ),
-             # callback=callback,
+            # callback=callback,
             )
     if True:
         print()
@@ -308,6 +306,7 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
 
     M_opt = res.x.reshape(M_shape)
     return M_opt, res
+
 
 def test_optimize_LF(M, C=3):
     import example_speaker_arrays as esa
