@@ -33,19 +33,19 @@ from scipy import special
 from scipy.integrate import dblquad
 
 
-## BEWARE: there are many conventions in use for the spherical harmonics
+# BEWARE: there are many conventions in use for the spherical harmonics
 
 
-def real_sph_harm(l, m, theta, phi, phi_is_elevation=False, cs_phase=False):
+def real_sph_harm(sh_l, sh_m, theta, phi, phi_is_elevation=False, cs_phase=False):
     """
     Compute real spherical harmonics, Y_lm.
 
     Parameters
     ----------
-        l: array-like
-           spherical harmonic degree, 0 <= l
-        m: array-like
-           spherical harmonic order, -l <= m <= l
+        sh_l: array-like
+           spherical harmonic degree, 0 <= sh_l
+        sh_m: array-like
+           spherical harmonic order, -sh_l <= sh_m <= sh_l
         theta: array-like
            azimuth, counter-clockwise angle about the +z axis from the +x axis
         phi: array-like
@@ -63,8 +63,8 @@ def real_sph_harm(l, m, theta, phi, phi_is_elevation=False, cs_phase=False):
         phi = pi / 2 - phi
 
     # args to sph_harm are order, degree, azimuth, zenith_angle
-    abs_m = np.abs(m)
-    Y = special.sph_harm(abs_m, l, theta, phi)
+    abs_m = np.abs(sh_m)
+    Y = special.sph_harm(abs_m, sh_l, theta, phi)
 
     # At thist point Y could be a scalar or a Numpy ndarray. In the Pythonic
     # EAFP style, we should assume it's an array and handle the scalar case in
@@ -85,8 +85,8 @@ def real_sph_harm(l, m, theta, phi, phi_is_elevation=False, cs_phase=False):
         Y[abs_m % 2 != 0] *= -1
 
     Y_real = np.real(Y)
-    Y_real[m > 0] *= sqrt(2)
-    Y_real[m < 0] = sqrt(2) * np.imag(Y[m < 0])
+    Y_real[sh_m > 0] *= sqrt(2)
+    Y_real[sh_m < 0] = sqrt(2) * np.imag(Y[sh_m < 0])
 
     if Y_scalar:
         return Y_real[0, 0]
@@ -98,7 +98,7 @@ def real_sph_harm(l, m, theta, phi, phi_is_elevation=False, cs_phase=False):
 def lm_broadcast(l, m, theta, phi,
                  transpose=False,
                  return_ml=False):
-    """Produce 2D array-like objects where each row is constant l,m pair and
+    """Produce 2D array-like objects where each row is constant sh_l,sh_m pair and
     each column is a constant theta, phi pair.
     """
     if transpose:
@@ -114,12 +114,12 @@ def lm_broadcast(l, m, theta, phi,
         return a_l, a_m, a_theta, a_phi
 
 
-def real_sph_harm_transform(l, m, az, el, cs_phase=False):
-    return real_sph_harm(*lm_broadcast(l, m, theta=az, phi=el),
+def real_sph_harm_transform(sh_l, sh_m, az, el, cs_phase=False):
+    return real_sph_harm(*lm_broadcast(sh_l, sh_m, theta=az, phi=el),
                          phi_is_elevation=True, cs_phase=cs_phase)
 
-# utility functions
 
+# utility functions
 #
 def is_zonal_sh(sh_l, sh_m):
     """
@@ -267,8 +267,8 @@ def rsh_transform_unit_test(max_degree=3, grid=sg.t_design5200()):
 #  TODO: work in progress
 
 # at the equator (pi/2 in scipy implementaion)
-#   zero crossing for sin (negative m) components at zero should be +
-#   zero corssing for cos (positive m) components at -pi/2 should be +
+#   zero crossing for sin (negative sh_m) components at zero should be +
+#   zero corssing for cos (positive sh_m) components at -pi/2 should be +
 def check_condon_shortley_phase_real(l, m, delta=1e-4):
     if not m > 0:
         return 0
@@ -313,7 +313,7 @@ def plot_associated_legendre(max_degree, polar_plot=False):
     el_range = np.linspace(-pi / 2, pi / 2, 100)
     lm = list(lm_generator(max_degree, lambda l, m: m == 0))
     for l, m in lm:
-        # alp = special.lpmv(np.abs(m), l, np.sin(el_range))
+        # alp = special.lpmv(np.abs(sh_m), sh_l, np.sin(el_range))
         alp = real_sph_harm(l, m, 0, el_range)
         if polar_plot:
             plt.polar(el_range[alp >= 0], alp[alp >= 0])

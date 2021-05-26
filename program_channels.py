@@ -391,6 +391,7 @@ class ChannelsAmbisonic(Channels):
     def __str__(self):
         return f"<{channels_id_string(self)}>"
 
+
 def channels_id_string(channel_object):
     c = channel_object
     s = c.mixed_order_scheme
@@ -409,6 +410,7 @@ def parse_channels_id_string(id_str):
 
     else:
         raise ValueError(f"Cannot parse '{id_str}'")
+
 
 class ChannelsAmbiX(ChannelsAmbisonic):
     def __init__(self, h_order, v_order=None, mixed_order_scheme=None):
@@ -522,6 +524,7 @@ def ambisonic_channels(C, convention=None, **kwargs):
         return ambisonic_channels(ChannelsFuMa(h_order, v_order, **kwargs))
     else:
         raise ValueError('Unknown convention {convention}')
+
 
 #
 # utility functions

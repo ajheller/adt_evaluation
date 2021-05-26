@@ -38,22 +38,20 @@ gamma0 = shelf.gamma0(gamma, matching_type='rms')
 print(C.id_string(), gamma0)
 
 # for 1H1P gamma0 should be +3 dB (from Gerzon, Practical Periphony)
-C_1H1P = pc.ChannelsFuMa(1,1)
+C_1H1P = pc.ChannelsFuMa(1, 1)
 sh_l_11 = C_1H1P.sh_l
 
 gamma_11 = shelf.gamma(sh_l_11, decoder_type='max_rE', decoder_3d=True,
-                    return_matrix=False)
+                       return_matrix=False)
 print(C_1H1P.id_string(), 'sh_l =', sh_l_11, '\n', gamma_11)
 
 gamma0_11 = shelf.gamma0(gamma_11, matching_type='rms')
 print(C_1H1P.id_string(), gamma0_11, 20*np.log10(gamma0_11))
 
 
-
-
 # %%  AllRAD
 
-title=f"{S.name}: AllRAD {C.id_string()}"
+title = f"{S.name}: AllRAD {C.id_string()}"
 
 M_allrad = bd.allrad(sh_l, sh_m,
                      S.az, S.el,
@@ -82,7 +80,7 @@ Diffuse field gain of array {df_gain_tot}
 
 # optimize allrad design at high frequencies
 
-title=f"{S.name}: Optimized HF AllRAD {C.id_string()}"
+title = f"{S.name}: Optimized HF AllRAD {C.id_string()}"
 
 el_lim = -π/4
 
@@ -105,7 +103,7 @@ Diffuse field gain of array {df_gain_tot}
 # optimize allrad design at low frequencies
 
 
-title_opt=f"{S_real.name}: Optimized LF/HF AllRAD {C.id_string()}"
+title_opt = f"{S_real.name}: Optimized LF/HF AllRAD {C.id_string()}"
 
 M_lf, res_lf = od.optimize_dome_LF(M_hf, S_real,
                                    ambisonic_order=C,
@@ -113,6 +111,7 @@ M_lf, res_lf = od.optimize_dome_LF(M_hf, S_real,
 
 figs.append(lm.plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
                                    title=title_opt))
+
 
 def write_plot_performance_LF(
         M_lf, M_hf, S_real, sh_l, sh_m, title):
@@ -138,7 +137,6 @@ write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m, title_opt)
 print(f"\n\n{title}\nDiffuse field gain of each loudspeaker (dB)")
 print("HF", lm.diffuse_field_gain(M_hf))
 print("LF", lm.diffuse_field_gain(M_lf))
-
 
 
 # %% what happens if we just use inverse gammas to make the LF

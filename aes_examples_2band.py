@@ -41,7 +41,7 @@ if False:
     print("ALLRad", lm.diffuse_field_gain(M))
 # %%
 
-el_lim = -π / 4
+el_lim = -π/4
 
 M_hf, res_hf = od.optimize_dome(S,
                                 ambisonic_order=C,
