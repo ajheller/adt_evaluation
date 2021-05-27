@@ -10,6 +10,7 @@ Created on Mon Aug 31 14:28:07 2020
 #    pip install dominate
 
 import os
+from pathlib import Path
 try:
     import dominate
 except ModuleNotFoundError as ie:
@@ -18,6 +19,9 @@ except ModuleNotFoundError as ie:
 else:
     from dominate.tags import div, table, tbody, tr, td, img
     from dominate.tags import html, body, h1, pre
+
+_here = Path(__file__).parent
+_report_dir = _here/'reports'
 
 
 # TODO: rework using pathlib
@@ -31,13 +35,17 @@ def html_report(figs, text=None, name='report', directory=None,
 
     if directory is None:
         directory = name
+    directory = Path(directory)
+    print(directory, directory.is_absolute())
+    if not directory.is_absolute():
+        directory = _report_dir/directory
     try:
-        os.mkdir(directory)
+        os.makedirs(directory)
     except FileExistsError as e:
         print(e)
 
     try:
-        os.mkdir(os.path.join(directory, fig_dir))
+        os.mkdir(directory/fig_dir)
     except FileExistsError as e:
         print(e)
 
