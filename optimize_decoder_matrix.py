@@ -52,7 +52,6 @@ Created on Tue Dec 31 02:48:26 2019
 # pylint: disable=missing-class-docstring
 # pylint: disable=missing-function-docstring
 
-import io
 
 import jax
 import jax.numpy as np  # jax overloads numpy
@@ -66,7 +65,6 @@ from numpy import pi as π  # I get tired of typing np.pi
 import basic_decoders as bd
 import localization_models as lm
 import real_spherical_harmonics as rsh
-import reports
 import shelf
 import spherical_grids as sg
 import program_channels as pc
