@@ -15,7 +15,7 @@ To make decoders, take a look at the files:
 * aes_examples_2band.py
 * nando_examples_2band.py
 
-These will reproduce the figures from our AES150 paper. See section "Running in the Cloud" to run these in Google Colab.
+These will reproduce the figures from our [AES150 paper](https://ambisonics.dreamhosters.com/BLaH13.pdf). See section "Running in the Cloud" to run these in Google Colab.
 
 
 ### Ploty Performance Plots
