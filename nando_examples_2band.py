@@ -142,14 +142,14 @@ print("LF", lm.diffuse_field_gain(M_lf))
 # %% what happens if we just use inverse gammas to make the LF
 #  -- really ugly, not sure why sooo ugly
 
+title_inv_gammas=f"{S_real.name}: Inverse gammas, LF/HF AllRAD {C.id_string()}"
 gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=True,
                     return_matrix=True)
 
 figs.append(lm.plot_performance_LF(M_hf @ np.linalg.pinv(gamma),
                                    M_hf,
                                    S_real.u.T, sh_l, sh_m,
-                                   title=title_opt))
-
+                                   title=title_inv_gammas))
 
 # %%
 

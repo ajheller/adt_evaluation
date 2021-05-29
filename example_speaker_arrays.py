@@ -184,7 +184,8 @@ def stage2017(add_imaginary=True):
         153, -10, 216,
         -153, -10, 216,
     ),
-        coord_code='AER', unit_code='DDI', name='stage',
+        coord_code='AER', unit_code='DDI',
+        name='CCRMA-Stage',
         ids=(
             'S01', 'S02', 'S03', 'S04',
             'S05', 'S06', 'S07', 'S08',
