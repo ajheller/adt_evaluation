@@ -1,0 +1,75 @@
+Description, CCRMA Stage 56-speaker array,,,,
+Name, Stage,,,,
+Fields, Name, Azimuth, Elevation,  Radius, Real
+Units,  ,Degrees, Degrees, Inches,
+,,,,,
+# towers 8,,,,,
+Spkr, S01,27,3.9,216,T
+Spkr, S02,-27,3.9,216,T
+Spkr, S03,63,8,162,T
+Spkr, S04,-63,8,162,T
+Spkr, S05,117,8,162,T
+Spkr, S06,-117,8,162,T
+Spkr, S07,153,3.9,216,T
+Spkr, S08,-153,3.9,216,T
+,,,,,
+# upper 8,,,,,
+Spkr, S09,23,29,171,T
+Spkr, S10,-23,29,171,T
+Spkr, S11,90,58,109,T
+Spkr, S12,-90,58,109,T
+Spkr, S13,157,31,167,T
+Spkr, S14,-157,31,167,T
+Spkr, S15,0,70,108,T
+Spkr, S16,180,70,108,T
+,,,,,
+# ring of 12 (rails),,,,,
+Spkr, D17,9,4,237,T
+Spkr, D18,-9,4,237,T
+Spkr, D19,45,6,187,T
+Spkr, D20,-45,6,187,T
+Spkr, D21,81,8,131,T
+Spkr, D22,-81,8,131,T
+Spkr, D23,99,8,130,T
+Spkr, D24,-99,8,130,T
+Spkr, D25,135,6,185,T
+Spkr, D26,-135,6,185,T
+Spkr, D27,171,4,238,T
+Spkr, D28,-171,4,238,T
+,,,,,
+# ring of 14 (lower trusses),,,,,
+Spkr, D29,14,18,243,T
+Spkr, D30,-14,18,243,T
+Spkr, D31,39,22,200,T
+Spkr, D32,-39,22,200,T
+Spkr, D33,60,30,154,T
+Spkr, D34,-60,30,154,T
+Spkr, D35,90,34,139,T
+Spkr, D36,-90,34,139,T
+Spkr, D37,122,30,153,T
+Spkr, D38,-122,30,153,T
+Spkr, D39,144,22,201,T
+Spkr, D40,-144,22,201,T
+Spkr, D41,166,19,243,T
+Spkr, D42,-166,19,243,T
+,,,,,
+# ring of 6 (upper trusses),,,,,
+Spkr, D43,0,31,180,T
+Spkr, D44,39,47,128,T
+Spkr, D45,-39,47,128,T
+Spkr, D46,146,47,129,T
+Spkr, D47,-146,47,129,T
+Spkr, D48,180,33,180,T
+,,,,,
+# Lower ring of 8 in towers,,,,,
+Spkr, L01,27,-10,216,T
+Spkr, L02,-27,-10,216,T
+Spkr, L03,63,-14,162,T
+Spkr, L04,-63,-14,162,T
+Spkr, L05,117,-14,162,T
+Spkr, L06,-117,-14,162,T
+Spkr, L07,153,-10,216,T
+Spkr, L08,-153,-10,216,T
+,,,,,
+# Imaginary speaker at the bottom,,,,,
+Spkr, *I1,0,-90,40,F

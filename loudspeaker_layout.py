@@ -30,8 +30,9 @@ from collections.abc import Sequence  # for type declarations
 import numpy as np
 from numpy import pi as π
 import pandas as pd
+import csv
 
-from plot_utils import plot_lsl
+from plot_utils import plot_lsl, plot_lsl_plan
 
 import spherical_data as SphD
 
@@ -115,7 +116,7 @@ class LoudspeakerLayout(SphD.SphericalData):
             json.dump(obj=self.to_json(**kwargs), indent=4,
                       fp=f)
 
-    def plot(self, **kwargs):
+    def plot3D(self, **kwargs):
         backend = kwargs.get('backend', 'matplotlib')
         if backend == 'matplotlib':
             plot_lsl(self, title=F"Speaker Array: {self.name}", **kwargs)
@@ -123,6 +124,13 @@ class LoudspeakerLayout(SphD.SphericalData):
             pass
         else:
             raise ValueError(f"Unknown plot backend {backend}")
+
+    def plot(self, **kwargs):
+        self.plot3D(**kwargs)
+
+    def plot_plan(self, **kwargs):
+        plot_lsl_plan(self, **kwargs)
+
 
 
 def append_layouts(l1, l2,
@@ -303,7 +311,12 @@ def from_vectors(c0, c1, c2, **kwargs) -> LoudspeakerLayout:
 
 #     return lsl, obj
 
-def from_iem_file(file_name):
+_iem_loudspeaker_layout_keys = ('Azimuth', 'Elevation', 'Radius',
+                                'IsImaginary', 'Channel', 'Gain')
+_iem_loudspeaker_layout_getter = itemgetter(*_iem_loudspeaker_layout_keys)
+
+
+def from_iem_file(file_name) -> LoudspeakerLayout:
     """Load a layout from an IEM-format file."""
     obj = json.load(open(file_name, 'r', encoding='utf-8'))
     lsl_dict = obj.get("LoudspeakerLayout")
@@ -316,11 +329,9 @@ def from_iem_file(file_name):
     name = lsl_dict['Name']
     description = lsl_dict.get('Description', dec_dict.get('Description'))
 
-    ls_dict = lsl_dict["Loudspeakers"]
     az, el, r, is_imaginary, channel, gain = \
-        zip(*[itemgetter(*('Azimuth', 'Elevation', 'Radius',
-                           'IsImaginary', 'Channel', 'Gain'))(ls)
-              for ls in ls_dict])
+        zip(*[_iem_loudspeaker_layout_getter(ls)
+              for ls in lsl_dict["Loudspeakers"]])
 
     # make ids from channels numbers
     ids = [f"S{ch:02d}" if not is_imag else f"I:{ch:02d}"
@@ -333,20 +344,107 @@ def from_iem_file(file_name):
 
     return lsl
 
-# TODO: work in progress... doesn't decode coords or units
-def from_csv_file(file,
-                  coord_code='AER',
-                  unit_code='DDM',
-                  name=None):
-    df = pd.read_csv(file)
-    lsl = from_array(df.iloc[:, 1:4],
-                     is_real=df.iloc[:, 4].to_numpy() == 'T',
-                     ids=df.iloc[:, 0].tolist(),
-                     coord_code=coord_code,
-                     unit_code=unit_code)
+
+def from_csv_file(file_name) -> LoudspeakerLayout:
+    with open(file_name, 'r', encoding='utf-8') as read_obj:
+        # pass the file object to reader() to get the reader object
+        csv_reader = csv.reader(read_obj, skipinitialspace=True)
+        # Iterate over each row in the csv using reader object
+        spkrs = []
+        for row in csv_reader:
+            try:
+                op, *args = row
+                # print(op, args)
+            except ValueError:
+                pass
+            else:
+                op = op.upper()
+                # print(op)
+                if op.startswith('NAM'):
+                    name = args[0]
+                elif op.startswith('DES'):
+                    description = args[0]
+                elif op.startswith('FIE'):
+                    fields = args
+                elif op.startswith('UNI'):
+                    units = args
+                elif op.startswith('SPE') or op.startswith('SPK'):
+                    spkrs.append(args)
+                elif op=='' or op.startswith('#'):
+                    pass
+                elif op.startswith('!'):
+                    print(args)
+                else:
+                    print(f"Ignoring op: {op}")
+    # use pandas superpowers
+    spkr_df = pd.DataFrame(spkrs, columns=fields)
+    # convert columns to numeric if possible
+    for key in spkr_df.keys():
+        if key in ('Azimuth', 'Elevation', 'Zenith', 'Radius',
+                   'X', 'Y', 'Z', 'U', 'V', 'W'):
+            try:
+                spkr_df[key] = pd.to_numeric(spkr_df[key])
+            except ValueError as e:
+                raise ValueError(f"{e} in {key}")
+    # normalize booleans
+    spkr_df.replace(('T', 'True', 'Yes', 'Dah', 'Oui', 'Ja', 'Yo',
+                     'Gnarly'),
+                    True,
+                    inplace=True)
+    spkr_df.replace(('F', 'False', 'No', 'Nyet', 'Non', 'Nein', 'Bupkis',
+                     'Whatev'),
+                    False,
+                    inplace=True)
+
+    for keys, codes in ((['Azimuth', 'Elevation', 'Radius'], 'AER'),
+                        (['Azimuth', 'Zenith', 'Radius'], 'ANR'),
+                        (['X', 'Z', 'Y'], 'XZY'),
+                        (['Azimuth', 'Z,', 'R'], 'AZR')):
+
+        try:
+            x = spkr_df[keys]
+        except KeyError as e:
+            print(keys, e)
+
+        else:
+            code = codes
+            # print(code, x)
+            # get the units
+
+            break
+    else:
+        raise ValueError(f"Can't make sense of {spkr_df.keys()}")
+
+    # units
+    unit_coord_dict = {c: u.upper() for c, u in zip(fields, units)}
+    print(unit_coord_dict)
+    unit_code = []
+    for k in keys:
+        unit = unit_coord_dict[k]
+        # special case for furlongs
+        if unit.startswith("FUR"):
+            unit_code.append("L")
+            break
+        # otherwise the first letter is the code
+        for u in ("M", "F", "I", "S", "C",
+                  "R", "D", "G"):
+            if unit.startswith(u):
+                unit_code.append(u)
+                print(k, unit, unit_code)
+                break
+
+    lsl = from_array(x, name=name, description=description,
+                     coord_code=code, unit_code=unit_code,
+                     ids=spkr_df['Name'].values,
+                     is_real=spkr_df['Real'].values
+                    )
+
+
     return lsl
 
 
+#
+#
 def unit_test_iem():
     import example_speaker_arrays as esa
     s = esa.stage2017()
@@ -363,10 +461,7 @@ def unit_test():
     from matplotlib import pyplot as plt
     import example_speaker_arrays as esa
     s = esa.stage2017()
-    plt.scatter(s.x, s.y, c=s.z, marker='o')
-    plt.grid()
-    plt.colorbar()
-    plt.show()
+    s.plot_plan()
 
     plt.figure(figsize=(12, 6))
     plt.scatter(s.az*180/π, s.el*180/π, c='white', marker='o')

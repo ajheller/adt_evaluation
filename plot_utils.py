@@ -77,6 +77,15 @@ def plot_lsl(S, speaker_stands=True, title=None):
     plt.show()
 
 
+def plot_lsl_plan(S, title=None, units='M'):
+    plt.scatter(S.x, S.y, c=S.z, marker='o')
+    plt.axis('equal')
+    plt.grid()
+    plt.colorbar()
+    plt.title(title)
+    plt.show()
+
+
 '''
 ======================
 Text annotations in 3D
