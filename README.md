@@ -54,8 +54,7 @@ The fancy 3D graphics need:
  
 ## Running in the Cloud on Google Research Colab
 
-The code has been tested in Google's Colaboratory ( <https://colab.research.google.com/notebooks/intro.ipynb> ).
-At this time, we are seeing differences when executing in a Runtime VM with a GPU, so we suggest not using a GPU until we can resolve this. Excution without a GPU is the default configuration in Colab.
+The code has been tested in [Google's Colaboratory](https://colab.research.google.com/notebooks/intro.ipynb). At this time, we are seeing differences when executing in a Runtime VM with a GPU, so we suggest not using a GPU until we can resolve this. Excution without a GPU is the default configuration in Colab.
 
 To reporduce the plots from our AES150 Paper:
 
@@ -81,7 +80,7 @@ To reporduce the plots from our AES150 Paper:
 %run nando_examples_2band.py
 ```
 
-6. This creates HTML reports of the decoder performance in the subdirectrory "reports". To view, download this directory to your computer and open with a browser. Unfortunately there's no way to view these directly from the Colab VM. 
+6. This creates HTML reports of the decoder performance in the subdirectrory "reports". To view, download this directory to your computer and open with a browser. Unfortunately there's no way to view these directly from the Colab Runtime VM. 
 
 ## License
 
@@ -111,20 +110,13 @@ than the implementation itself.
 
 
 I've struggled with the question of how to represent vectors and
-arrays that are a collection of vectors. By linear algebra convention,
-vectors in an N-dimensional space are written as Nx1 column vectors,
-for 3-D often written in inline text as [x y z]^T (the transpose of a
-row vector). By extension, a collection of M 3-D coordinates is
-written as an [3 x M] array. Transforming those coordinates into
-spherical harmonics results in a [rank(Y) x M] array, where rank(Y) is
-the number of spherical harmonics in the basis.
+arrays that are a collection of vectors. By linear algebra convention, vectors in an N-dimensional space are written as Nx1 column vectors, for 3-D often written in inline text as $[x y z]^T$ (the transpose of a row vector). By extension, a collection of M 3-D coordinates is written as an [3 x M] array. Transforming those coordinates into spherical harmonics results in a [rank(Y) x M] array, where rank(Y) is the number of spherical harmonics in the basis.
 
 In MATLAB, there are no 1-D arrays, so a column vector is a 3x1 array
 and a row vector is 1x3. NumPy on the other hand, has 1-D arrays, but
-if we make a list of M of them, and then turn that in into an nd-array
-with numpy.array, we get an Mx3 array. numpy.column_stack gives the
-desired result, but the printing is awkward, as it shows row-major.
+if we make a list of M of them, and then turn that in into an nd-array with numpy.array, we get an Mx3 array. numpy.column_stack gives the desired result, but the printing is awkward, as it shows row-major.
 
+```
     In[107]: v1 = (1,2,3); v2=(10,20,30)
 
 	In[108]: np.array((v1, v2))
@@ -137,6 +129,7 @@ desired result, but the printing is awkward, as it shows row-major.
 	array([[ 1, 10],
            [ 2, 20],
            [ 3, 30]])
+```
 
 The use of [N x 1] arrays for vectors is consistent with NumPy and
 SciPy linear algebra writeups, such as:
