@@ -21,6 +21,7 @@ Created on Thu Oct  8 21:01:24 2020
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from pathlib import Path
 import json
 from dataclasses import dataclass, field
 from operator import itemgetter
@@ -282,25 +283,55 @@ def from_vectors(c0, c1, c2, **kwargs) -> LoudspeakerLayout:
                          f"but were {list(map(len, (c0, c1, c2)))}.")
 
 
-def from_iem_file(file):
+# def from_iem_file(file):
+#     """Load a layout from an IEM-format file."""
+#     obj = json.load(open(file, 'r'))
+#     lsl_dict = obj["LoudspeakerLayout"]
+
+#     name = lsl_dict.get('Name', Path(file).stem)
+#     description = lsl_dict.get('Description', name)
+#     spkr_keys = ('Azimuth', 'Elevation', 'Radius',
+#                  'IsImaginary', 'Channel', 'Gain', 'id')
+#     az, el, r, is_imaginary, channel, gain, id = \
+#         zip(*[itemgetter(*spkr_keys)(ls)
+#               for ls in lsl_dict["Loudspeakers"]])
+
+#     lsl = from_vectors(az, el, r,
+#                        coord_code='AER', unit_code='DDM',
+#                        is_real=~np.array(is_imaginary),
+#                        name=name, description=description)
+
+#     return lsl, obj
+
+def from_iem_file(file_name):
     """Load a layout from an IEM-format file."""
-    obj = json.load(open(file, 'r'))
-    lsl_dict = obj["LoudspeakerLayout"]
+    obj = json.load(open(file_name, 'r', encoding='utf-8'))
+    lsl_dict = obj.get("LoudspeakerLayout")
+    if not lsl_dict:
+        print(f"The \"{file_name}\" json file is invalid")
+        return
+
+    dec_dict = obj.get("Decoder", dict())
 
     name = lsl_dict['Name']
-    description = lsl_dict['Description']
-    az, el, r, is_imaginary, channel, gain, ids = \
+    description = lsl_dict.get('Description', dec_dict.get('Description'))
+
+    ls_dict = lsl_dict["Loudspeakers"]
+    az, el, r, is_imaginary, channel, gain = \
         zip(*[itemgetter(*('Azimuth', 'Elevation', 'Radius',
-                           'IsImaginary', 'Channel', 'Gain', 'id'))(ls)
-              for ls in lsl_dict["Loudspeakers"]])
+                           'IsImaginary', 'Channel', 'Gain'))(ls)
+              for ls in ls_dict])
+
+    # make ids from channels numbers
+    ids = [f"S{ch:02d}" if not is_imag else f"I:{ch:02d}"
+           for ch, is_imag in zip(channel, is_imaginary)]
 
     lsl = from_vectors(az, el, r,
                        coord_code='AER', unit_code='DDM',
                        ids=ids, is_real=~np.array(is_imaginary),
                        name=name, description=description)
 
-    return lsl, obj
-
+    return lsl
 
 # TODO: work in progress... doesn't decode coords or units
 def from_csv_file(file,
