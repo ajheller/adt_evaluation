@@ -33,7 +33,7 @@ import pandas as pd
 from numpy import pi as π
 
 import spherical_data as SphD
-from plot_utils import plot_lsl, plot_lsl_plan
+from plot_utils import plot_lsl, plot_lsl_plan, plot_lsl_azel
 
 
 @dataclass
@@ -118,17 +118,21 @@ class LoudspeakerLayout(SphD.SphericalData):
     def plot3D(self, **kwargs):
         backend = kwargs.get('backend', 'matplotlib')
         if backend == 'matplotlib':
-            plot_lsl(self, title=F"Speaker Array: {self.name}", **kwargs)
+            ret = plot_lsl(self, title=F"Speaker Array: {self.name}", **kwargs)
         elif backend == 'plotly':
             pass
         else:
             raise ValueError(f"Unknown plot backend {backend}")
+        return ret
 
     def plot(self, **kwargs):
-        self.plot3D(**kwargs)
+        return self.plot3D(**kwargs)
 
     def plot_plan(self, **kwargs):
-        plot_lsl_plan(self, **kwargs)
+        return plot_lsl_plan(self, **kwargs)
+
+    def plot_azel(self, **kwargs):
+        return plot_lsl_azel(self, **kwargs)
 
 
 def append_layouts(l1, l2,
@@ -282,7 +286,7 @@ def from_vectors(c0, c1, c2, **kwargs) -> LoudspeakerLayout:
         c2 = np.full_like(c0, c2, dtype=float)
 
     if len(c0) == len(c1) == len(c2):
-        return from_array(np.column_stack((c0, c1, c2)).astype(np.float),
+        return from_array(np.column_stack((c0, c1, c2)).astype(float),
                           **kwargs)
     else:
         raise ValueError("c0, c1, c2 must be the same length, "
@@ -316,7 +320,9 @@ _iem_loudspeaker_layout_getter = itemgetter(*_iem_loudspeaker_layout_keys)
 
 def from_iem_file(file_name) -> LoudspeakerLayout:
     """Load a layout from an IEM-format file."""
-    obj = json.load(open(file_name, 'r', encoding='utf-8'))
+    #
+    with open(file_name, 'r', encoding='utf-8') as f:
+        obj = json.load(f)
     lsl_dict = obj.get("LoudspeakerLayout")
     if not lsl_dict:
         print(f"The \"{file_name}\" json file is invalid")

@@ -9,6 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import pi as π
 
 
 def set_axes_equal(ax):
@@ -55,7 +56,7 @@ def axis_demo():
     plt.show()
 
 
-def plot_lsl(S, speaker_stands=True, title=None):
+def plot_lsl(S, speaker_stands=True, title=None, show=True):
     fig = plt.figure(figsize=(10, 10))
     # ax = fig.add_subplot(1, 1, 1)
     ax = fig.gca(projection='3d')
@@ -74,16 +75,40 @@ def plot_lsl(S, speaker_stands=True, title=None):
     ax.set(xlabel='X', ylabel='Y', zlabel='Z')
     if title is not None:
         plt.title(title)
-    plt.show()
+    if show:
+        plt.show()
+    return fig
 
 
-def plot_lsl_plan(S, title=None, units='M'):
+def plot_lsl_plan(S, title=None, units='M', show=True):
+    fig = plt.figure()
     plt.scatter(S.x, S.y, c=S.z, marker='o')
     plt.axis('equal')
     plt.grid()
     plt.colorbar()
     plt.title(title)
-    plt.show()
+    if show:
+        plt.show()
+    return fig
+
+
+def plot_lsl_azel(S, title=None, show=True):
+    fig = plt.figure(figsize=(12, 6))
+    plt.scatter(S.az*180/π, S.el*180/π, c='white', marker='o')
+    for x, y, r, t in zip(S.az*180/π, S.el*180/π, S.r, S.ids):
+        plt.text(x, y, t,
+                 bbox=dict(facecolor='lightblue', alpha=0.4),
+                 horizontalalignment='center',
+                 verticalalignment='center')
+    plt.xlim(-180, 180)
+    plt.ylim(-90, 90)
+    plt.grid()
+    # magic incantation to flip the x-axis of the plot
+    plt.gca().invert_xaxis()
+    # plt.colorbar()
+    if show:
+        plt.show()
+    return fig
 
 
 '''
