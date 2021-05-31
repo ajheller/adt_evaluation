@@ -20,6 +20,14 @@ else:
     from dominate.tags import div, table, tbody, tr, td, img
     from dominate.tags import html, body, h1, pre
 
+try:
+    import slugify
+except ModuleNotFoundError as ie:
+    print("run 'pip install python-slugify' for reports")
+    slugify = False
+else:
+    from slugify import slugify
+
 _here = Path(__file__).parent
 _report_dir = _here/'reports'
 
@@ -33,19 +41,23 @@ def html_report(figs, text=None, name='report', directory=None,
     if not dominate:
         return
 
+    safe_name = slugify(name)
+    safe_fig_dir = slugify(fig_dir)
+
     if directory is None:
-        directory = name
+        directory = safe_name
+
     directory = Path(directory)
     print(directory, directory.is_absolute())
     if not directory.is_absolute():
-        directory = _report_dir/directory
+        directory = _report_dir/slugify(str(directory))
     try:
         os.makedirs(directory)
     except FileExistsError as e:
         print(e)
 
     try:
-        os.mkdir(directory/fig_dir)
+        os.mkdir(directory/safe_fig_dir)
     except FileExistsError as e:
         print(e)
 
@@ -58,12 +70,13 @@ def html_report(figs, text=None, name='report', directory=None,
             for j, row in enumerate(figs):
                 r = tr()
                 for i, item in enumerate(row):
-                    url = os.path.join(fig_dir, f"{name}-fig-{j}_{i}.png")
+                    url = os.path.join(safe_fig_dir,
+                                       f"{safe_name}-fig-{j}_{i}.png")
                     item.savefig(os.path.join(directory, url),
                                  dpi=dpi, bbox_inches="tight")
                     # width=100% makes browser scale image
                     r += td(img(src=url, width=f"100%"))
 
-    with open(os.path.join(directory, name + '.html'), 'w') as f:
+    with open(os.path.join(directory, safe_name + '.html'), 'w') as f:
         print(h, file=f)
     return h
