@@ -23,20 +23,21 @@ Created on Fri Mar 14 09:21:47 2014
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from __future__ import division
-from __future__ import print_function
 
 import numpy as np
-from numpy import meshgrid
-from numpy import pi, sin, cos, sqrt
+from numpy import cos, meshgrid, pi, sin, sqrt
 from scipy import special
 from scipy.integrate import dblquad
 
-
+#
 # BEWARE: there are many conventions in use for the spherical harmonics
+#
 
 
-def real_sph_harm(sh_l, sh_m, theta, phi, phi_is_elevation=False, cs_phase=False):
+def real_sph_harm(sh_l, sh_m,
+                  theta, phi,
+                  phi_is_elevation=False,
+                  cs_phase=False):
     """
     Compute real spherical harmonics, Y_lm.
 
@@ -98,8 +99,8 @@ def real_sph_harm(sh_l, sh_m, theta, phi, phi_is_elevation=False, cs_phase=False
 def lm_broadcast(l, m, theta, phi,
                  transpose=False,
                  return_ml=False):
-    """Produce 2D array-like objects where each row is constant sh_l,sh_m pair and
-    each column is a constant theta, phi pair.
+    """Produce 2D array-like objects where each row is constant sh_l, sh_m pair
+    and each column is a constant theta, phi pair.
     """
     if transpose:
         a_m, a_theta = meshgrid(m, theta)
@@ -172,7 +173,6 @@ def is_tesseral_sh(sh_l, sh_m):
     http://mathworld.wolfram.com/TesseralHarmonic.html
     """
     return ~is_sectoral_sh(sh_l, sh_m) & ~is_zonal_sh(sh_l, sh_m)
-
 
 
 def lm_generator(max_degree: int = 3, pred=lambda l, m: True):
@@ -266,9 +266,9 @@ def rsh_transform_unit_test(max_degree=3, grid=sg.t_design5200()):
 # -------------- validate condon-shortley phase --------------- #
 #  TODO: work in progress
 
-# at the equator (pi/2 in scipy implementaion)
+# at the equator (pi/2 in scipy implementation)
 #   zero crossing for sin (negative sh_m) components at zero should be +
-#   zero corssing for cos (positive sh_m) components at -pi/2 should be +
+#   zero crossing for cos (positive sh_m) components at -pi/2 should be +
 def check_condon_shortley_phase_real(l, m, delta=1e-4):
     if not m > 0:
         return 0

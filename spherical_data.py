@@ -21,9 +21,10 @@ Created on Tue Oct  6 17:13:07 2020
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from dataclasses import dataclass, field
-import numpy as np
 import warnings
+from dataclasses import dataclass, field
+
+import numpy as np
 
 # cached_property is only in 3.8+
 #  backport available at https://pypi.org/project/backports.cached-property/

@@ -23,8 +23,6 @@ Created on Sun Nov  4 17:29:18 2018
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from __future__ import division, print_function
-
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import pi as π

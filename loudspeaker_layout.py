@@ -21,20 +21,19 @@ Created on Thu Oct  8 21:01:24 2020
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pathlib import Path
+import csv
 import json
+from collections.abc import Sequence  # for type declarations
 from dataclasses import dataclass, field
 from operator import itemgetter
-from collections.abc import Sequence  # for type declarations
+from pathlib import Path
 
 import numpy as np
-from numpy import pi as π
 import pandas as pd
-import csv
-
-from plot_utils import plot_lsl, plot_lsl_plan
+from numpy import pi as π
 
 import spherical_data as SphD
+from plot_utils import plot_lsl, plot_lsl_plan
 
 
 @dataclass
@@ -43,7 +42,7 @@ class LoudspeakerLayout(SphD.SphericalData):
 
     description: str = ""
     is_real: np.array = field(default_factory=lambda: np.array(0,
-                                                               dtype=np.bool))
+                                                               dtype=bool))
     ids: list = field(default_factory=lambda: [])
 
     _primary_attrs = ['x', 'y', 'z', 'is_real', 'name', 'ids', 'description']
@@ -130,7 +129,6 @@ class LoudspeakerLayout(SphD.SphericalData):
 
     def plot_plan(self, **kwargs):
         plot_lsl_plan(self, **kwargs)
-
 
 
 def append_layouts(l1, l2,
@@ -236,7 +234,7 @@ def from_array(a: Sequence,
         raise ValueError("len(ids) != num_spkrs")
 
     if np.isscalar(is_real):
-        is_real = np.full(num_spkrs, is_real, dtype=np.bool)
+        is_real = np.full(num_spkrs, is_real, dtype=bool)
     elif len(is_real) != num_spkrs:
         raise ValueError("len(is_real) != num_spkrs")
 
@@ -279,9 +277,9 @@ def from_array(a: Sequence,
 # convenience function that takes three vectors (or scalars) of coordinates
 def from_vectors(c0, c1, c2, **kwargs) -> LoudspeakerLayout:
     if np.isscalar(c1):
-        c1 = np.full_like(c0, c1, dtype=np.float)
+        c1 = np.full_like(c0, c1, dtype=float)
     if np.isscalar(c2):
-        c2 = np.full_like(c0, c2, dtype=np.float)
+        c2 = np.full_like(c0, c2, dtype=float)
 
     if len(c0) == len(c1) == len(c2):
         return from_array(np.column_stack((c0, c1, c2)).astype(np.float),
@@ -370,7 +368,7 @@ def from_csv_file(file_name) -> LoudspeakerLayout:
                     units = args
                 elif op.startswith('SPE') or op.startswith('SPK'):
                     spkrs.append(args)
-                elif op=='' or op.startswith('#'):
+                elif op == '' or op.startswith('#'):
                     pass
                 elif op.startswith('!'):
                     print(args)
@@ -436,8 +434,7 @@ def from_csv_file(file_name) -> LoudspeakerLayout:
     lsl = from_array(x, name=name, description=description,
                      coord_code=code, unit_code=unit_code,
                      ids=spkr_df['Name'].values,
-                     is_real=spkr_df['Real'].values
-                    )
+                     is_real=spkr_df['Real'].values)
 
 
     return lsl
@@ -459,6 +456,7 @@ def unit_test_iem():
 def unit_test():
     """Run tests for this module."""
     from matplotlib import pyplot as plt
+
     import example_speaker_arrays as esa
     s = esa.stage2017()
     s.plot_plan()

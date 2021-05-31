@@ -10,21 +10,18 @@ import io
 import jax.numpy as np  # jax overloads numpy
 from numpy import pi as π  # I get tired of typing np.pi
 
-import program_channels as pc
-import spherical_grids as sg
-import shelf
 import basic_decoders as bd
-import localization_models as lm
-import reports
-
 import example_speaker_arrays as esa
+import localization_models as lm
 import loudspeaker_layout as ll
+import program_channels as pc
+import reports
+import shelf
+import spherical_grids as sg
 from optimize_decoder_matrix import optimize, optimize_LF
 
-
-# TODO: this is a copy of stage_test that will morph into a more general
-# TODO: function
 # TODO: need to clean up the handling of imaginary speakers
+
 
 def optimize_dome(S,  # the speaker array
                   ambisonic_order=3,
@@ -36,10 +33,12 @@ def optimize_dome(S,  # the speaker array
                   eval_order=None,
                   random_start=False
                   ):
-    """Test optimizer with CCRMA Stage array."""
+    """Optimize a dome array."""
     #
     #
-    order_h, order_v, sh_l, sh_m, id_string = pc.ambisonic_channels(ambisonic_order)
+    (order_h, order_v,
+     sh_l, sh_m,
+     id_string) = pc.ambisonic_channels(ambisonic_order)
     order = max(order_h, order_v)  # FIXME
     is_3D = order_v > 0
 
@@ -53,15 +52,7 @@ def optimize_dome(S,  # the speaker array
         pc.ambisonic_channels(eval_order)
 
     mask_matrix = pc.mask_matrix(eval_sh_l, eval_sh_m, sh_l, sh_m)
-    print(mask_matrix)
-
-    # if True:
-    #     S = esa.stage2017() + esa.nadir()#stage()
-    #     spkr_array_name = S.name
-    # else:
-    #     # hack to enter Eric's array
-    #     S = emb()
-    #     spkr_array_name = 'EMB'
+    # print(mask_matrix)
 
     spkr_array_name = S.name
     print('speaker array = ', spkr_array_name)
@@ -179,7 +170,9 @@ def optimize_dome_LF(M_hf,
                      ambisonic_order=3,
                      el_lim=-π/8):
 
-    order_h, order_v, sh_l, sh_m, id_string = pc.ambisonic_channels(ambisonic_order)
+    (order_h, order_v,
+     sh_l, sh_m,
+     id_string) = pc.ambisonic_channels(ambisonic_order)
 
     # the test directions
     T = sg.t_design5200()

@@ -23,13 +23,11 @@ Created on Fri Aug 24 23:09:48 2018
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from __future__ import division, print_function
 
 import numpy as np
 import scipy.special as spec
 import sympy as sp
 from scipy import interpolate as interp
-
 
 # max rE gains
 #  from Heller, et al. LAC 2012
@@ -113,6 +111,7 @@ rE_to_ambisonic_order_2d = rE_to_ambisonic_order_function(2)
 # cardioid gains, aka in-phase gains
 #  from Moreau Table 3.5, page 69
 # we use sympy to do exact arithmetic here
+# TODO: port factorial_quotient from MATLAB ADT to get rid of SymPy
 def cardioid_gains_2d(ambisonic_order):
     l = ambisonic_order
     return [sp.factorial(l) ** 2 / (sp.factorial(l + m) * sp.factorial(l - m))
@@ -137,6 +136,7 @@ def cardioid_gamma_3d(sh_l):
     return [(sp.factorial(l) * sp.factorial(l + 1)) /
             (sp.factorial(l + m + 1) * sp.factorial(l - m))
             for m in sh_l]
+
 
 # function to match LF and HF perceptual gains
 #  note that gammas here is the set for all the channels

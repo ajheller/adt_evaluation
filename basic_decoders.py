@@ -22,7 +22,6 @@ Created on Fri Oct 19 17:57:11 2018
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from __future__ import division, print_function
 
 import numpy as np
 from scipy.spatial import Delaunay  # for AllRAD decoder
@@ -430,9 +429,9 @@ def unit_test2(order=3, case=1, debug=True):
 
     """
     import example_speaker_arrays as esa
-    import spherical_grids as sg
-    import spherical_data as sd
     import loudspeaker_layout as LSL
+    import spherical_data as sd
+    import spherical_grids as sg
 
     if case == 0:
         # octagon

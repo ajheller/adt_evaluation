@@ -53,6 +53,8 @@ Created on Tue Dec 31 02:48:26 2019
 # pylint: disable=missing-function-docstring
 
 
+import warnings
+
 import jax
 import jax.numpy as np  # jax overloads numpy
 import jax.random as random
@@ -64,13 +66,12 @@ from numpy import pi as π  # I get tired of typing np.pi
 
 import basic_decoders as bd
 import localization_models as lm
+import program_channels as pc
 import real_spherical_harmonics as rsh
 import shelf
 import spherical_grids as sg
-import program_channels as pc
 from Timer import Timer
 
-import warnings
 warnings.filterwarnings(action='once')
 
 
@@ -142,7 +143,7 @@ def optimize(M, Su, sh_l, sh_m,
         E_goal = 1
 
     if rE_goal == 'auto' or rE_goal is None:
-        #FIXME This assumes 3D arrays
+        # FIXME: This assumes 3D arrays
         rE_goal = shelf.max_rE_3d(np.max(sh_l) + 2)
 
     print(f"rE_goal min={np.min(rE_goal)} max={np.max(rE_goal)}")
@@ -337,18 +338,21 @@ def unit_test(C):
 
     M240_hf = M240 @ gamma
 
-    lm.plot_performance(M240_hf, Su, sh_l, sh_m, title='Pinv unit test')
+    lm.plot_performance(M240_hf, Su, sh_l, sh_m,
+                        title='Pinv unit test')
     lm.plot_matrix(M240_hf, title='Pinv unit test')
 
     # 2 - AllRAD
     M240_allrad = bd.allrad(sh_l, sh_m, S240.az, S240.el)
     M240_allrad_hf = M240_allrad @ gamma
-    lm.plot_performance(M240_allrad_hf, Su, sh_l, sh_m, title='AllRAD unit test')
+    lm.plot_performance(M240_allrad_hf, Su, sh_l, sh_m,
+                        title='AllRAD unit test')
     lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # 3 - NLOpt
     M_opt, res = optimize(None, Su, sh_l, sh_m, E_goal=1, sparseness_penalty=0)
-    lm.plot_performance(M_opt, Su, sh_l, sh_m, title='Optimized unit test')
+    lm.plot_performance(M_opt, Su, sh_l, sh_m,
+                        title='Optimized unit test')
     lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
 

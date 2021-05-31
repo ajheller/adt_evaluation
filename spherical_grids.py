@@ -21,13 +21,15 @@ Created on Tue Oct  6 17:13:07 2020
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from dataclasses import dataclass, field
 from pathlib import Path
+
 import numpy as np
 from numpy import pi
-from dataclasses import dataclass, field
 
 import spherical_data as SphD
-from spherical_data import sph2cart, sphz2cart, cart2sph, cart2sphz, spherical_cap
+from spherical_data import (cart2sph, cart2sphz, sph2cart, spherical_cap,
+                            sphz2cart)
 
 # data dir
 _data_dir = Path(__file__).parent/"data"
@@ -38,7 +40,7 @@ class SphericalGrid(SphD.SphericalData):
     """A class to support regular sampling in S^2."""
 
     # quadrature weights, dΩ
-    w: np.ndarray = field(default_factory=lambda: np.array(0, dtype=np.float))
+    w: np.ndarray = field(default_factory=lambda: np.array(0, dtype=float))
 
     _primary_attrs = ['x', 'y', 'z', 'w', 'name']
 

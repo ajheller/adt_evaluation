@@ -5,17 +5,19 @@ Created on Sun May 16 21:38:12 2021
 
 @author: heller
 """
+import io
+
 import numpy as np
 from numpy import pi as π
-import optimize_dome as od
+
+import basic_decoders as bd
 import example_speaker_arrays as esa
 import localization_models as lm
+import optimize_dome as od
 import program_channels as pc
-import basic_decoders as bd
-import write_faust_decoder as wfd
-import shelf
-import io
 import reports
+import shelf
+import write_faust_decoder as wfd
 
 figs = []
 
@@ -142,7 +144,7 @@ print("LF", lm.diffuse_field_gain(M_lf))
 # %% what happens if we just use inverse gammas to make the LF
 #  -- really ugly, not sure why sooo ugly
 
-title_inv_gammas=f"{S_real.name}: Inverse gammas, LF/HF AllRAD {C.id_string()}"
+title_inv_gammas = f"{S_real.name}: Inverse gammas, LF/HF AllRAD {C.id_string()}"
 gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=True,
                     return_matrix=True)
 
@@ -163,6 +165,7 @@ wfd.write_faust_decoder_dual_band('SAH_ambdecH_ACN_N3D_O3H2V.dsp',
                                   M_hf,
                                   sh_l, S_real.r)
 
-wfd.write_faust_decoder_dual_band('SAH_ambdecH_ACN_N3D_A3H2V.dsp', 'SAH_ambdecH_ACN_N3D_A3H2V',
+wfd.write_faust_decoder_dual_band('SAH_ambdecH_ACN_N3D_A3H2V.dsp',
+                                  'SAH_ambdecH_ACN_N3D_A3H2V',
                                   M_allrad,
                                   sh_l, S_real.r)
