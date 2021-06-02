@@ -85,7 +85,8 @@ def optimize_dome(S,  # the speaker array
         figs.append(
             lm.plot_performance(M_allrad_hf, S_u, sh_l, sh_m,
                                 mask_matrix=mask_matrix,
-                                title=plot_title))
+                                title=plot_title,
+                                el_lim=el_lim))
 
         print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
         for n, g in zip(Sr.ids,
@@ -117,10 +118,15 @@ def optimize_dome(S,  # the speaker array
                        shelf.max_rE_3d(max(order-2, 1))  # outside the cap
                        )
 
+    # rE_W = T.interp_el(np.array((-90, 0, +90))*np.pi/180,
+    #                    (0.5, 1, 0.5),
+    #                    'linear')
+    rE_W = 1
+
     M_opt, res = optimize(M_allrad, S_u, sh_l, sh_m, E_goal=E0,
                           iprint=50, tikhonov_lambda=tikhonov_lambda,
                           sparseness_penalty=sparseness_penalty,
-                          rE_goal=rE_goal)
+                          rE_goal=rE_goal, rE_W=rE_W)
 
     plot_title = f"Optimized {M_start}, "
     if eval_order_given:
@@ -131,7 +137,8 @@ def optimize_dome(S,  # the speaker array
     figs.append(
         lm.plot_performance(M_opt, S_u, sh_l, sh_m,
                             mask_matrix=mask_matrix,
-                            title=plot_title
+                            title=plot_title,
+                            el_lim=el_lim,
                             ))
 
     with io.StringIO() as f:

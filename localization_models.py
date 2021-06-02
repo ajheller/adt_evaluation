@@ -127,7 +127,7 @@ def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None,
                 M=M, sh_l=sh_l, sh_m=sh_m, test_dirs=test_dirs)
 
 
-def plot_az_el_grid(sh_l, sh_m, M, Su, title=None, show=True):
+def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π/4, title=None, show=True):
     p = compute_rVrE_dict(sh_l, sh_m, M, Su)
     az = p['rEaz']
     el = p['rEel']
@@ -150,14 +150,14 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, title=None, show=True):
 
     # plot lines of constant elevation
     for iy in range(0, 180, 10):
-        if tel[0, iy] > -π/4:
+        if tel[0, iy] > el_lim:
             plt.plot(az[1:-1, iy]*180/np.pi,
                      el[1:-1, iy]*180/np.pi,
                      zorder=1000)
 
     # plot lines of constant azimuth
     for ix in range(0, 361, 10):
-        el_plot_range = (tel[0, :] > -π/4) & (tel[0, :] < π/2)
+        el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π/2)
         # NOTE: use the following line to get plots identical to AES150 paper
         # el_plot_range = slice(85, -1)
         # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
@@ -169,7 +169,7 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, title=None, show=True):
         line_color = "xkcd:light gray"
         # plot lines of constant azimuth
         for iy in range(0, 180, 10):
-            if tel[0, iy] > -π/4:
+            if tel[0, iy] > el_lim:
                 plt.plot(taz[1:-1, iy]*180/np.pi,
                          tel[1:-1, iy]*180/np.pi,
                          color=line_color,
@@ -177,7 +177,7 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, title=None, show=True):
 
         # plot lines of constant azimuth
         for ix in range(0, 361, 10):
-            el_plot_range = (tel[0, :] > -π/4) & (tel[0, :] < π/2)
+            el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π/2)
             # NOTE: use the following to get plots identical to AES150 paper
             # el_plot_range = slice(85, -1)
             # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
@@ -259,7 +259,8 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
                      mask_matrix=None,
                      title="",
                      plot_spkrs=True,
-                     test_dirs=None):
+                     test_dirs=None,
+                     el_lim=-π/4):
     """Compute and plot basic performance metrics of a decoder matrix."""
     # fill in defaults
     if test_dirs is None:
@@ -355,6 +356,7 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
         fig = plt.figure(figsize=(10, 4))
         plot_az_el_grid(sh_l, sh_m, M, Su,
                         title=f"{title}\nrE directions",
+                        el_lim=el_lim,
                         show=False)
         if plot_spkrs:
             plot_loudspeakers(Su, zorder=1500)
@@ -369,7 +371,8 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
     return out_figs
 
 
-def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, title=""):
+def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π/4,
+                        title=""):
 
     T = sg.az_el()
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)

@@ -26,6 +26,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from scipy import interpolate
+
 # cached_property is only in 3.8+
 #  backport available at https://pypi.org/project/backports.cached-property/
 try:
@@ -201,6 +203,30 @@ def spherical_cap(T, u, angle, min_angle=0):
     return c, c_max, a_err, 2 * np.arcsin(np.linalg.norm(a_err) / 2)
 
 
+def spherical_interp(T, u, angle, r):
+    try:
+        u = axis_names[u.lower()]
+    except AttributeError or KeyError:
+        pass
+
+    # u needs to be an array of unit vectors, normalize if not
+    norm = np.sqrt(np.dot(u, u))
+    if not np.isclose(norm, 1):
+        warnings.warn("u is not a unit vector, normalizing")
+        u = u / norm
+
+    # retrieve unit vectors
+    try:
+        Tu = T.u
+    except AttributeError:
+        Tu = T
+
+    # if Tu is not compatible with u, try its transpose
+    # this still can fail in np.dot()
+    if len(u) != len(Tu):
+        Tu = Tu.transpose()
+
+
 # ---- the class definition ----
 
 @dataclass
@@ -329,6 +355,12 @@ class SphericalData:
 
     def cap(self, u, angle, **kwargs):
         return spherical_cap(self.u, u, angle, **kwargs)
+
+    def interp_el(self, u, phi, r, *args, **kwargs):
+
+        f = interpolate.interp1d(el, r, *args, **kwargs)
+        w = f(self.el)
+        return w
 
 
 def from_cart(*args, sd_class=SphericalData, **kwargs):

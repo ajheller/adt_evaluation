@@ -134,6 +134,7 @@ def optimize(M, Su, sh_l, sh_m,
              sparseness_penalty=1,
              uniform_loudness_penalty=0.1,  # 0.01
              rE_goal=1.0,
+             rE_W=1.0,
              maxcor=100,  # how accurate is the Hessian, more is better but slower
              raise_error_on_failure=True):
     """Optimize psychoacoustic criteria."""
@@ -169,7 +170,7 @@ def optimize(M, Su, sh_l, sh_m,
         rExyz, E = rE(M, Su, Y_test)
 
         # truncation loss due to finite order
-        truncation_loss = np.sum((rExyz - rExyz_goal) ** 2)
+        truncation_loss = np.sum(rE_W * ((rExyz - rExyz_goal) ** 2))
 
         # uniform loudness loss
         uniform_loudness_loss = (np.sum((E - E_goal) ** 2) *
