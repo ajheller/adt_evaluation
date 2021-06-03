@@ -154,7 +154,8 @@ def allrad(degree, order,
            speakers_azimuth, speakers_elevation,
            speaker_is_real=None,
            v_az=None, v_el=None,
-           vbap_norm=True):
+           vbap_norm=True,
+           allrad2=False):
     """
     Compute basic decoder matrix by the AllRAD method.
 
@@ -196,6 +197,10 @@ def allrad(degree, order,
 
     Mv = inversion(degree, order, v_az, v_el)
     M = np.matmul(V2R, Mv)
+    
+    if allrad2:
+      M_sign = np.sign(M)
+      M = M_sign * np.sqrt(V2R**2 @ Mv**2)
 
     if speaker_is_real is not None:
         # get rid of rows corresponding to imaginary speakers
