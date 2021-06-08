@@ -9,6 +9,7 @@ Created on Sat Jun  5 10:49:39 2021
 import getpass
 import platform
 from datetime import datetime
+import subprocess
 
 
 def timestamp(join='\n'):
@@ -18,3 +19,7 @@ def timestamp(join='\n'):
     if join:
         ret = join.join(ret)
     return ret
+
+
+def git_version():
+    return subprocess.check_output(["git", "describe", "--always"]).strip()
