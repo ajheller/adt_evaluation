@@ -53,6 +53,23 @@ class LoudspeakerLayout(SphD.SphericalData):
 
     def __getitem__(self, index, new_name=None, new_description=None):
         """Return a new LL with only the indexed items."""
+
+        # look for magic indices
+        # TODO: replace this with a dictionary of speaker ids and
+        # TODO: and magic indices
+        if isinstance(index, str):
+            if 'real'.startswith(index.lower()):
+                index = self.is_real
+            elif 'imaginary'.startswith(index.lower()):
+                index = ~self.is_real
+            else:
+                # is it a spkr id?
+                index_bool = self.ids == index
+                if np.sum(index_bool) == 1:
+                    index = index_bool
+                else:  
+                    raise ValueError(f"Unknown speaker id: {index}.")
+
         xyz = self.xyz[index]
         ids = np.asarray(self.ids)[index]
         is_real = np.asarray(self.is_real)[index]
@@ -362,19 +379,19 @@ def from_csv_file(file_name) -> LoudspeakerLayout:
             except ValueError:
                 pass
             else:
-                op = op.upper()
+                op = op.lower()
                 # print(op)
-                if op.startswith('NAM'):
+                if 'name'.startswith(op):
                     name = args[0]
-                elif op.startswith('DES'):
+                elif 'description'.startswith(op):
                     description = args[0]
-                elif op.startswith('FIE'):
+                elif 'fields'.startswith(op):
                     fields = args
-                elif op.startswith('UNI'):
+                elif 'units'.startswith(op):
                     units = args
-                elif op.startswith('SPE') or op.startswith('SPK'):
+                elif 'speaker'.startswith(op) or 'spkr'.startswith(op):
                     spkrs.append(args)
-                elif op == '' or op.startswith('#'):
+                elif op.startswith('#'):
                     pass
                 elif op.startswith('!'):
                     print(args)
