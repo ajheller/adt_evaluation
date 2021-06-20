@@ -20,9 +20,44 @@ import shelf
 import spherical_grids as sg
 from optimize_decoder_matrix import optimize, optimize_LF
 
+
+#
+def optimize_dome2(M_init, sh_l, sh_m,
+                   spkr_u,
+                   el_lim):
+
+    tikhonov_lambda = 1e-3
+    sparseness_penalty = 0
+
+    # Objective for E
+    T = sg.t_design5200()
+    cap, *_ = sg.spherical_cap(T.u,
+                               (0, 0, 1),  # apex
+                               π/2 - el_lim)
+    E0 = np.where(cap, 1.0, 0.1)  # inside, outside
+
+    # np.array([0.1, 1.0])[cap.astype(np.int8)]
+
+    # Objective for rE order+2 inside the cap, order-2 outside
+    order = max(sh_l)
+    rE_goal = np.where(cap,
+                       shelf.max_rE_3d(order+2),  # inside the cap
+                       shelf.max_rE_3d(max(order-2, 1))  # outside the cap
+                       )
+    # rE_W = T.interp_el(np.array((-90, 0, +90))*np.pi/180,
+    #                    (0.5, 1, 0.5),
+    #                    'linear')
+    rE_W = 1
+
+    M_opt, res = optimize(M_init, spkr_u, sh_l, sh_m, E_goal=E0,
+                          iprint=50, tikhonov_lambda=tikhonov_lambda,
+                          sparseness_penalty=sparseness_penalty,
+                          rE_goal=rE_goal, rE_W=rE_W)
+
+    return M_opt, res
+
+
 # TODO: need to clean up the handling of imaginary speakers
-
-
 def optimize_dome(S,  # the speaker array
                   ambisonic_order=3,
                   el_lim=-π/8,

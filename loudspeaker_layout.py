@@ -67,7 +67,7 @@ class LoudspeakerLayout(SphD.SphericalData):
                 index_bool = self.ids == index
                 if np.sum(index_bool) == 1:
                     index = index_bool
-                else:  
+                else:
                     raise ValueError(f"Unknown speaker id: {index}.")
 
         xyz = self.xyz[index]
@@ -335,7 +335,7 @@ _iem_loudspeaker_layout_keys = ('Azimuth', 'Elevation', 'Radius',
 _iem_loudspeaker_layout_getter = itemgetter(*_iem_loudspeaker_layout_keys)
 
 
-def from_iem_file(file_name) -> LoudspeakerLayout:
+def from_iem_file(file_name, return_json=False) -> LoudspeakerLayout:
     """Load a layout from an IEM-format file."""
     #
     with open(file_name, 'r', encoding='utf-8') as f:
@@ -362,8 +362,10 @@ def from_iem_file(file_name) -> LoudspeakerLayout:
                        coord_code='AER', unit_code='DDM',
                        ids=ids, is_real=~np.array(is_imaginary),
                        name=name, description=description)
-
-    return lsl
+    if return_json:
+        return lsl, obj
+    else:
+        return lsl
 
 
 def from_csv_file(file_name) -> LoudspeakerLayout:

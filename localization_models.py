@@ -365,6 +365,15 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
         plt.show()
 
     if True:
+        fig = plot_rX(rVr.reshape(test_dirs.shape),
+                      title=(f'{title}\n' +
+                             'magnitude of rV vs. test direction'),
+                      #clim=(0.5, 1),
+                      show=False)
+        out_figs.append(fig)
+        plt.show()
+
+    if True:
         fig = plot_matrix(M, title=f"{title}\n")
         out_figs.append(fig)
 
