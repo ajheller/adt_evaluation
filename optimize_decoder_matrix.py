@@ -59,7 +59,6 @@ import autograd.numpy as np
 from autograd import value_and_grad
 
 import random
-import numpy as onp  # 'original' numpy -- this is a convention
 import pandas as pd
 import scipy.optimize as opt
 from matplotlib import pyplot as plt
