@@ -7,7 +7,7 @@ Created on Sat May  8 10:59:36 2021
 """
 import io
 
-import jax.numpy as np  # jax overloads numpy
+import numpy as np
 from numpy import pi as π  # I get tired of typing np.pi
 
 import basic_decoders as bd

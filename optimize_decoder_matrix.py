@@ -55,9 +55,10 @@ Created on Tue Dec 31 02:48:26 2019
 
 import warnings
 
-import jax
-import jax.numpy as np  # jax overloads numpy
-import jax.random as random
+import autograd.numpy as np
+from autograd import value_and_grad
+
+import random
 import numpy as onp  # 'original' numpy -- this is a convention
 import pandas as pd
 import scipy.optimize as opt
@@ -99,12 +100,6 @@ def xyz2ur(xyz):
     u = xyz / r
     return u, r
 
-
-# scipy.optimize needs 64-bit
-jax.config.update("jax_enable_x64", True)
-
-# Generate key which is used by JAX to generate random numbers
-key = random.PRNGKey(1)
 
 # the test directions
 T = sg.t_design5200()
@@ -190,15 +185,10 @@ def optimize(M, Su, sh_l, sh_m,
         return f
 
     # consult the automatic differentiation oracle
-    val_and_grad_fn = jax.value_and_grad(o)
-    val_and_grad_fn = jax.jit(val_and_grad_fn)
-
+    val_and_grad_fn = value_and_grad(o)
+    
     def objective_and_gradient(x, *args):
         v, g = val_and_grad_fn(x, *args)
-        # I'm not to happy about having to copy g but L-BGFS needs it in
-        # Fortran order and JAX only does C order.  Check with g.flags
-        # NOTE: asarray() and asfortranarray() don't work correctly here
-        g = onp.array(g, order='F')
         return v, g
 
     x0 = M.ravel()  # initial guess
@@ -269,12 +259,11 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
                 tikhonov_regularization_term
                 )
 
-    val_and_grad_fn = jax.value_and_grad(o)
-    val_and_grad_fn = jax.jit(val_and_grad_fn)
+    val_and_grad_fn = value_and_grad(o)
+
 
     def objective_and_gradient(x):
         v, g = val_and_grad_fn(x)
-        g = onp.array(g, order='F')
         return v, g
 
     x0 = M.ravel()
