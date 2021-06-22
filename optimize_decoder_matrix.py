@@ -188,7 +188,7 @@ def optimize(M, Su, sh_l, sh_m,
     
     def objective_and_gradient(x, *args):
         v, g = val_and_grad_fn(x, *args)
-        return v, g
+        return v, np.asfortranarray(g)
 
     x0 = M.ravel()  # initial guess
     with Timer() as t:
@@ -263,7 +263,7 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1,
 
     def objective_and_gradient(x):
         v, g = val_and_grad_fn(x)
-        return v, g
+        return v, np.asfortranarray(g)
 
     x0 = M.ravel()
     with Timer() as t:
