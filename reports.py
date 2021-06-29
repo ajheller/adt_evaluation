@@ -70,12 +70,15 @@ def html_report(figs, text=None, name='report', directory=None,
             for j, row in enumerate(figs):
                 r = tr()
                 for i, item in enumerate(row):
-                    url = os.path.join(safe_fig_dir,
-                                       f"{safe_name}-fig-{j}_{i}.png")
-                    item.savefig(os.path.join(directory, url),
-                                 dpi=dpi, bbox_inches="tight")
-                    # width=100% makes browser scale image
-                    r += td(img(src=url, width=f"100%"))
+                    if item:
+                        url = os.path.join(safe_fig_dir,
+                                           f"{safe_name}-fig-{j}_{i}.png")
+                        item.savefig(os.path.join(directory, url),
+                                     dpi=dpi, bbox_inches="tight")
+                        # width=100% makes browser scale image
+                        r += td(img(src=url, width="100%"))
+                    else:
+                        r += td()
 
     with open(os.path.join(directory, safe_name + '.html'), 'w') as f:
         print(h, file=f)
