@@ -369,12 +369,13 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
                       title=(f'{title}\n' +
                              'magnitude of rV vs. test direction'),
                       #clim=(0.5, 1),
+                      clim=(0.5, 1.5),
                       show=False)
         out_figs.append(fig)
         plt.show()
 
     if True:
-        fig = plot_matrix(M, title=f"{title}\n")
+        fig = plot_matrix(M, title=f"{title}")
         out_figs.append(fig)
 
     return out_figs
@@ -416,15 +417,16 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π/4,
     return out_figs
 
 
-def plot_matrix(M, title=""):
+def plot_matrix(M, title="", min_dB=-60):
     """Display the matrix as an image."""
     fig = plt.figure()
-    plt.matshow(20 * np.log10(np.abs(M)), fignum=0, cmap='jet')
+    M_clipped = np.clip(np.abs(M), 10**(min_dB/20), np.inf)
+    plt.matshow(20 * np.log10(M_clipped.T), fignum=0, cmap='jet')
     plt.colorbar()
-    plt.clim((-60, 0))
+    plt.clim((min_dB, 0))
     plt.title("%s\nMatrix element gains (dB)" % title)
-    plt.xlabel("Program channels (ACN order)")
-    plt.ylabel("Loudspeakers")
+    plt.ylabel("Program channels (ACN order)")
+    plt.xlabel("Loudspeakers")
     plt.show()
     return fig
 
