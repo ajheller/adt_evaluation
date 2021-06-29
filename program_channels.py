@@ -403,8 +403,7 @@ class ChannelsAmbisonic(Channels):
 def channels_id_string(channel_object):
     c = channel_object
     s = c.mixed_order_scheme
-    return (f"{c.name} "
-            f"{c.h_order}{s[0]}"
+    return (f"{c.h_order}{s[0]}"
             f"{c.v_order}{s[1]}"
             f" {c.ordering_type} "
             f"{c.normalization_type}")
