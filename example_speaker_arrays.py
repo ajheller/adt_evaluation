@@ -229,6 +229,59 @@ def iem_cube():
     return s
 
 
+def envelop():
+    """Return the array at Envelop SF."""
+    # conveted from the MATLAB written by Andrew Kimpel
+    # coordinates (feet)
+    #  here y is front/back, x is left/right, z is up/down
+    #  conversion to Ambisonics convention is handled in call to
+    #  ambi_spkr_array
+    x1 = -5.30   # x L-R
+    y1 = 12.87   # y F-B
+    x2 = -8.74   # x L-R
+    y2 = +4.62   # y L-R
+    x3 = -3.33   # y T
+    y3 = +7.29   # x T
+    z1 = +5.00   # z M-U|D
+    z2 = +7.81   # z T
+
+    a = ('L1.M', [-x1, y1, 0],
+         'R1.M', [+x1, y1, 0],
+         'L2.M', [-x2, y2, 0],
+         'R2.M', [+x2, y2, 0],
+         'L3.M', [-x2, -y2, 0],
+         'R3.M', [+x2, -y2, 0],
+         'L4.M', [-x1, -y1, 0],
+         'R4.M', [+x1, -y1, 0],
+         'L1.U', [-x1, y1, z1],
+         'R1.U', [+x1, y1, z1],
+         'L2.U', [-x2, y2, z1],
+         'R2.U', [+x2, y2, z1],
+         'L3.U', [-x2, -y2, z1],
+         'R3.U', [+x2, -y2, z1],
+         'L4.U', [-x1, -y1, z1],
+         'R4.U', [+x1, -y1, z1],
+         'L1.D', [-x1, y1, -z1],
+         'R1.D', [+x1, y1, -z1],
+         'L2.D', [-x2, y2, -z1],
+         'R2.D', [+x2, y2, -z1],
+         'L3.D', [-x2, -y2, -z1],
+         'R3.D', [+x2, -y2, -z1],
+         'L4.D', [-x1, -y1, -z1],
+         'R4.D', [+x1, -y1, -z1],
+         'F.T', [0, +y3, z2],
+         'B.T', [0, -y3, z2],
+         'L.T', [-x3, 0, z2],
+         'R.T', [+x3, 0, z2],)
+    ids = a[::2]
+    yxz = a[1::2]
+
+    return lsl.from_array(yxz,
+                          coord_code='YXZ', unit_code='FFF',
+                          ids=ids,
+                          name="EnvelopSF")
+
+
 def uniform240(name='Uniform240'):
     """Return 240-speaker uniform layout."""
     #
