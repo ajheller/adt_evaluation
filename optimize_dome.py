@@ -24,10 +24,10 @@ from optimize_decoder_matrix import optimize, optimize_LF
 #
 def optimize_dome2(M_init, sh_l, sh_m,
                    spkr_u,
-                   el_lim):
+                   el_lim,
+                   sparseness_penalty=0):
 
     tikhonov_lambda = 1e-3
-    sparseness_penalty = 0
 
     # Objective for E
     T = sg.t_design5200()
