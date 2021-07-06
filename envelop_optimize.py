@@ -19,8 +19,9 @@ import example_speaker_arrays as esa
 output_file = 'local/envelop.json'
 
 S = esa.envelop()
-S.plot()
-S.plot_plan()
+spkr_plot_fig = S.plot()
+spkr_plan_fig = S.plot_plan()
+spkr_azel_fig = S.plot_azel()
 
 # obj
 # dict_keys(['Name', 'Description', 'Decoder', 'LoudspeakerLayout'])
@@ -46,7 +47,7 @@ if True:
                                 return_matrix=True)
 
 sad_figs = lm.plot_performance(M_sad, S.u.T, C.sh_l, C.sh_m, el_lim=el_lim,
-                    title=f"{S.name}: SAD {C.id_string()}")
+                               title=f"{S.name}: SAD {C.id_string()}")
 
 # %%
 
@@ -57,8 +58,9 @@ if True:
                                       return_matrix=True)
 
 
-allrad_figs = lm.plot_performance(M_allrad, S.u.T, C.sh_l, C.sh_m, el_lim=el_lim,
-                               title=f"{S.name}: AllRAD {C.id_string()}")
+allrad_figs = lm.plot_performance(M_allrad, S.u.T, C.sh_l, C.sh_m,
+                                  el_lim=el_lim,
+                                  title=f"{S.name}: AllRAD {C.id_string()}")
 
 # %%
 
@@ -88,17 +90,16 @@ print("HF", lm.diffuse_field_gain(M_hf)[1])
 print("LF", lm.diffuse_field_gain(M_lf)[1])
 # %%
 
-all_figs = (sad_figs + [None, None],
-            allrad_figs + [None, None],
-            opt_figs + opt_LF_figs)
+all_figs = ([None, ] + sad_figs + [None, None],
+            [None, ] + allrad_figs + [None, None],
+            [None, ] + opt_figs + opt_LF_figs)
 
 import reports
 reports.html_report(zip(*all_figs),
                     name=f"{S.name} {C.id_string()}")
 
-
-
 # %%
+
 import write_faust_decoder as wfd
 import slugify
 import json
