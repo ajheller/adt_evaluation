@@ -38,7 +38,7 @@ def html_report(figs, text=None, name='report', directory=None,
     """Produce an HTML report containing figs and text."""
     #
     # if dominate not installed, dive out here
-    if not dominate:
+    if not (dominate and slugify):
         return
 
     safe_name = slugify(name)
