@@ -222,7 +222,7 @@ def optimize(M, Su, sh_l, sh_m,
         print()
         print(f"Execution time: {t.interval:0.3f} sec.")
         print(res.message)
-        print(res)
+        #print(res)
         print()
 
     if res.status != 0 and raise_error_on_failure:
@@ -322,10 +322,10 @@ def unit_test(C):
     """Run unit test for the optimizer with uniform array."""
     #
     #sh_l, sh_m = zip(*rsh.lm_generator(ambisonic_order))
-    h_order, v_order, sh_l, sh_m = pc.ambisonic_channels(C)
+    h_order, v_order, sh_l, sh_m, *_ = pc.ambisonic_channels(C)
     # make a  decoder matrix for the 240 speaker t-design via pseudoinverse
     S240 = sg.t_design240()
-    Su = S240.u
+    Su = S240.u.T
 
     # shelf filter gains for max_rE
     gamma = shelf.gamma(sh_l, decoder_type='max_rE', decoder_3d=True,
@@ -336,25 +336,21 @@ def unit_test(C):
 
     # 1 - inversion
     M240 = bd.inversion(sh_l, sh_m, S240.az, S240.el)
-
     M240_hf = M240 @ gamma
-
     lm.plot_performance(M240_hf, Su, sh_l, sh_m,
                         title='Pinv unit test')
-    lm.plot_matrix(M240_hf, title='Pinv unit test')
 
     # 2 - AllRAD
     M240_allrad = bd.allrad(sh_l, sh_m, S240.az, S240.el)
     M240_allrad_hf = M240_allrad @ gamma
     lm.plot_performance(M240_allrad_hf, Su, sh_l, sh_m,
                         title='AllRAD unit test')
-    lm.plot_matrix(M240_allrad_hf, title='AllRAD unit test')
 
     # 3 - NLOpt
-    M_opt, res = optimize(None, Su, sh_l, sh_m, E_goal=1, sparseness_penalty=0)
-    lm.plot_performance(M_opt, Su, sh_l, sh_m,
+    M_opt, res = optimize(None, Su, sh_l, sh_m, E_goal=1,
+                          sparseness_penalty=0)
+    lm.plot_performance(M_opt, Su, sh_l, sh_m, el_lim=-π/2,
                         title='Optimized unit test')
-    lm.plot_matrix(M240_allrad, title='Optimized unit test')
     return res
 
 

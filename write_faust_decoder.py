@@ -150,6 +150,7 @@ def faust_decoder_configuration(name,
                                 channel_order,
                                 nspkrs,
                                 rspkrs,
+                                input_mask,
                                 *,
                                 gamma0=None,
                                 gamma1=None,
@@ -221,7 +222,7 @@ def faust_decoder_configuration(name,
     if gamma1 is not None:
         gamma_str += array2faust_vector(gamma1, prefix="gamma(1) = ",
                                         suffix=';\n')
-
+    input_mask_str = ",".join(["_" if m else "!" for m in input_mask])
 
     s = f"""
 // start decoder configuration
@@ -252,6 +253,7 @@ input_full_set = {int(input_full_set)};
 
 // mask for full ambisonic set to channels in use
 input_mask(0) = bus(nc);
+input_mask(1) = ({input_mask_str});
 //FIXME: input_mask(1) = ????
 
 // delay compensation
@@ -297,7 +299,7 @@ def gamma2faust(*gammas, comment=True):
 
 
 
-def write_faust_decoder(path, name, decoder_matrix, sh_l, r):
+def write_faust_decoder(path, name, decoder_matrix, sh_l, r, input_mask):
     with open(path, 'w') as f:
         f.write(
             faust_decoder_configuration(name,
@@ -306,13 +308,14 @@ def write_faust_decoder(path, name, decoder_matrix, sh_l, r):
                                         decoder_order=np.max(sh_l),
                                         channel_order=sh_l,
                                         nspkrs=len(r),
-                                        rspkrs=r))
+                                        rspkrs=r,
+                                        input_mask=input_mask))
         f.write(matrix2faust(decoder_matrix, prefix="s(%03d, 0) = "))
         # append the implementation
         f.write(open("ambi-decoder_preamble2.dsp", 'r').read())
 
 
-def write_faust_decoder_dual_band(path, name, M, sh_l, r):
+def write_faust_decoder_dual_band(path, name, M, sh_l, r, input_mask):
     if M.shape != (len(r), len(sh_l)):
         raise ValueError("M.shape != (len(r), len(sh_l))"
                          f"{M.shape} {(len(r), len(sh_l))}")
@@ -336,6 +339,7 @@ def write_faust_decoder_dual_band(path, name, M, sh_l, r):
                                         channel_order=sh_l,
                                         nspkrs=len(r),
                                         rspkrs=r,
+                                        input_mask=input_mask,
                                         gamma0=gamma/g0,
                                         gamma1=gamma*g0
                                         ))
@@ -344,7 +348,7 @@ def write_faust_decoder_dual_band(path, name, M, sh_l, r):
             f.write(adp.read())
 
 
-def write_faust_decoder_vienna(path, name, M_lf, M_hf, sh_l, r):
+def write_faust_decoder_vienna(path, name, M_lf, M_hf, sh_l, r, input_mask):
     if M_lf.shape != M_hf.shape:
         raise ValueError("M_lf.shape != M_hf.shape"
                          f" {M_lf.shape}, {M_hf.shape}")
@@ -365,6 +369,7 @@ def write_faust_decoder_vienna(path, name, M_lf, M_hf, sh_l, r):
                                         channel_order=sh_l,
                                         nspkrs=len(r),
                                         rspkrs=r,
+                                        input_mask=input_mask,
                                         gamma0=np.ones(np.max(sh_l)+1),
                                         gamma1=np.ones(np.max(sh_l)+1)
                                         ))

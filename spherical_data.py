@@ -175,7 +175,7 @@ def spherical_cap(T, u, angle, min_angle=0):
     except AttributeError or KeyError:
         pass
 
-    # u needs to be an array of unit vectors, normalize if not
+    # u needs to be a unit vector, normalize if not
     norm = np.sqrt(np.dot(u, u))
     if not np.isclose(norm, 1):
         warnings.warn("u is not a unit vector, normalizing")
@@ -203,7 +203,10 @@ def spherical_cap(T, u, angle, min_angle=0):
     return c, c_max, a_err, 2 * np.arcsin(np.linalg.norm(a_err) / 2)
 
 
-def spherical_interp(T, u, angle, r):
+def spherical_interp(T, u, angle, r, **kwargs):
+    """
+    Make a surface of revolution from the curve r(angle) about the axis u.
+    """
     try:
         u = axis_names[u.lower()]
     except AttributeError or KeyError:
@@ -226,7 +229,16 @@ def spherical_interp(T, u, angle, r):
     if len(u) != len(Tu):
         Tu = Tu.transpose()
 
+    # the interpolator
+    f = interpolate.interp1d(angle, r, **kwargs)
 
+    # angle with axis of each point in the t-design
+    p = np.arccos(np.dot(u, Tu).squeeze())
+
+    return f(p)
+
+
+#
 # ---- the class definition ----
 
 @dataclass
@@ -246,7 +258,8 @@ class SphericalData:
 
     # TODO: How much do we want to keep users from shooting themselves in the
     #  foot? The current implementation raises an AttributeError if the user
-    #  tries to set any attributes other than those explicitly called out.
+    #  tries to set any attributes other than those explicitly called out in
+    #  _primary attrs.
     def __setattr__(self, name, value):
         if name in self._primary_attrs:
             super().__setattr__(name, value)
@@ -261,6 +274,7 @@ class SphericalData:
         return f"{__class__.__name__}({self.name})"
 
     def _clear_cached_properties(self):
+        # need a persistant copy because we're deleting keys in the loop
         keys = list(self.__dict__.keys())
         for key in keys:
             if key not in self._primary_attrs:
@@ -353,13 +367,38 @@ class SphericalData:
     def unravel(self, x):
         return x.reshape(self.shape)
 
+    def angle_from_axis(self, u=(0, 0, 1)):
+        """
+        Return an array with angles from a the specified unit vector.
+
+        Parameters
+        ----------
+        u : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        # allow magic axis names
+        try:
+            u = axis_names[u.lower()]
+        except AttributeError or KeyError:
+            pass
+
+        # make sure u is a unit vector
+        u /= np.linalg.norm(u)
+        # need clip due to round-off error
+        return np.arccos(np.clip(np.dot(self.u, u), -1, 1))
+
     def cap(self, u, angle, **kwargs):
         return spherical_cap(self.u, u, angle, **kwargs)
 
     def interp_el(self, u, phi, r, *args, **kwargs):
-
-        f = interpolate.interp1d(el, r, *args, **kwargs)
-        w = f(self.el)
+        f = interpolate.interp1d(phi, r, *args, **kwargs)
+        w = f(self.angle_from_axis(u))
         return w
 
 

@@ -339,10 +339,14 @@ class ChannelsAmbisonic(Channels):
     "This class fills in defaults and does sanity checks"
 
     mixed_order_scheme = attrib()
+    ordering_type = attrib()
+    normalization_type = attrib()
 
     def __init__(self, h_order, v_order,
                  sh_l, sh_m,
+                 ordering_type,
                  normalization,
+                 normalization_type,
                  cs_phase=None,
                  mixed_order_scheme=None,
                  name=None):
@@ -375,6 +379,11 @@ class ChannelsAmbisonic(Channels):
         ch_mask = channel_mask(sh_l, sh_m, h_order, v_order,
                                mixed_order_scheme)
 
+        # slots only in this class
+        self.mixed_order_scheme = mixed_order_scheme.upper()
+        self.ordering_type = ordering_type
+        self.normalization_type = normalization_type
+
         super().__init__(
             h_order, v_order,
             sh_l[ch_mask], sh_m[ch_mask],
@@ -383,21 +392,21 @@ class ChannelsAmbisonic(Channels):
             ch_mask,
             ambisonic_channel_names(sh_l[ch_mask], sh_m[ch_mask]),
             name)
-        self.mixed_order_scheme = mixed_order_scheme.upper()
 
     def id_string(self):
         return channels_id_string(self)
 
     def __str__(self):
-        return f"<{channels_id_string(self)}>"
+        return f"<Signal Set: {channels_id_string(self)}>"
 
 
 def channels_id_string(channel_object):
     c = channel_object
     s = c.mixed_order_scheme
-    return (f"{c.name} " +
-            f"{c.h_order}{s[0]}" +
-            f"{c.v_order}{s[1]}")
+    return (f"{c.h_order}{s[0]}"
+            f"{c.v_order}{s[1]}"
+            f" {c.ordering_type} "
+            f"{c.normalization_type}")
 
 
 _id_string_re = re.compile(r"(AMBIX|FUMA)?\s*(\d+)(\D)(\d+)(\D)\s*$")
@@ -421,15 +430,37 @@ class ChannelsAmbiX(ChannelsAmbisonic):
         v_order = int(v_order)
 
         sh_l, sh_m = zip(*ambisonic_channels_acn(h_order))
-        sh_l = np.array(sh_l)
-        sh_m = np.array(sh_m)
+        sh_l = np.asarray(sh_l)
+        sh_m = np.asarray(sh_m)
         norm = normalization_semi(sh_l, sh_m)
         super().__init__(
             h_order, v_order,
-            sh_l, sh_m, norm,
+            sh_l, sh_m,
+            "ACN",
+            norm,
+            "SN3D",
             mixed_order_scheme=mixed_order_scheme,
             name="AmbiX")
 
+
+class ChannelsN3D(ChannelsAmbisonic):
+    def __init__(self, h_order, v_order=None, mixed_order_scheme=None):
+        if v_order is None:
+            v_order = h_order
+
+        h_order = int(h_order)
+        v_order = int(v_order)
+
+        sh_l, sh_m = zip(*ambisonic_channels_acn(h_order))
+        sh_l = np.asarray(sh_l)
+        sh_m = np.asarray(sh_m)
+        norm = normalization_full(sh_l, sh_m)
+        super().__init__(
+            h_order, v_order,
+            sh_l, sh_m, "ACN",
+            norm, "N3D",
+            mixed_order_scheme=mixed_order_scheme,
+            name="N3D")
 
 """
 http://members.tripod.com/martin_leese/Ambisonic/Harmonic.html
@@ -483,7 +514,9 @@ class ChannelsFuMa(ChannelsAmbisonic):
         super().__init__(
             h_order, v_order,
             _FuMa_sh_l, _FuMa_sh_m,
+            "FuMa",
             _FuMa_channel_normalization,
+            "FuMa",
             mixed_order_scheme=mixed_order_scheme,
             name="FuMa")
 

@@ -280,17 +280,22 @@ def allrad_v2rp(Su, Vu, vbap_norm=True):
         DESCRIPTION.
 
     """
+    origin = np.array([0, 0, 0])
+
     n_real_speakers = Su.shape[1]
     n_virtual_speakers = Vu.shape[1]
 
     tri = Delaunay(Su.transpose())
     H = tri.convex_hull
 
+    # is the origin (listening position) inside the convex hu??
+    if tri.find_simplex(origin) < 0:
+        raise ValueError(f"The origin {origin} is not contained in the array.")
+
     p0 = tri.points[H[:, 0], :]
     p1 = tri.points[H[:, 1], :]
     p2 = tri.points[H[:, 2], :]
 
-    origin = np.array([0, 0, 0])
     a = []
     Hr = np.arange(len(H))
 

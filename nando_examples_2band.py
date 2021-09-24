@@ -158,14 +158,22 @@ figs.append(lm.plot_performance_LF(M_hf @ np.linalg.pinv(gamma),
 wfd.write_faust_decoder_vienna('SAH_ambdecH_ACN_N3D_VO3H2V.dsp',
                                'SAH_ambdecH_ACN_N3D_VO3H2V',
                                M_lf, M_hf,
-                               sh_l, S_real.r)
+                               sh_l, S_real.r,
+                               C.channel_mask)
 
 wfd.write_faust_decoder_dual_band('SAH_ambdecH_ACN_N3D_O3H2V.dsp',
                                   'SAH_ambdecH_ACN_N3D_O3H2V',
                                   M_hf,
-                                  sh_l, S_real.r)
+                                  sh_l, S_real.r,
+                                  C.channel_mask)
 
 wfd.write_faust_decoder_dual_band('SAH_ambdecH_ACN_N3D_A3H2V.dsp',
                                   'SAH_ambdecH_ACN_N3D_A3H2V',
                                   M_allrad,
-                                  sh_l, S_real.r)
+                                  sh_l, S_real.r,
+                                  C.channel_mask)
+
+# %%
+import atk_interface as atk
+
+atk.write_atk_yml(S.name+id_string+"allrad.yml", M_allrad, S_real.az, S_real.el)
