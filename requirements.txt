@@ -10,3 +10,4 @@ sympy~=1.6.1
 attrs~=20.2.0
 requests~=2.24.0
 backports~=1.0
+python-slugify~=5.0.2
