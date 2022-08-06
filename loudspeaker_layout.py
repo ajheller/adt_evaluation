@@ -41,11 +41,10 @@ class LoudspeakerLayout(SphD.SphericalData):
     """A class to represent loudspeaker arrays."""
 
     description: str = ""
-    is_real: np.array = field(default_factory=lambda: np.array(0,
-                                                               dtype=bool))
+    is_real: np.array = field(default_factory=lambda: np.array(0, dtype=bool))
     ids: list = field(default_factory=lambda: [])
 
-    _primary_attrs = ['x', 'y', 'z', 'is_real', 'name', 'ids', 'description']
+    _primary_attrs = ["x", "y", "z", "is_real", "name", "ids", "description"]
 
     def __add__(self, other):
         """Append two layouts."""
@@ -58,9 +57,9 @@ class LoudspeakerLayout(SphD.SphericalData):
         # TODO: replace this with a dictionary of speaker ids and
         # TODO: and magic indices
         if isinstance(index, str):
-            if 'real'.startswith(index.lower()):
+            if "real".startswith(index.lower()):
                 index = self.is_real
-            elif 'imaginary'.startswith(index.lower()):
+            elif "imaginary".startswith(index.lower()):
                 index = ~self.is_real
             else:
                 # is it a spkr id?
@@ -77,8 +76,9 @@ class LoudspeakerLayout(SphD.SphericalData):
         name = new_name or self.name
         description = new_description or self.description
 
-        l3 = LoudspeakerLayout(*xyz.T, name=name, description=description,
-                               ids=ids, is_real=is_real)
+        l3 = LoudspeakerLayout(
+            *xyz.T, name=name, description=description, ids=ids, is_real=is_real
+        )
         return l3
 
     def real_only(self):
@@ -113,30 +113,45 @@ class LoudspeakerLayout(SphD.SphericalData):
         # IEM format documented here:
         #  https://plugins.iem.at/docs/configurationfiles/#the-loudspeakerlayout-object
 
-        records = zip(self.az*180/π, self.el*180/π, self.r,
-                      map(bool, ~self.is_real),  # json needs bool not bool_
-                      channels, gains,
-                      self.ids)
-        columns = ('Azimuth', 'Elevation', 'Radius',
-                   'IsImaginary', 'Channel', 'Gain',
-                   'id')
+        records = zip(
+            self.az * 180 / π,
+            self.el * 180 / π,
+            self.r,
+            map(bool, ~self.is_real),  # json needs bool not bool_
+            channels,
+            gains,
+            self.ids,
+        )
+        columns = (
+            "Azimuth",
+            "Elevation",
+            "Radius",
+            "IsImaginary",
+            "Channel",
+            "Gain",
+            "id",
+        )
         ls_dict = [dict(zip(columns, rec)) for rec in records]
-        return dict({"LoudspeakerLayout":
-                     {"Name": self.name,
-                      "Description": self.description,
-                      "Loudspeakers": ls_dict}})
+        return dict(
+            {
+                "LoudspeakerLayout": {
+                    "Name": self.name,
+                    "Description": self.description,
+                    "Loudspeakers": ls_dict,
+                }
+            }
+        )
 
     def to_iem_file(self, file, **kwargs):
         """Write LoudspeakerLayout to IEM JSON file."""
-        with open(file, 'w') as f:
-            json.dump(obj=self.to_json(**kwargs), indent=4,
-                      fp=f)
+        with open(file, "w") as f:
+            json.dump(obj=self.to_json(**kwargs), indent=4, fp=f)
 
     def plot3D(self, **kwargs):
-        backend = kwargs.get('backend', 'matplotlib')
-        if backend == 'matplotlib':
-            ret = plot_lsl(self, title=F"Speaker Array: {self.name}", **kwargs)
-        elif backend == 'plotly':
+        backend = kwargs.get("backend", "matplotlib")
+        if backend == "matplotlib":
+            ret = plot_lsl(self, title=f"Speaker Array: {self.name}", **kwargs)
+        elif backend == "plotly":
             pass
         else:
             raise ValueError(f"Unknown plot backend {backend}")
@@ -152,8 +167,7 @@ class LoudspeakerLayout(SphD.SphericalData):
         return plot_lsl_azel(self, **kwargs)
 
 
-def append_layouts(l1, l2,
-                   name=None, description=None):
+def append_layouts(l1, l2, name=None, description=None):
     """Append two layouts."""
     #
     if name is None:
@@ -167,23 +181,26 @@ def append_layouts(l1, l2,
     ids = np.append(l1.ids, l2.ids, axis=0)
     is_real = np.append(l1.is_real, l2.is_real, axis=0)
 
-    l3 = LoudspeakerLayout(*xyz.T, name=name, description=description,
-                           ids=ids, is_real=is_real)
+    l3 = LoudspeakerLayout(
+        *xyz.T, name=name, description=description, ids=ids, is_real=is_real
+    )
     return l3
 
 
 #
 # TODO: should there be ignore and no-op codes?
 # unit codes and conversion factors to meters and radians
-to_base = {'R': 1,      # Radians
-           'D': π/180,  # Degrees
-           'G': π/200,  # Gradians (grad, grade, gons, metric degrees)
-           'M': 1,                    # Meters
-           'C': 1/100,                # Centimeters
-           'I': 2.54/100,           # Inches
-           'F': 12 * 2.54/100,        # Feet
-           'L': 660 * 12 * 2.54/100,  # furLongs
-           'S': 67 * 2.54/100}        # Smoots
+to_base = {
+    "R": 1,  # Radians
+    "D": π / 180,  # Degrees
+    "G": π / 200,  # Gradians (grad, grade, gons, metric degrees)
+    "M": 1,  # Meters
+    "C": 1 / 100,  # Centimeters
+    "I": 2.54 / 100,  # Inches
+    "F": 12 * 2.54 / 100,  # Feet
+    "L": 660 * 12 * 2.54 / 100,  # furLongs
+    "S": 67 * 2.54 / 100,
+}  # Smoots
 
 
 def convert_units(quantity, from_unit, to_unit=None):
@@ -198,9 +215,15 @@ def convert_units(quantity, from_unit, to_unit=None):
 # coords that made sense: 'XYZ', 'AER', 'ANR', 'ARZ', but...
 # we need a unique location for each; horizontal, vertical, radial
 # gives: 'XZY', 'AER', 'ANR', 'AZR'
-to_canonical = {'X': 0, 'Y': 2, 'Z': 1,
-                'A': 0, 'E': 1, 'R': 2,  # Azimuth, Elevation, Radius
-                'N': 1}  # zeNith angle (can't use Z)
+to_canonical = {
+    "X": 0,
+    "Y": 2,
+    "Z": 1,
+    "A": 0,
+    "E": 1,
+    "R": 2,  # Azimuth, Elevation, Radius
+    "N": 1,
+}  # zeNith angle (can't use Z)
 
 
 """
@@ -237,12 +260,15 @@ to_canonical = {'X': 0, 'Y': 2, 'Z': 1,
 """
 
 
-def from_array(a: Sequence,
-               coord_code: Sequence = 'AER',
-               unit_code: Sequence = 'DDM',
-               name: str = None,
-               description=None,
-               ids='S', is_real=True) -> LoudspeakerLayout:
+def from_array(
+    a: Sequence,
+    coord_code: Sequence = "AER",
+    unit_code: Sequence = "DDM",
+    name: str = None,
+    description=None,
+    ids="S",
+    is_real=True,
+) -> LoudspeakerLayout:
     """
 
     :type unit_code: object
@@ -252,7 +278,7 @@ def from_array(a: Sequence,
     num_spkrs = len(a)
 
     if np.isscalar(ids):
-        ids = [ids+'%02d' % i for i in range(num_spkrs)]
+        ids = [ids + "%02d" % i for i in range(num_spkrs)]
     elif len(ids) != num_spkrs:
         raise ValueError("len(ids) != num_spkrs")
 
@@ -262,7 +288,7 @@ def from_array(a: Sequence,
         raise ValueError("len(is_real) != num_spkrs")
 
     if name is None:
-        name = 'Amb' + str(num_spkrs)
+        name = "Amb" + str(num_spkrs)
 
     # convert the columns to base units -- meter, radians
     for (col, code) in enumerate(unit_code):
@@ -270,29 +296,28 @@ def from_array(a: Sequence,
 
     # coordinate untangling
     aa = np.zeros_like(a)
-    ac = [' '] * 3
+    ac = [" "] * 3
     for col, code in enumerate(coord_code):
         c = code[0].upper()
         to_col = to_canonical[c]
         aa[:, to_col] = a[:, col]
         ac[to_col] = c
-    ac = ''.join(ac)
+    ac = "".join(ac)
     print("ac:", ac)
 
     # make the SA object
-    s = LoudspeakerLayout(ids=ids, is_real=is_real,
-                          name=name, description=description)
+    s = LoudspeakerLayout(ids=ids, is_real=is_real, name=name, description=description)
     # TODO: is there a slicker way to do this?
-    if ac == 'XZY':  # see comment on to_cannonical for why this is XZY
-        s.set_from_cart(*[aa[:, to_canonical[c]] for c in 'XYZ'])
-    elif ac == 'AER':
-        s.set_from_aer(*[aa[:, to_canonical[c]] for c in 'AER'])
-    elif ac == 'ANR':
-        s.set_from_sph(*[aa[:, to_canonical[c]] for c in 'ANR'])
-    elif ac == 'AZR':
-        s.set_from_cyl(*[aa[:, to_canonical[c]] for c in 'ARZ'])
+    if ac == "XZY":  # see comment on to_cannonical for why this is XZY
+        s.set_from_cart(*[aa[:, to_canonical[c]] for c in "XYZ"])
+    elif ac == "AER":
+        s.set_from_aer(*[aa[:, to_canonical[c]] for c in "AER"])
+    elif ac == "ANR":
+        s.set_from_sph(*[aa[:, to_canonical[c]] for c in "ANR"])
+    elif ac == "AZR":
+        s.set_from_cyl(*[aa[:, to_canonical[c]] for c in "ARZ"])
     else:
-        raise NotImplementedError(f'Sorry, {ac} not implemented.')
+        raise NotImplementedError(f"Sorry, {ac} not implemented.")
 
     return s
 
@@ -305,11 +330,12 @@ def from_vectors(c0, c1, c2, **kwargs) -> LoudspeakerLayout:
         c2 = np.full_like(c0, c2, dtype=float)
 
     if len(c0) == len(c1) == len(c2):
-        return from_array(np.column_stack((c0, c1, c2)).astype(float),
-                          **kwargs)
+        return from_array(np.column_stack((c0, c1, c2)).astype(float), **kwargs)
     else:
-        raise ValueError("c0, c1, c2 must be the same length, "
-                         f"but were {list(map(len, (c0, c1, c2)))}.")
+        raise ValueError(
+            "c0, c1, c2 must be the same length, "
+            f"but were {list(map(len, (c0, c1, c2)))}."
+        )
 
 
 # def from_iem_file(file):
@@ -332,38 +358,53 @@ def from_vectors(c0, c1, c2, **kwargs) -> LoudspeakerLayout:
 
 #     return lsl, obj
 
-_iem_loudspeaker_layout_keys = ('Azimuth', 'Elevation', 'Radius',
-                                'IsImaginary', 'Channel', 'Gain')
+_iem_loudspeaker_layout_keys = (
+    "Azimuth",
+    "Elevation",
+    "Radius",
+    "IsImaginary",
+    "Channel",
+    "Gain",
+)
 _iem_loudspeaker_layout_getter = itemgetter(*_iem_loudspeaker_layout_keys)
 
 
 def from_iem_file(file_name, return_json=False) -> LoudspeakerLayout:
     """Load a layout from an IEM-format file."""
     #
-    with open(file_name, 'r', encoding='utf-8') as f:
+    with open(file_name, "r", encoding="utf-8") as f:
         obj = json.load(f)
     lsl_dict = obj.get("LoudspeakerLayout")
     if not lsl_dict:
-        print(f"The \"{file_name}\" json file is invalid")
+        print(f'The "{file_name}" json file is invalid')
         return
 
     dec_dict = obj.get("Decoder", dict())
 
-    name = lsl_dict['Name']
-    description = lsl_dict.get('Description', dec_dict.get('Description'))
+    name = lsl_dict["Name"]
+    description = lsl_dict.get("Description", dec_dict.get("Description"))
 
-    az, el, r, is_imaginary, channel, gain = \
-        zip(*[_iem_loudspeaker_layout_getter(ls)
-              for ls in lsl_dict["Loudspeakers"]])
+    az, el, r, is_imaginary, channel, gain = zip(
+        *[_iem_loudspeaker_layout_getter(ls) for ls in lsl_dict["Loudspeakers"]]
+    )
 
     # make ids from channels numbers
-    ids = [f"S{ch:02d}" if not is_imag else f"I:{ch:02d}"
-           for ch, is_imag in zip(channel, is_imaginary)]
+    ids = [
+        f"S{ch:02d}" if not is_imag else f"I:{ch:02d}"
+        for ch, is_imag in zip(channel, is_imaginary)
+    ]
 
-    lsl = from_vectors(az, el, r,
-                       coord_code='AER', unit_code='DDM',
-                       ids=ids, is_real=~np.array(is_imaginary),
-                       name=name, description=description)
+    lsl = from_vectors(
+        az,
+        el,
+        r,
+        coord_code="AER",
+        unit_code="DDM",
+        ids=ids,
+        is_real=~np.array(is_imaginary),
+        name=name,
+        description=description,
+    )
     if return_json:
         return lsl, obj
     else:
@@ -371,7 +412,7 @@ def from_iem_file(file_name, return_json=False) -> LoudspeakerLayout:
 
 
 def from_csv_file(file_name) -> LoudspeakerLayout:
-    with open(file_name, 'r', encoding='utf-8') as read_obj:
+    with open(file_name, "r", encoding="utf-8") as read_obj:
         # pass the file object to reader() to get the reader object
         csv_reader = csv.reader(read_obj, skipinitialspace=True)
         # Iterate over each row in the csv using reader object
@@ -385,19 +426,19 @@ def from_csv_file(file_name) -> LoudspeakerLayout:
             else:
                 op = op.lower()
                 # print(op)
-                if 'name'.startswith(op):
+                if "name".startswith(op):
                     name = args[0]
-                elif 'description'.startswith(op):
+                elif "description".startswith(op):
                     description = args[0]
-                elif 'fields'.startswith(op):
+                elif "fields".startswith(op):
                     fields = args
-                elif 'units'.startswith(op):
+                elif "units".startswith(op):
                     units = args
-                elif 'speaker'.startswith(op) or 'spkr'.startswith(op):
+                elif "speaker".startswith(op) or "spkr".startswith(op):
                     spkrs.append(args)
-                elif op.startswith('#'):
+                elif op.startswith("#"):
                     pass
-                elif op.startswith('!'):
+                elif op.startswith("!"):
                     print(args)
                 else:
                     print(f"Ignoring op: {op}")
@@ -405,26 +446,38 @@ def from_csv_file(file_name) -> LoudspeakerLayout:
     spkr_df = pd.DataFrame(spkrs, columns=fields)
     # convert columns to numeric if possible
     for key in spkr_df.keys():
-        if key in ('Azimuth', 'Elevation', 'Zenith', 'Radius',
-                   'X', 'Y', 'Z', 'U', 'V', 'W'):
+        if key in (
+            "Azimuth",
+            "Elevation",
+            "Zenith",
+            "Radius",
+            "X",
+            "Y",
+            "Z",
+            "U",
+            "V",
+            "W",
+        ):
             try:
                 spkr_df[key] = pd.to_numeric(spkr_df[key])
             except ValueError as e:
                 raise ValueError(f"{e} in {key}")
     # normalize booleans
-    spkr_df.replace(('T', 'True', 'Yes', 'Dah', 'Oui', 'Ja', 'Yo',
-                     'Gnarly'),
-                    True,
-                    inplace=True)
-    spkr_df.replace(('F', 'False', 'No', 'Nyet', 'Non', 'Nein', 'Bupkis',
-                     'Whatev'),
-                    False,
-                    inplace=True)
+    spkr_df.replace(
+        ("T", "True", "Yes", "Dah", "Oui", "Ja", "Yo", "Gnarly"), True, inplace=True
+    )
+    spkr_df.replace(
+        ("F", "False", "No", "Nyet", "Non", "Nein", "Bupkis", "Whatev"),
+        False,
+        inplace=True,
+    )
 
-    for keys, codes in ((['Azimuth', 'Elevation', 'Radius'], 'AER'),
-                        (['Azimuth', 'Zenith', 'Radius'], 'ANR'),
-                        (['X', 'Z', 'Y'], 'XZY'),
-                        (['Azimuth', 'Z,', 'R'], 'AZR')):
+    for keys, codes in (
+        (["Azimuth", "Elevation", "Radius"], "AER"),
+        (["Azimuth", "Zenith", "Radius"], "ANR"),
+        (["X", "Z", "Y"], "XZY"),
+        (["Azimuth", "Z,", "R"], "AZR"),
+    ):
 
         try:
             x = spkr_df[keys]
@@ -451,18 +504,21 @@ def from_csv_file(file_name) -> LoudspeakerLayout:
             unit_code.append("L")
             break
         # otherwise the first letter is the code
-        for u in ("M", "F", "I", "S", "C",
-                  "R", "D", "G"):
+        for u in ("M", "F", "I", "S", "C", "R", "D", "G"):
             if unit.startswith(u):
                 unit_code.append(u)
                 print(k, unit, unit_code)
                 break
 
-    lsl = from_array(x, name=name, description=description,
-                     coord_code=code, unit_code=unit_code,
-                     ids=spkr_df['Name'].values,
-                     is_real=spkr_df['Real'].values)
-
+    lsl = from_array(
+        x,
+        name=name,
+        description=description,
+        coord_code=code,
+        unit_code=unit_code,
+        ids=spkr_df["Name"].values,
+        is_real=spkr_df["Real"].values,
+    )
 
     return lsl
 
@@ -471,6 +527,7 @@ def from_csv_file(file_name) -> LoudspeakerLayout:
 #
 def unit_test_iem():
     import example_speaker_arrays as esa
+
     s = esa.stage2017()
     # json dump, read
     s.to_iem_file("test_iem_stage.json")
@@ -485,16 +542,21 @@ def unit_test():
     from matplotlib import pyplot as plt
 
     import example_speaker_arrays as esa
+
     s = esa.stage2017()
     s.plot_plan()
 
     plt.figure(figsize=(12, 6))
-    plt.scatter(s.az*180/π, s.el*180/π, c='white', marker='o')
-    for x, y, r, t in zip(s.az*180/π, s.el*180/π, s.r, s.ids):
-        plt.text(x, y, t,
-                 bbox=dict(facecolor='lightblue', alpha=0.4),
-                 horizontalalignment='center',
-                 verticalalignment='center')
+    plt.scatter(s.az * 180 / π, s.el * 180 / π, c="white", marker="o")
+    for x, y, r, t in zip(s.az * 180 / π, s.el * 180 / π, s.r, s.ids):
+        plt.text(
+            x,
+            y,
+            t,
+            bbox=dict(facecolor="lightblue", alpha=0.4),
+            horizontalalignment="center",
+            verticalalignment="center",
+        )
     plt.grid()
     # plt.colorbar()
     plt.show()

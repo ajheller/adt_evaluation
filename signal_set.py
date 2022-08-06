@@ -9,7 +9,7 @@ Created on Sat Jun 26 18:17:51 2021
 import numpy as np
 
 
-class SignalSet():
+class SignalSet:
     def __init__(self):
         self.name = ""
         self.h_order = 0

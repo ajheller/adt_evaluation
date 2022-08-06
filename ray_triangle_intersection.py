@@ -73,7 +73,7 @@ def ray_triangle_intersection_p1(o, d, p0, p1, p2, epsilon=1e-5):
     # Moller and Trumbore
     #   https://en.wikipedia.org/wiki/Möller–Trumbore_intersection_algorithm
 
-    with np.errstate(divide='ignore', invalid='ignore'):
+    with np.errstate(divide="ignore", invalid="ignore"):
         e1 = p1 - p0
         e2 = p2 - p0
         s = o - p0
@@ -162,8 +162,7 @@ def test():
     origin = np.array([10, 10, 10])
     direction = np.array([-0.3, -0.5, -0.7])
 
-    flag, u, v, t = ray_triangle_intersection(
-        origin, direction, v0, v1, v2)
+    flag, u, v, t = ray_triangle_intersection(origin, direction, v0, v1, v2)
 
     return flag, u, v, t
 
@@ -175,8 +174,7 @@ def testp():
     origin = np.array([10, 10, 10])
     direction = np.array([-0.3, -0.5, -0.7])
 
-    flag, u, v, t = ray_triangle_intersection_p1(
-        origin, direction, v0, v1, v2)
+    flag, u, v, t = ray_triangle_intersection_p1(origin, direction, v0, v1, v2)
 
     return flag, u, v, t
 
@@ -202,7 +200,7 @@ def test3(case=1):
     elif case == 2:
         rti_fun = ray_triangle_intersection_p
     else:
-        print('unknown case ' + str(case))
+        print("unknown case " + str(case))
 
     if False:
         s_az = (pi / 4, 3 * pi / 4, -3 * pi / 4, -pi / 4, 0, 0)
@@ -228,8 +226,7 @@ def test3(case=1):
     a = []
     Hr = np.arange(len(H))
     for i in range(5200):
-        flag, u, v, t = rti_fun(origin, V.u[:, i],
-                                p0, p1, p2)
+        flag, u, v, t = rti_fun(origin, V.u[:, i], p0, p1, p2)
         valid = np.logical_and(flag, t > 0)
         face = Hr[valid][0]
         ur = u[valid][0]

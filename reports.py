@@ -11,6 +11,7 @@ Created on Mon Aug 31 14:28:07 2020
 
 import os
 from pathlib import Path
+
 try:
     import dominate
 except ModuleNotFoundError as ie:
@@ -29,12 +30,13 @@ else:
     from slugify import slugify
 
 _here = Path(__file__).parent
-_report_dir = _here/'reports'
+_report_dir = _here / "reports"
 
 
 # TODO: rework using pathlib
-def html_report(figs, text=None, name='report', directory=None,
-                dpi=300, fig_dir='figs'):
+def html_report(
+    figs, text=None, name="report", directory=None, dpi=300, fig_dir="figs"
+):
     """Produce an HTML report containing figs and text."""
     #
     # if dominate not installed, dive out here
@@ -50,20 +52,20 @@ def html_report(figs, text=None, name='report', directory=None,
     directory = Path(directory)
     print(directory, directory.is_absolute())
     if not directory.is_absolute():
-        directory = _report_dir/slugify(str(directory))
+        directory = _report_dir / slugify(str(directory))
     try:
         os.makedirs(directory)
     except FileExistsError as e:
         print(e)
 
     try:
-        os.mkdir(directory/safe_fig_dir)
+        os.mkdir(directory / safe_fig_dir)
     except FileExistsError as e:
         print(e)
 
     h = html()
-    with h.add(body()).add(div(id='content')):
-        h1(f'Performance Plots: {name}')
+    with h.add(body()).add(div(id="content")):
+        h1(f"Performance Plots: {name}")
         if text:
             pre(text)
         with table().add(tbody()):
@@ -71,15 +73,15 @@ def html_report(figs, text=None, name='report', directory=None,
                 r = tr()
                 for i, item in enumerate(row):
                     if item:
-                        url = os.path.join(safe_fig_dir,
-                                           f"{safe_name}-fig-{j}_{i}.png")
-                        item.savefig(os.path.join(directory, url),
-                                     dpi=dpi, bbox_inches="tight")
+                        url = os.path.join(safe_fig_dir, f"{safe_name}-fig-{j}_{i}.png")
+                        item.savefig(
+                            os.path.join(directory, url), dpi=dpi, bbox_inches="tight"
+                        )
                         # width=100% makes browser scale image
                         r += td(img(src=url, width="100%"))
                     else:
                         r += td()
 
-    with open(os.path.join(directory, safe_name + '.html'), 'w') as f:
+    with open(os.path.join(directory, safe_name + ".html"), "w") as f:
         print(h, file=f)
     return h

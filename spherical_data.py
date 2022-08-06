@@ -124,14 +124,13 @@ def cart2sphz(x, y, z):
     az, el, r = cart2sph(x, y, z)
     return (pi / 2 - el), az, r
 
+
 # --------------- Spherical Cap -------------------
 #   http://mathworld.wolfram.com/SphericalCap.html
 #   https://en.wikipedia.org/wiki/Spherical_cap
 
 
-axis_names = dict(x=(1.0, 0.0, 0.0),
-                  y=(0.0, 1.0, 0.0),
-                  z=(0.0, 0.0, 1.0))
+axis_names = dict(x=(1.0, 0.0, 0.0), y=(0.0, 1.0, 0.0), z=(0.0, 0.0, 1.0))
 
 
 def spherical_cap(T, u, angle, min_angle=0):
@@ -241,6 +240,7 @@ def spherical_interp(T, u, angle, r, **kwargs):
 #
 # ---- the class definition ----
 
+
 @dataclass
 class SphericalData:
     """A class to hold spherical data and provide conversions."""
@@ -248,9 +248,9 @@ class SphericalData:
     x: np.ndarray = field(default_factory=lambda: np.array(None))
     y: np.ndarray = field(default_factory=lambda: np.array(None))
     z: np.ndarray = field(default_factory=lambda: np.array(None))
-    name: str = 'data'
+    name: str = "data"
 
-    _primary_attrs = ['x', 'y', 'z', 'name']
+    _primary_attrs = ["x", "y", "z", "name"]
 
     # def __init__(self, name="data"):
     #     self.xyz = None
@@ -265,7 +265,7 @@ class SphericalData:
             super().__setattr__(name, value)
             # print(f'clearing caches: {name} <-- {value}')
             self._clear_cached_properties()
-        elif name in ('xyz', 'cart'):
+        elif name in ("xyz", "cart"):
             return self.set_from_cart(*value)
         else:
             raise AttributeError
@@ -282,7 +282,7 @@ class SphericalData:
                 delattr(self, key)
 
     def set_from_cart(self, x, y, z):
-        if not(x.shape == y.shape == z.shape):
+        if not (x.shape == y.shape == z.shape):
             raise ValueError("x, y, z not the same shape.")
         else:
             self.x = x
@@ -293,7 +293,7 @@ class SphericalData:
 
     def set_from_sph(self, theta, phi, rho=1, phi_is_zenith=False):
         if phi_is_zenith:
-            phi = pi/2 - phi
+            phi = pi / 2 - phi
         return self.set_from_cart(*sph2cart(theta, phi, rho))
 
     def set_from_aer(self, az, el, r=1):
@@ -318,10 +318,12 @@ class SphericalData:
     @cached_property
     def u(self):
         """unit vectors as an iterable container."""
-        return (self.xyz /
-                # this makes a column vector without copying
-                np.linalg.norm(self.xyz, axis=1)[None].T
-                )
+        return (
+            self.xyz
+            /
+            # this makes a column vector without copying
+            np.linalg.norm(self.xyz, axis=1)[None].T
+        )
 
     @cached_property
     def sph(self):
@@ -413,6 +415,7 @@ def from_sph(*args, sd_class=SphericalData, **kwargs):
 # %%
 def unit_test():
     import spherical_grids
+
     sg240 = spherical_grids.t_design240()
     q = from_sph(sg240.az, sg240.el)
     u = q.u
@@ -421,5 +424,5 @@ def unit_test():
     q.set_from_cart(*np.asarray(((1, 0, 2), (0, 1, 0), (0, 0, 1))).T)
     # cache should be cleared
     if q.u == u:
-        print('FAIL: caches were not cleared!!')
+        print("FAIL: caches were not cleared!!")
     return q, (u, v, w)

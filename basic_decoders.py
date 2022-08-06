@@ -22,7 +22,6 @@ Created on Fri Oct 19 17:57:11 2018
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-
 import numpy as np
 from scipy.spatial import Delaunay  # for AllRAD decoder
 
@@ -33,13 +32,13 @@ from localization_models import compute_rVrE, plot_rX
 
 
 def channel_spec(degree, order, norm=1, cs_phase=None):
-    def cs(l, m, n=1): return l, m, n
+    def cs(l, m, n=1):
+        return l, m, n
 
     return [cs(l, m) for l in range(degree + 1) for m in range(-l, l + 1)]
 
 
-def projection(degree, order,
-               speakers_azimuth, speakers_elevation):
+def projection(degree, order, speakers_azimuth, speakers_elevation):
     """Compute basic decoder matrix by projection method.
 
     Parameters
@@ -66,14 +65,16 @@ def projection(degree, order,
     else:
         sh_l, sh_m = degree, order
 
-    M = rsh.real_sph_harm_transform(sh_l, sh_m,
-                                    np.array(speakers_azimuth).ravel(),
-                                    np.array(speakers_elevation).ravel())
+    M = rsh.real_sph_harm_transform(
+        sh_l,
+        sh_m,
+        np.array(speakers_azimuth).ravel(),
+        np.array(speakers_elevation).ravel(),
+    )
     return M.transpose()
 
 
-def inversion(degree, order,
-              speakers_azimuth, speakers_elevation):
+def inversion(degree, order, speakers_azimuth, speakers_elevation):
     """
     Compute basic decoder matrix by inversion method (aka, mode matching).
 
@@ -103,9 +104,9 @@ def inversion(degree, order,
     return M
 
 
-def constant_energy_inversion(degree, order,
-                              speakers_azimuth, speakers_elevation,
-                              alpha=1):
+def constant_energy_inversion(
+    degree, order, speakers_azimuth, speakers_elevation, alpha=1
+):
     """
     Compute basic decoder matrix by Energy-Limited Inversion.
 
@@ -150,12 +151,17 @@ def constant_energy_inversion(degree, order,
     return M
 
 
-def allrad(degree, order,
-           speakers_azimuth, speakers_elevation,
-           speaker_is_real=None,
-           v_az=None, v_el=None,
-           vbap_norm=True,
-           allrad2=False):
+def allrad(
+    degree,
+    order,
+    speakers_azimuth,
+    speakers_elevation,
+    speaker_is_real=None,
+    v_az=None,
+    v_el=None,
+    vbap_norm=True,
+    allrad2=False,
+):
     """
     Compute basic decoder matrix by the AllRAD method.
 
@@ -197,10 +203,10 @@ def allrad(degree, order,
 
     Mv = inversion(degree, order, v_az, v_el)
     M = np.matmul(V2R, Mv)
-    
+
     if allrad2:
-      M_sign = np.sign(M)
-      M = M_sign * np.sqrt(V2R**2 @ Mv**2)
+        M_sign = np.sign(M)
+        M = M_sign * np.sqrt(V2R**2 @ Mv**2)
 
     if speaker_is_real is not None:
         # get rid of rows corresponding to imaginary speakers
@@ -209,10 +215,7 @@ def allrad(degree, order,
     return M
 
 
-def allrad2(degree, order,
-            spkrs_az, spkrs_el,
-            v_az=None, v_el=None,
-            vbap_norm=True):
+def allrad2(degree, order, spkrs_az, spkrs_el, v_az=None, v_el=None, vbap_norm=True):
     """
     Compute decoder by AllRAD2 method.  Not implemented.
 
@@ -247,10 +250,9 @@ def allrad2(degree, order,
         v_el = td.el
 
     # TODO understand and implement allrad2 :) :)
-    M_allrad = allrad(degree, order,
-                      spkrs_az, spkrs_el,
-                      v_az=v_az, v_el=v_el,
-                      vbap_norm=vbap_norm)
+    M_allrad = allrad(
+        degree, order, spkrs_az, spkrs_el, v_az=v_az, v_el=v_el, vbap_norm=vbap_norm
+    )
 
     # TODO rest of AllRAD2 method
 
@@ -301,8 +303,7 @@ def allrad_v2rp(Su, Vu, vbap_norm=True):
 
     V2R = np.zeros((n_real_speakers, n_virtual_speakers))
     for i in range(n_virtual_speakers):
-        flag, u, v, t = rti.ray_triangle_intersection_p1(origin, Vu[:, i],
-                                                         p0, p1, p2)
+        flag, u, v, t = rti.ray_triangle_intersection_p1(origin, Vu[:, i], p0, p1, p2)
         valid = flag & (t > 0)  # np.logical_and(flag, t > 0)
         if np.sum(valid) == 1:
             face = Hr[valid][0]
@@ -389,9 +390,13 @@ def unit_test():
     import loudspeaker_layout as lsl
 
     # horitontal square array
-    s = lsl.from_vectors((45, 135, -135, -45), 0, 1,
-                         coord_code=('az', 'el', 'radius'),
-                         unit_code=('degrees', 'degrees', 'meters'))
+    s = lsl.from_vectors(
+        (45, 135, -135, -45),
+        0,
+        1,
+        coord_code=("az", "el", "radius"),
+        unit_code=("degrees", "degrees", "meters"),
+    )
 
     l = (0, 1, 1)
     m = (0, 1, -1)
@@ -445,16 +450,20 @@ def unit_test2(order=3, case=1, debug=True):
 
     if case == 0:
         # octagon
-        s = LSL.from_vectors((45, 135, -135, -45, 0, 0),
-                             (0, 0, 0, 0, 90, -90), 1,
-                             coord_code='AER', unit_code='DDM')
+        s = LSL.from_vectors(
+            (45, 135, -135, -45, 0, 0),
+            (0, 0, 0, 0, 90, -90),
+            1,
+            coord_code="AER",
+            unit_code="DDM",
+        )
         order = max(order, 1)
     elif case == 1:
         s = sg.t_design240()
     elif case == 2:
         s = esa.iem_cube().append(esa.nadir())
     else:
-        print('unknown case')
+        print("unknown case")
         return None
 
     if debug:
@@ -462,9 +471,7 @@ def unit_test2(order=3, case=1, debug=True):
         print(s.el)
         print(s.r)
 
-    sh_l, sh_m = zip(*[(l, m)
-                       for l in range(order + 1)
-                       for m in range(-l, l + 1)])
+    sh_l, sh_m = zip(*[(l, m) for l in range(order + 1) for m in range(-l, l + 1)])
 
     M_pinv = inversion(sh_l, sh_m, s.az, s.el)
     # fuzz to zero
@@ -478,16 +485,15 @@ def unit_test2(order=3, case=1, debug=True):
 
     M_allrad2 = allrad2(sh_l, sh_m, s.az, s.el)
 
-    rV, rE = compute_rVrE(sh_l, sh_m, M_allrad,
-                          np.array(sd.sph2cart(s.az, s.el)))
+    rV, rE = compute_rVrE(sh_l, sh_m, M_allrad, np.array(sd.sph2cart(s.az, s.el)))
 
-    plot_rX(rV, 'rVr', [0.5, 1])
-    plot_rX(rE, 'rEr', [0.5, 1])
+    plot_rX(rV, "rVr", [0.5, 1])
+    plot_rX(rE, "rEr", [0.5, 1])
 
     return M_pinv, M_proj, p, M_allrad, M_allrad2
 
 
 # v2rp, ap, trip = allrad_v2rp(Su, Vu)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     M_pinv, M_proj, p, M_allrad, M_allrad2 = unit_test2(case=2, debug=False)

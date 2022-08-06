@@ -23,7 +23,6 @@ Created on Fri Mar 14 09:21:47 2014
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-
 import numpy as np
 from numpy import cos, meshgrid, pi, sin, sqrt
 from scipy import special
@@ -34,10 +33,7 @@ from scipy.integrate import dblquad
 #
 
 
-def real_sph_harm(sh_l, sh_m,
-                  theta, phi,
-                  phi_is_elevation=False,
-                  cs_phase=False):
+def real_sph_harm(sh_l, sh_m, theta, phi, phi_is_elevation=False, cs_phase=False):
     """
     Compute real spherical harmonics, Y_lm.
 
@@ -96,9 +92,7 @@ def real_sph_harm(sh_l, sh_m,
         return np.copy(Y_real)
 
 
-def lm_broadcast(l, m, theta, phi,
-                 transpose=False,
-                 return_ml=False):
+def lm_broadcast(l, m, theta, phi, transpose=False, return_ml=False):
     """Produce 2D array-like objects where each row is constant sh_l, sh_m pair
     and each column is a constant theta, phi pair.
     """
@@ -116,8 +110,11 @@ def lm_broadcast(l, m, theta, phi,
 
 
 def real_sph_harm_transform(sh_l, sh_m, az, el, cs_phase=False):
-    return real_sph_harm(*lm_broadcast(sh_l, sh_m, theta=az, phi=el),
-                         phi_is_elevation=True, cs_phase=cs_phase)
+    return real_sph_harm(
+        *lm_broadcast(sh_l, sh_m, theta=az, phi=el),
+        phi_is_elevation=True,
+        cs_phase=cs_phase
+    )
 
 
 # utility functions
@@ -176,11 +173,9 @@ def is_tesseral_sh(sh_l, sh_m):
 
 
 def lm_generator(max_degree: int = 3, pred=lambda l, m: True):
-    return ((l, m)
-            for l in range(max_degree + 1)
-            for m in range(-l, l + 1)
-            if pred(l, m))
-
+    return (
+        (l, m) for l in range(max_degree + 1) for m in range(-l, l + 1) if pred(l, m)
+    )
 
 
 # ---------------------- Unit tests --------------------------- #
@@ -192,9 +187,8 @@ def dblquad_test():
     # should be 1/3 * 4*pi = 4.1887902047863905
     #  note this is the random energy efficiency of a figure-8 microphone
     qq, ee = dblquad(
-        lambda y, x: cos(y) ** 2 * sin(y),
-        0, 2 * pi,
-        lambda x: 0, lambda y: pi)
+        lambda y, x: cos(y) ** 2 * sin(y), 0, 2 * pi, lambda x: 0, lambda y: pi
+    )
 
     return qq, ee
 
@@ -202,12 +196,13 @@ def dblquad_test():
 def real_sph_harm_inner_product(l1, m1, l2, m2):
     return dblquad(
         # arguments to lambda need to be reversed from args to dblquad (wtf?)
-        lambda phi, theta:
-        real_sph_harm(l1, m1, theta, phi) *
-        real_sph_harm(l2, m2, theta, phi) *
-        sin(phi),
-        0, 2 * pi,  # range of theta
-        lambda x: 0, lambda y: pi  # range of phi
+        lambda phi, theta: real_sph_harm(l1, m1, theta, phi)
+        * real_sph_harm(l2, m2, theta, phi)
+        * sin(phi),
+        0,
+        2 * pi,  # range of theta
+        lambda x: 0,
+        lambda y: pi,  # range of phi
     )
 
 
@@ -284,30 +279,30 @@ def check_condon_shortley_phase_real(l, m, delta=1e-4):
         theta = -pi / 2
         phi = pi / 2
 
-    ok = (real_sph_harm(l, m, theta + delta, phi) -
-          real_sph_harm(l, m, theta - delta, phi)) > 0
+    ok = (
+        real_sph_harm(l, m, theta + delta, phi)
+        - real_sph_harm(l, m, theta - delta, phi)
+    ) > 0
     return ok
 
 
 def plot_cs_phase(max_degree=3):
     import matplotlib.pyplot as plt
+
     az_range = np.linspace(-pi / 8, pi / 8, 50)
     el_range = np.zeros_like(az_range)
-    lm = [(l, m)
-          for l in range(max_degree + 1)
-          for m in range(-l, l + 1)
-          if m != 0]
+    lm = [(l, m) for l in range(max_degree + 1) for m in range(-l, l + 1) if m != 0]
     l, m = zip(*lm)
 
     Yf = real_sph_harm_transform(l, m, az_range, el_range, cs_phase=False).T
     Yt = real_sph_harm_transform(l, m, az_range, el_range, cs_phase=True).T
 
     plt.plot(az_range, Yf)
-    plt.legend(lm, loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.legend(lm, loc="center left", bbox_to_anchor=(1, 0.5))
     plt.show()
 
     plt.plot(az_range, Yt)
-    plt.legend(lm, loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.legend(lm, loc="center left", bbox_to_anchor=(1, 0.5))
     plt.show()
 
     return Yf, Yt, lm
@@ -315,6 +310,7 @@ def plot_cs_phase(max_degree=3):
 
 def plot_associated_legendre(max_degree, polar_plot=False):
     import matplotlib.pyplot as plt
+
     el_range = np.linspace(-pi / 2, pi / 2, 100)
     lm = list(lm_generator(max_degree, lambda l, m: m == 0))
     for l, m in lm:
@@ -322,7 +318,7 @@ def plot_associated_legendre(max_degree, polar_plot=False):
         alp = real_sph_harm(l, m, 0, el_range)
         if polar_plot:
             plt.polar(el_range[alp >= 0], alp[alp >= 0])
-            plt.polar(el_range[alp < 0] - pi, -alp[alp < 0], '-.')
+            plt.polar(el_range[alp < 0] - pi, -alp[alp < 0], "-.")
         else:
             plt.plot(el_range, alp)
     plt.legend(lm)

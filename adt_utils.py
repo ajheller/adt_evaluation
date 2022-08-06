@@ -12,10 +12,12 @@ from datetime import datetime
 import subprocess
 
 
-def timestamp(join='\n'):
-    ret = (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-           f"{platform.node()} ({platform.platform()})",
-           getpass.getuser())
+def timestamp(join="\n"):
+    ret = (
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        f"{platform.node()} ({platform.platform()})",
+        getpass.getuser(),
+    )
     if join:
         ret = join.join(ret)
     return ret

@@ -80,9 +80,9 @@ def xyz2aeru(xyz):
 
 def compute_rVrE(sh_l, sh_m, M, Su, *, test_dirs=sg.az_el()):
     """Compute rV and rE, single call interface."""
-    Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
-                                              test_dirs.az.ravel(),
-                                              test_dirs.el.ravel())
+    Y_test_dirs = rsh.real_sph_harm_transform(
+        sh_l, sh_m, test_dirs.az.ravel(), test_dirs.el.ravel()
+    )
 
     P, rVxyz, E, rExyz = compute_rVrE_fast(M, Su, Y_test_dirs)
 
@@ -92,15 +92,14 @@ def compute_rVrE(sh_l, sh_m, M, Su, *, test_dirs=sg.az_el()):
     return rVr.reshape(test_dirs.shape), rEr.reshape(test_dirs.shape)
 
 
-def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None,
-                      return_dict=True):
+def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None, return_dict=True):
     """Compute rV and rE, single call interface."""
     #
     if test_dirs is None:
         test_dirs = sg.az_el()
-    Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
-                                              test_dirs.az.ravel(),
-                                              test_dirs.el.ravel())
+    Y_test_dirs = rsh.real_sph_harm_transform(
+        sh_l, sh_m, test_dirs.az.ravel(), test_dirs.el.ravel()
+    )
 
     P, rVxyz, E, rExyz = compute_rVrE_fast(M, Su, Y_test_dirs)
 
@@ -120,17 +119,30 @@ def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None,
     rEaz = rEaz.reshape(test_dirs.shape)
     rEel = rEel.reshape(test_dirs.shape)
 
-    return dict(P=P, rVxyz=rVxyz,
-                rVaz=rVaz, rVel=rVel, rVr=rVr, rVu=rVu,
-                E=E, rExyz=rExyz,
-                rEaz=rEaz, rEel=rEel, rEr=rEr, rEu=rEu,
-                M=M, sh_l=sh_l, sh_m=sh_m, test_dirs=test_dirs)
+    return dict(
+        P=P,
+        rVxyz=rVxyz,
+        rVaz=rVaz,
+        rVel=rVel,
+        rVr=rVr,
+        rVu=rVu,
+        E=E,
+        rExyz=rExyz,
+        rEaz=rEaz,
+        rEel=rEel,
+        rEr=rEr,
+        rEu=rEu,
+        M=M,
+        sh_l=sh_l,
+        sh_m=sh_m,
+        test_dirs=test_dirs,
+    )
 
 
-def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π/4, title=None, show=True):
+def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π / 4, title=None, show=True):
     p = compute_rVrE_dict(sh_l, sh_m, M, Su)
-    az = p['rEaz']
-    el = p['rEel']
+    az = p["rEaz"]
+    el = p["rEel"]
     el = np.unwrap(el, axis=0)
     az = np.unwrap(az, axis=1)
 
@@ -138,12 +150,12 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π/4, title=None, show=True):
     az = np.unwrap(az, axis=0)
 
     while np.mean(az) > np.pi:
-        az -= 2*np.pi
+        az -= 2 * np.pi
     while np.mean(az) < -np.pi:
-        az += 2*np.pi
+        az += 2 * np.pi
 
-    taz = p['test_dirs'].az  # not used currently
-    tel = p['test_dirs'].el
+    taz = p["test_dirs"].az  # not used currently
+    tel = p["test_dirs"].el
 
     # magic incantation to flip the x-axis of the plot
     plt.gca().invert_xaxis()
@@ -151,40 +163,46 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π/4, title=None, show=True):
     # plot lines of constant elevation
     for iy in range(0, 180, 10):
         if tel[0, iy] > el_lim:
-            plt.plot(az[1:-1, iy]*180/np.pi,
-                     el[1:-1, iy]*180/np.pi,
-                     zorder=1000)
+            plt.plot(
+                az[1:-1, iy] * 180 / np.pi, el[1:-1, iy] * 180 / np.pi, zorder=1000
+            )
 
     # plot lines of constant azimuth
     for ix in range(0, 361, 10):
-        el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π/2)
+        el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π / 2)
         # NOTE: use the following line to get plots identical to AES150 paper
         # el_plot_range = slice(85, -1)
         # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
-        plt.plot(az[ix, el_plot_range]*180/np.pi,
-                 el[ix, el_plot_range]*180/np.pi,
-                 zorder=1000)
+        plt.plot(
+            az[ix, el_plot_range] * 180 / np.pi,
+            el[ix, el_plot_range] * 180 / np.pi,
+            zorder=1000,
+        )
 
     if True:
         line_color = "xkcd:light gray"
         # plot lines of constant azimuth
         for iy in range(0, 180, 10):
             if tel[0, iy] > el_lim:
-                plt.plot(taz[1:-1, iy]*180/np.pi,
-                         tel[1:-1, iy]*180/np.pi,
-                         color=line_color,
-                         zorder=0)
+                plt.plot(
+                    taz[1:-1, iy] * 180 / np.pi,
+                    tel[1:-1, iy] * 180 / np.pi,
+                    color=line_color,
+                    zorder=0,
+                )
 
         # plot lines of constant azimuth
         for ix in range(0, 361, 10):
-            el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π/2)
+            el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π / 2)
             # NOTE: use the following to get plots identical to AES150 paper
             # el_plot_range = slice(85, -1)
             # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
-            plt.plot(taz[ix, el_plot_range]*180/np.pi,
-                     tel[ix, el_plot_range]*180/np.pi,
-                     color=line_color,
-                     zorder=0)
+            plt.plot(
+                taz[ix, el_plot_range] * 180 / np.pi,
+                tel[ix, el_plot_range] * 180 / np.pi,
+                color=line_color,
+                zorder=0,
+            )
 
     else:
         plt.grid()
@@ -195,12 +213,12 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π/4, title=None, show=True):
 
 
 def diffuse_field_gain(M):
-    g_spkr = np.sum(M*M, axis=1)
+    g_spkr = np.sum(M * M, axis=1)
     g_total = np.sum(g_spkr)
     return g_spkr, g_total
 
 
-def plot_rX(rX, title, clim=None, cmap='jet', show=True):
+def plot_rX(rX, title, clim=None, cmap="jet", show=True):
     """
     Plot rV or rE magnitude.
 
@@ -223,15 +241,15 @@ def plot_rX(rX, title, clim=None, cmap='jet', show=True):
     """
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
-    plt.imshow(np.fliplr(np.flipud(rX.transpose())),
-               extent=(180, -180, -90, 90),
-               cmap=cmap)
+    plt.imshow(
+        np.fliplr(np.flipud(rX.transpose())), extent=(180, -180, -90, 90), cmap=cmap
+    )
     if clim:
         plt.clim(clim)
     ax.xaxis.set_ticks(np.linspace(180, -180, 9))
     ax.yaxis.set_ticks(np.linspace(-90, 90, 5))
-    plt.xlabel('Azimuth (degrees)')
-    plt.ylabel('Elevation (degrees)')
+    plt.xlabel("Azimuth (degrees)")
+    plt.ylabel("Elevation (degrees)")
     plt.title(title)
     plt.colorbar()
 
@@ -251,16 +269,21 @@ def plot_loudspeakers(Su: np.ndarray, **plot_args) -> None:
     # unit vector to az-el
     S_az, S_el, *_ = sg.cart2sph(*Su)
     # a white diamond with a black dot in the center
-    plt.scatter(S_az * 180 / π, S_el * 180 / π, c='w', marker='D', **plot_args)
-    plt.scatter(S_az * 180 / π, S_el * 180 / π, c='k', marker='.', **plot_args)
+    plt.scatter(S_az * 180 / π, S_el * 180 / π, c="w", marker="D", **plot_args)
+    plt.scatter(S_az * 180 / π, S_el * 180 / π, c="k", marker=".", **plot_args)
 
 
-def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
-                     mask_matrix=None,
-                     title="",
-                     plot_spkrs=True,
-                     test_dirs=None,
-                     el_lim=-π/4):
+def plot_performance(
+    M,
+    Su,
+    sh_l,
+    sh_m,  # /,  # / instroduced in 3.8
+    mask_matrix=None,
+    title="",
+    plot_spkrs=True,
+    test_dirs=None,
+    el_lim=-π / 4,
+):
     """Compute and plot basic performance metrics of a decoder matrix."""
     # fill in defaults
     if test_dirs is None:
@@ -272,9 +295,9 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
     # accumulate them in out_figs
     out_figs = []
 
-    Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m,
-                                              test_dirs.az.ravel(),
-                                              test_dirs.el.ravel())
+    Y_test_dirs = rsh.real_sph_harm_transform(
+        sh_l, sh_m, test_dirs.az.ravel(), test_dirs.el.ravel()
+    )
     if mask_matrix is not None:
         Y_test_dirs = mask_matrix @ Y_test_dirs
 
@@ -285,30 +308,37 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
 
     # the arg to arccos can get epsilon larger than 1 due to round off,
     # which produces NaNs, so clip to [-1, 1]
-    rE_dir_err = np.arccos(np.clip(np.sum(rEu * test_dirs.u.T, axis=0),
-                                   -1, 1)) * 180 / π
+    rE_dir_err = (
+        np.arccos(np.clip(np.sum(rEu * test_dirs.u.T, axis=0), -1, 1)) * 180 / π
+    )
 
     # magnitude of rE
     if True:
-        fig = plot_rX(rEr.reshape(test_dirs.shape),
-                      title=(f'{title}\n' +
-                             'magnitude of rE vs. test direction'),
-                      clim=(0.5, 1),
-                      show=False)
+        fig = plot_rX(
+            rEr.reshape(test_dirs.shape),
+            title=(f"{title}\n" + "magnitude of rE vs. test direction"),
+            clim=(0.5, 1),
+            show=False,
+        )
         out_figs.append(fig)
         plt.show()
 
     # plot of ambisonic order
     if True:
         fig = plot_rX(
-            (shelf.rE_to_ambisonic_order_3d(
-                rEr.reshape(test_dirs.shape)) - ambisonic_order).round(),
-            title=(f'{title}\n'
-                   f'relative ambisonic order '
-                   f'({ambisonic_order}) vs. test direction'),
+            (
+                shelf.rE_to_ambisonic_order_3d(rEr.reshape(test_dirs.shape))
+                - ambisonic_order
+            ).round(),
+            title=(
+                f"{title}\n"
+                f"relative ambisonic order "
+                f"({ambisonic_order}) vs. test direction"
+            ),
             clim=(-3, +3),
-            cmap='Spectral_r',
-            show=False)
+            cmap="Spectral_r",
+            show=False,
+        )
 
         if plot_spkrs:
             plot_loudspeakers(Su)
@@ -320,30 +350,32 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
     if True:
         E_dB = 10 * np.log10(E.reshape(test_dirs.shape))
         E_dB_ceil = np.ceil(E_dB.max())
-        fig = plot_rX(E_dB,
-                      title=(f'{title}\n' +
-                             'E (dB) vs. test_direction'),
-                      clim=(E_dB_ceil - 20, E_dB_ceil),
-                      show=False,
-                      )
+        fig = plot_rX(
+            E_dB,
+            title=(f"{title}\n" + "E (dB) vs. test_direction"),
+            clim=(E_dB_ceil - 20, E_dB_ceil),
+            show=False,
+        )
         out_figs.append(fig)
         plt.show()
 
     # direction error
     if True:
-        fig = plot_rX(rE_dir_err.reshape(test_dirs.shape),
-                      title=f'{title}\n' +
-                            'direction error (deg)',
-                      clim=(0, 20),
-                      show=False)
+        fig = plot_rX(
+            rE_dir_err.reshape(test_dirs.shape),
+            title=f"{title}\n" + "direction error (deg)",
+            clim=(0, 20),
+            show=False,
+        )
         out_figs.append(fig)
         plt.show()
 
-        fig = plot_rX(((rE_dir_err.reshape(test_dirs.shape) / 3).round()) * 3,
-                      title=f'{title}\n' +
-                            'direction error (deg)',
-                      clim=(0, 20),
-                      show=False)
+        fig = plot_rX(
+            ((rE_dir_err.reshape(test_dirs.shape) / 3).round()) * 3,
+            title=f"{title}\n" + "direction error (deg)",
+            clim=(0, 20),
+            show=False,
+        )
 
         # overlay loudspeaker positions
         if plot_spkrs:
@@ -354,10 +386,15 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
 
     if True:
         fig = plt.figure(figsize=(10, 4))
-        plot_az_el_grid(sh_l, sh_m, M, Su,
-                        title=f"{title}\nrE directions",
-                        el_lim=el_lim,
-                        show=False)
+        plot_az_el_grid(
+            sh_l,
+            sh_m,
+            M,
+            Su,
+            title=f"{title}\nrE directions",
+            el_lim=el_lim,
+            show=False,
+        )
         if plot_spkrs:
             plot_loudspeakers(Su, zorder=1500)
 
@@ -365,12 +402,13 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
         plt.show()
 
     if True:
-        fig = plot_rX(rVr.reshape(test_dirs.shape),
-                      title=(f'{title}\n' +
-                             'magnitude of rV vs. test direction'),
-                      #clim=(0.5, 1),
-                      clim=(0.5, 1.5),
-                      show=False)
+        fig = plot_rX(
+            rVr.reshape(test_dirs.shape),
+            title=(f"{title}\n" + "magnitude of rV vs. test direction"),
+            # clim=(0.5, 1),
+            clim=(0.5, 1.5),
+            show=False,
+        )
         out_figs.append(fig)
         plt.show()
 
@@ -381,8 +419,7 @@ def plot_performance(M, Su, sh_l, sh_m,  # /,  # / instroduced in 3.8
     return out_figs
 
 
-def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π/4,
-                        title=""):
+def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π / 4, title=""):
 
     T = sg.az_el()
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
@@ -397,20 +434,24 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π/4,
 
     out_figs = []
 
-    fig = plot_rX(rVr.reshape(T.shape),
-                  title=f"{title}\nMagnitude of rV vs. test direction",
-                  clim=(0.7, 1.1),
-                  show=False)
+    fig = plot_rX(
+        rVr.reshape(T.shape),
+        title=f"{title}\nMagnitude of rV vs. test direction",
+        clim=(0.7, 1.1),
+        show=False,
+    )
     out_figs.append(fig)
     plt.show()
 
     ev_dot = np.sum(rEu * rVu, axis=0)
-    dir_diff = np.arccos(np.clip(ev_dot, -1, 1)) * 180/np.pi
+    dir_diff = np.arccos(np.clip(ev_dot, -1, 1)) * 180 / np.pi
     print("mean rV/rE direction error", np.mean(dir_diff))
-    fig = plot_rX(dir_diff.reshape(T.shape),
-                  title=f"{title}\nrE vs. rV direction difference (degrees)",
-                  clim=(0, 20),
-                  show=False)
+    fig = plot_rX(
+        dir_diff.reshape(T.shape),
+        title=f"{title}\nrE vs. rV direction difference (degrees)",
+        clim=(0, 20),
+        show=False,
+    )
     out_figs.append(fig)
     plt.show()
 
@@ -420,8 +461,8 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π/4,
 def plot_matrix(M, title="", min_dB=-60):
     """Display the matrix as an image."""
     fig = plt.figure()
-    M_clipped = np.clip(np.abs(M), 10**(min_dB/20), np.inf)
-    plt.matshow(20 * np.log10(M_clipped.T), fignum=0, cmap='jet')
+    M_clipped = np.clip(np.abs(M), 10 ** (min_dB / 20), np.inf)
+    plt.matshow(20 * np.log10(M_clipped.T), fignum=0, cmap="jet")
     plt.colorbar()
     plt.clim((min_dB, 0))
     plt.title("%s\nMatrix element gains (dB)" % title)
@@ -434,22 +475,21 @@ def plot_matrix(M, title="", min_dB=-60):
 import io, reports
 
 
-def write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m,
-                              id_string, title):
+def write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m, id_string, title):
     """Write reports for LF performance plots."""
     figs = []
-    figs.append(plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
-                                       title=title))
+    figs.append(plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m, title=title))
     with io.StringIO() as f:
-        print(f"LF optimization report\n",
-              file=f)
+        print(f"LF optimization report\n", file=f)
         report = f.getvalue()
         print(report)
     spkr_array_name = S_real.name
-    reports.html_report(zip(*figs),
-                        text=report,
-                        directory=spkr_array_name,
-                        name=f"{spkr_array_name}-{id_string}-LF")
+    reports.html_report(
+        zip(*figs),
+        text=report,
+        directory=spkr_array_name,
+        name=f"{spkr_array_name}-{id_string}-LF",
+    )
 
 
 if __name__ == "__main__":
@@ -500,8 +540,10 @@ if __name__ == "__main__":
         else:
             raise ValueError("Unknown decoder type: %d" % decoder)
 
-        rVr, rEr, = compute_rVrE(sh_l, sh_m, M,
-                                 np.array(sg.sph2cart(s_az, s_el)))
+        (
+            rVr,
+            rEr,
+        ) = compute_rVrE(sh_l, sh_m, M, np.array(sg.sph2cart(s_az, s_el)))
 
         plot_rX(rVr, "rVr", (0.5, 1))
         plot_rX(rEr, "rEr", (0.5, 1))

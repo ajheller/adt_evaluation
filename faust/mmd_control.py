@@ -9,27 +9,31 @@ Created on Thu Oct 22 18:35:22 2020
 import requests
 import json
 
+
 def get_mixer_value(i, j):
-    r = requests.get(f'http://localhost:5510/matrix_mixer/g-o{i}-i{j}')
+    r = requests.get(f"http://localhost:5510/matrix_mixer/g-o{i}-i{j}")
     c = r.content
-    value = c.split(b' ')
+    value = c.split(b" ")
     return float(value[1])
 
+
 def set_mixer_value(i, j, v):
-    r = requests.get(f'http://localhost:5510/matrix_mixer/g-o{i}-i{j}?value={v}')
+    r = requests.get(f"http://localhost:5510/matrix_mixer/g-o{i}-i{j}?value={v}")
     c = r.content
-    value = c.split(b' ')
+    value = c.split(b" ")
     try:
         v = float(value[1])
     except IndexError:
         v = None
     return v
 
+
 def get_mixer_schema():
-    r = requests.get(f'http://localhost:5510/JSON')
+    r = requests.get(f"http://localhost:5510/JSON")
     c = r.content
     j = json.loads(c)
     return j
+
 
 def set_mixer_matrix(M):
     for i, u in enumerate(M):
@@ -48,7 +52,8 @@ import http.client
 # 30 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
 # 30/(49*64) = 100 ms/element, is this the timing of the "slow" loop?
 
-def set_mixer_matrix2(M, host='localhost', port=5510):
+
+def set_mixer_matrix2(M, host="localhost", port=5510):
     try:
         c = http.client.HTTPConnection(host, port, timeout=10)
         for i, u in enumerate(M):
