@@ -240,8 +240,10 @@ def check_inner_product(l1, m1, l2, m2, z, e=1e-10):
 import spherical_grids as sg
 
 
-def real_sph_harm_inner_product_discrete(l1, m1, l2, m2,
-                                         grid=sg.t_design5200()):
+def real_sph_harm_inner_product_discrete(l1, m1, l2, m2, grid=None):
+    if grid is None:
+        grid = sg.t_design5200()
+
     if True:
         Y1 = real_sph_harm_transform(l1, m1, grid.az, grid.el)
         Y2 = real_sph_harm_transform(l2, m2, grid.az, grid.el)
@@ -253,7 +255,10 @@ def real_sph_harm_inner_product_discrete(l1, m1, l2, m2,
     return s
 
 
-def rsh_transform_unit_test(max_degree=3, grid=sg.t_design5200()):
+def rsh_transform_unit_test(max_degree=3, grid=None):
+    if grid is None:
+        grid = sg.t_design5200()
+
     l, m = zip(*lm_generator(max_degree))
     Y = real_sph_harm_transform(l, m, grid.az, grid.el)
     # compute the grammian
