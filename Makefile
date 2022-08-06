@@ -26,4 +26,7 @@ git-pull:
 
 requirements.txt:
 	echo $@
-#	pip freeze 
+#	pip freeze
+
+conda-env:
+	conda env export --from-history --no-build

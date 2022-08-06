@@ -569,7 +569,7 @@ def adapter_matrix(Cin, Cout):
     for i_in in range(n_Cin):
         i_out = np.flatnonzero((Cout.sh_l == Cin.sh_l[i_in]) &
                                (Cout.sh_m == Cin.sh_m[i_in]))
-        print(i_in, i_out)
+        # print(i_in, i_out)
         if i_out.size > 0:
             A[i_out, i_in] = Cout.normalization[i_out]/Cin.normalization[i_in]
     return A

@@ -5,19 +5,20 @@ Created on Sun May 16 21:38:12 2021
 
 @author: heller
 """
+
 import numpy as np
-from numpy import pi as π
+from numpy import pi
+import slugify
+
 import optimize_dome as od
-import example_speaker_arrays as esa
 import localization_models as lm
 import program_channels as pc
 import basic_decoders as bd
 import write_faust_decoder as wfd
 import shelf
-import io
 import reports
 import loudspeaker_layout as lsl
-import slugify
+
 
 figs = []
 
@@ -74,7 +75,7 @@ Diffuse field gain of array {10*np.log10(df_gain_tot)}
 
 title_opt = f"{S.name}: Optimized HF AllRAD {C.id_string()}"
 
-el_lim = -π/3
+el_lim = -pi/3
 
 M_hf, res_hf = od.optimize_dome2(M_allrad_hf,
                                  sh_l, sh_m, S_real.u.T,
@@ -96,6 +97,7 @@ Diffuse field gain of array {df_gain_tot}
 # optimize allrad design at low frequencies
 
 
+
 title_opt_lf = f"{S_real.name}: Optimized LF/HF AllRAD {C.id_string()}"
 
 M_lf, res_lf = od.optimize_dome_LF(M_hf, S_real,
@@ -106,25 +108,14 @@ figs.append(lm.plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
                                    title=title_opt_lf))
 
 
-def write_plot_performance_LF(
-        M_lf, M_hf, S_real, sh_l, sh_m, title):
-    """Write reports for LF performance plots."""
-    figs = []
-    figs.append(lm.plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
-                                       title=title_opt_lf))
-    with io.StringIO() as f:
-        print(f"LF optimization report\n",
-              file=f)
-        report = f.getvalue()
-        print(report)
-    spkr_array_name = S_real.name
-    reports.html_report(zip(*figs),
-                        text=report,
-                        directory=spkr_array_name,
-                        name=f"{spkr_array_name}-{id_string}-LF")
 
+lm.write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m,
+                          id_string=C.id_string(),
+                          title=title_opt_lf)
 
-write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m, title_opt_lf)
+lm.write_plot_performance_LF(M_hf, M_hf, S_real, sh_l, sh_m,
+                          id_string=C.id_string(),
+                          title="LF performance of HF matrix")
 
 # %%  Are diffuse field gains the same?
 print(f"\n\n{title_opt}\nDiffuse field gain of each loudspeaker (dB)")
@@ -143,6 +134,10 @@ figs.append(lm.plot_performance_LF(M_hf @ np.linalg.pinv(gamma),
                                    M_hf,
                                    S_real.u.T, sh_l, sh_m,
                                    title=title_inv_gammas))
+
+
+reports.html_report(zip(*figs),
+                    name=f"{S.name} {C.id_string()}")
 
 # %%
 

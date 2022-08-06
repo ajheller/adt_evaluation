@@ -161,6 +161,8 @@ def append_layouts(l1, l2,
     if description is None:
         description = l1.description
 
+    print(l1, l2)
+
     xyz = np.append(l1.xyz, l2.xyz, axis=0)
     ids = np.append(l1.ids, l2.ids, axis=0)
     is_real = np.append(l1.is_real, l2.is_real, axis=0)

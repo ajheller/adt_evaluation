@@ -41,7 +41,7 @@ def uniform_decoder(s, order_h, order_v, mixed_order_scheme):
 
     reports.html_report(zip(*(figs_opt,)),
                         name=c.id_string(),
-                             directory=c.id_string())
+                        directory=c.id_string())
     if res.status == 0:
         M['opt'] = M_opt
     else:

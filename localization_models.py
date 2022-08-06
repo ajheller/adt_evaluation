@@ -431,6 +431,27 @@ def plot_matrix(M, title="", min_dB=-60):
     return fig
 
 
+import io, reports
+
+
+def write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m,
+                              id_string, title):
+    """Write reports for LF performance plots."""
+    figs = []
+    figs.append(plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m,
+                                       title=title))
+    with io.StringIO() as f:
+        print(f"LF optimization report\n",
+              file=f)
+        report = f.getvalue()
+        print(report)
+    spkr_array_name = S_real.name
+    reports.html_report(zip(*figs),
+                        text=report,
+                        directory=spkr_array_name,
+                        name=f"{spkr_array_name}-{id_string}-LF")
+
+
 if __name__ == "__main__":
     import basic_decoders as bd
 
