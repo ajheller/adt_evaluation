@@ -6,8 +6,9 @@ Created on Sun Jun 20 14:18:50 2021
 @author: heller
 """
 import numpy as np
+from matplotlib import pyplot as plt
 
-import loudspeaker_layout as lsl
+#import loudspeaker_layout as lsl
 import program_channels as pc
 import localization_models as lm
 import shelf
@@ -19,8 +20,9 @@ import example_speaker_arrays as esa
 output_file = 'local/envelop.json'
 
 S = esa.envelop()
-spkr_plot_fig = S.plot()
-spkr_plan_fig = S.plot_plan()
+fig, ax = plt.subplots(2, 2)
+ax[0, 0] = spkr_plot_fig = S.plot()
+ax[0, 1] = spkr_plan_fig = S.plot_plan()
 spkr_azel_fig = S.plot_azel()
 
 # obj
@@ -52,13 +54,13 @@ sad_figs = lm.plot_performance(M_sad, S.u.T, C.sh_l, C.sh_m, el_lim=el_lim,
 # %%
 
 M_allrad = bd.allrad(C.sh_l, C.sh_m, S.az, S.el)
-if True:
-    M_allrad = M_allrad @ shelf.gamma(C.sh_l, decoder_type='max_rE',
-                                      decoder_3d=True,
-                                      return_matrix=True)
+
+M_allrad_hf = M_allrad @ shelf.gamma(C.sh_l, decoder_type='max_rE',
+                                     decoder_3d=True,
+                                     return_matrix=True)
 
 
-allrad_figs = lm.plot_performance(M_allrad, S.u.T, C.sh_l, C.sh_m,
+allrad_figs = lm.plot_performance(M_allrad_hf, S.u.T, C.sh_l, C.sh_m,
                                   el_lim=el_lim,
                                   title=f"{S.name}: AllRAD {C.id_string()}")
 
@@ -106,11 +108,28 @@ import json
 
 dec_name = f"{slugify.slugify(S.name)}-{C.h_order}H{C.v_order}V-N3D"
 
+
 wfd.write_faust_decoder_vienna(dec_name+"-Vienna.dsp",
                                dec_name+"-Vienna",
                                M_lf, M_hf,
                                C.sh_l, S.r,
                                input_mask=C.channel_mask)
+
+
+wfd.write_faust_decoder_dual_band(dec_name+"-AllRAD-2B.dsp",
+                                  dec_name+"-AllRAD-2B",
+                                  M_allrad,
+                                  C.sh_l, S.r,
+                                  input_mask=C.channel_mask)
+
+wfd.write_faust_decoder(dec_name+"-AllRAD-1b.dsp",
+                        dec_name+"-AllRAD-1b",
+                        M_allrad_hf,
+                        C.sh_l, S.r,
+                        input_mask=C.channel_mask)
+
+
+
 
 # %%
 if False:
