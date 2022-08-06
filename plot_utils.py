@@ -5,7 +5,8 @@ Created on Mon Sep 14 13:39:10 2020
 
 @author: heller
 """
-from mpl_toolkits.mplot3d import Axes3D
+#from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits import mplot3d
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -56,11 +57,14 @@ def axis_demo():
     plt.show()
 
 
-def plot_lsl(S, speaker_stands=True, title=None, show=True):
-    fig = plt.figure(figsize=(10, 10))
+def plot_lsl(S, speaker_stands=True, title=None, axis=None, show=True):
+    if axis is None:
+        fig, axis = plt.subplots(1, 1, figsize=(10, 10))
     # ax = fig.add_subplot(1, 1, 1)
-    ax = fig.gca(projection='3d')
+    # ax = fig.gca(projection='3d')
     # ax.set_aspect('equal')
+
+    ax = plt.axes(projection='3d')
 
     ax.scatter(*S.xyz.T, c=S.z, s=200)
     ax.scatter(0, 0, 0, marker='d')
@@ -74,40 +78,56 @@ def plot_lsl(S, speaker_stands=True, title=None, show=True):
     set_axes_equal(ax)
     ax.set(xlabel='X', ylabel='Y', zlabel='Z')
     if title is not None:
-        plt.title(title)
+        ax.set(title=title)
     if show:
         plt.show()
     return fig
 
 
-def plot_lsl_plan(S, title=None, units='M', show=True):
-    fig = plt.figure()
-    plt.scatter(S.x, S.y, c=S.z, marker='o')
-    plt.axis('equal')
-    plt.grid()
-    plt.colorbar()
-    plt.title(title)
+def plot_lsl_plan(S, title=None, show=False, axis=None, **kwargs):
+    if axis is None:
+        fig, axis = plt.subplots(1, 1, **kwargs)
+    else:
+        fig = axis.figure
+
+    axis.scatter(S.x, S.y, c=S.z, marker='o')
+    axis.axis('equal')
+    axis.grid()
+    #plt.colorbar()
+    #plt.title(title)
     if show:
-        plt.show()
+        fig.show()
     return fig
 
 
-def plot_lsl_azel(S, title=None, show=True):
-    fig = plt.figure(figsize=(12, 6))
-    plt.scatter(S.az*180/π, S.el*180/π, c='white', marker='o')
-    for x, y, r, t in zip(S.az*180/π, S.el*180/π, S.r, S.ids):
-        plt.text(x, y, t,
-                 bbox=dict(facecolor='lightblue', alpha=0.4),
-                 horizontalalignment='center',
-                 verticalalignment='center')
-    plt.xlim(-180, 180)
-    plt.ylim(-90, 90)
-    plt.grid()
-    # magic incantation to flip the x-axis of the plot
-    plt.gca().invert_xaxis()
+def plot_lsl_azel(S, title=None, show=False, axis=None, **kwargs):
+    if axis is None:
+        fig, axis = plt.subplots(1, 1, **kwargs)
+    else:
+        fig = axis.figure
+    # fig = plt.figure(figsize=(12, 6))
+
+    if True:
+        for x, y, r, t in zip(S.az*180/π, S.el*180/π, S.r, S.ids):
+            t += ("\n" f"r={r:0.2f}")
+            axis.text(x, y, t,
+                      bbox=dict(facecolor='lightblue', alpha=0.4),
+                      horizontalalignment='center',
+                      verticalalignment='center')
+    if True:
+        axis.scatter(S.az*180/π, S.el*180/π, c='white', marker='+')
+
+    axis.set_xlim(-180, 180)
+    axis.set_ylim(-90, 90)
+    axis.set_xlabel("Azimuth [degrees]")
+    axis.set_ylabel("Elevation [degrees]")
+    axis.set_title(title)
+    axis.grid(True)
+    # invert x-axis to show from listeners point of view
+    axis.invert_xaxis()
     # plt.colorbar()
     if show:
-        plt.show()
+        fig.show()
     return fig
 
 
