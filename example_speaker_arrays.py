@@ -112,6 +112,26 @@ def emb_dome(add_imaginary=True):
     return layout
 
 
+def emb_cmap16(add_imaginary=True):
+    """EMB's home array."""
+    # Eric's array is an octagon at ear level and a square 30-deg elevation
+    # speakers lie on a 2-meter sphere
+    layout = lsl.append_layouts(
+        polygon(8, elevation=0, radius=2, unit='M',
+                center_spkr=False, ids='L'),
+        polygon(4, elevation=π/6, radius=2, unit='M',
+                center_spkr=True, ids='U'),
+        name='CMAP16',
+        description="EMB's home array, 8+4+4")
+
+    layout += polygon(4, elevation=-π/6, radius=2, unit='M',
+                      center_spkr=True, ids='U')
+    if add_imaginary:
+        layout += nadir(radius=2)
+        layout += zenith(radius=2)
+    return layout
+
+
 def stage2017(add_imaginary=True):
     """CCRMA Stage array."""
     layout = lsl.from_array((
