@@ -346,9 +346,13 @@ def write_faust_decoder_dual_band(path, name, M, sh_l, r, input_mask, **gamma_kw
         gamma_lf = np.ones_like(gamma_hf)
 
         # split the gain between LF and HF
-        g0 = shelf.gamma0(shelf.gamma(sh_l, **gamma_kw), n_spkrs=len(r))
+        g0 = shelf.gamma0(
+            shelf.gamma(sh_l, **gamma_kw),
+            matching_type="rms",
+            n_spkrs=len(r),
+        )
         sqrt_g0 = np.sqrt(g0)
-        print(gamma_lf, gamma_hf, g0)
+        print(f"{gamma_lf=}, {gamma_hf=}, {g0=}")
         gamma_lf /= sqrt_g0
         gamma_hf *= sqrt_g0
 

@@ -28,7 +28,7 @@ wfd.write_faust_decoder_dual_band(
     C.sh_l,
     S.r,
     C.channel_mask,
-    decoder_3d=True,
+    decoder_3d=C.v_order > 0,
 )
 
 # %%  array is actually 2D, so this is a better decoder
@@ -46,7 +46,7 @@ wfd.write_faust_decoder_dual_band(
     C.sh_l,
     S.r,
     C.channel_mask,
-    decoder_3d=False,
+    decoder_3d=C.v_order > 0,
 )
 
 # %% four speaker array
@@ -64,5 +64,5 @@ wfd.write_faust_decoder_dual_band(
     C.sh_l,
     S.r,
     C.channel_mask,
-    decoder_3d=False,
+    decoder_3d=C.v_order > 0,
 )
