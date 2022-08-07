@@ -11,17 +11,19 @@ import example_speaker_arrays as esa
 import basic_decoders as bd
 import write_faust_decoder as wfd
 
+import slugify
 
-# reproducing G. Senna did
+# %% reproducing what G. Senna did
 
 S = esa.polygon(8)
-
 C = pc.ChannelsN3D(1, 1)
 M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
+name = slugify.slugify(f"{S.name}_{C.id_string()}")
+
 wfd.write_faust_decoder_dual_band(
-    "decoder-oct-1H1V-N3D.dsp",
-    "decoder-oct-1H1V-N3D",
+    f"{name}.dsp",
+    name,
     M,
     C.sh_l,
     S.r,
@@ -29,15 +31,35 @@ wfd.write_faust_decoder_dual_band(
     decoder_3d=True,
 )
 
-# %%
+# %%  array is actually 2D, so this is a better decoder
 
-# array is actually 2D, so this is a better decoder
+S = esa.polygon(8)
 C = pc.ChannelsN3D(1, 0)
 M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
+name = slugify.slugify(f"{S.name}_{C.id_string()}")
+
 wfd.write_faust_decoder_dual_band(
-    "decoder-oct-1H0V-N3D.dsp",
-    "decoder-oct-1H0V-N3D",
+    f"{name}.dsp",
+    name,
+    M,
+    C.sh_l,
+    S.r,
+    C.channel_mask,
+    decoder_3d=False,
+)
+
+# %% four speaker array
+
+S = esa.polygon(4)
+C = pc.ChannelsN3D(1, 0)
+M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
+
+name = slugify.slugify(f"{S.name}_{C.id_string()}")
+
+wfd.write_faust_decoder_dual_band(
+    f"{name}.dsp",
+    name,
     M,
     C.sh_l,
     S.r,
