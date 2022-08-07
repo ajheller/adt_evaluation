@@ -116,27 +116,29 @@ def normalization_full(sh_l, sh_m=None):
 #        otherwise
 #            error('unknown mixed-order scheme: "%s" ', scheme);
 
-
+# fmt: off
 #                      W   X   Y   Z |  R   S   T   U   V |  K   L   M   N   O   P   Q
 _FuMa_sh_l = np.array((0,  1,  1,  1,   2,  2,  2,  2,  2,   3,  3,  3,  3,  3,  3,  3))
 _FuMa_sh_m = np.array((0,  1, -1,  0,   0,  1, -1,  2, -2,   0,  1, -1,  2, -2,  3, -3))
+# fmt: on
 _FuMa_sh_lm = list(zip(_FuMa_sh_l, _FuMa_sh_m))
-_FuMa_sh_acn = [l ** 2 + l + m for l, m in _FuMa_sh_lm]
+_FuMa_sh_acn = [l**2 + l + m for l, m in _FuMa_sh_lm]
 _FuMa_channel_names = np.array(tuple("W" + "XYZ" + "RSTUV" + "KLMNOPQ"))
 
-_FuMa_channel_normalization = 1 / np.sqrt(np.array(
-    ((2,) +  # W
-
-     (3,) * 3 +  # X Y Z
-
-     (5,) +  # R
-     (5 * 3 / 4,) * 4 +  # S T U V
-
-     (7,) +  # K
-     (7 * 32 / 45,) * 2 +  # L M
-     (7 * 5 / 9,) * 2 +  # N O
-     (7 * 5 / 8,) * 2  # P Q
-     )))
+_FuMa_channel_normalization = 1 / np.sqrt(
+    np.array(
+        (
+            (2,)
+            + (3,) * 3  # W
+            + (5,)  # X Y Z
+            + (5 * 3 / 4,) * 4  # R
+            + (7,)  # S T U V
+            + (7 * 32 / 45,) * 2  # K
+            + (7 * 5 / 9,) * 2  # L M
+            + (7 * 5 / 8,) * 2  # N O  # P Q
+        )
+    )
+)
 
 
 #
@@ -198,8 +200,7 @@ def channel_mask_HP(sh_l, sh_m, h_order, v_order):
     if h_order != v_order:
         # sectoral harmonics are the horizontal
         sectoral_sh = is_sectoral_sh(sh_l, sh_m)
-        ch_mask = ((sectoral_sh & (sh_l <= h_order)) |
-                   (~sectoral_sh & (sh_l <= v_order)))
+        ch_mask = (sectoral_sh & (sh_l <= h_order)) | (~sectoral_sh & (sh_l <= v_order))
     else:
         ch_mask = sh_l <= h_order
     return ch_mask
@@ -208,8 +209,7 @@ def channel_mask_HP(sh_l, sh_m, h_order, v_order):
 def channel_mask_HV(sh_l, sh_m, h_order, v_order):
     """Return True for mixed-order components by HV rule."""
     if h_order != v_order:
-        ch_mask = (((sh_l - np.abs(sh_m)) <= v_order) &
-                   (sh_l <= max(h_order, v_order)))
+        ch_mask = ((sh_l - np.abs(sh_m)) <= v_order) & (sh_l <= max(h_order, v_order))
     else:
         # this handles the case where sh_l has entries greater than h_order
         ch_mask = sh_l <= h_order
@@ -219,7 +219,7 @@ def channel_mask_HV(sh_l, sh_m, h_order, v_order):
     return ch_mask
 
 
-def channel_mask(sh_l, sh_m, h_order, v_order, mixed_order_scheme='HV'):
+def channel_mask(sh_l, sh_m, h_order, v_order, mixed_order_scheme="HV"):
     """
     Return boolean channel_mask according to mixed order scheme.
 
@@ -247,9 +247,9 @@ def channel_mask(sh_l, sh_m, h_order, v_order, mixed_order_scheme='HV'):
         DESCRIPTION.
 
     """
-    if mixed_order_scheme.upper().startswith('HV'):
+    if mixed_order_scheme.upper().startswith("HV"):
         ch_mask = channel_mask_HV(sh_l, sh_m, h_order, v_order)
-    elif mixed_order_scheme.upper().startswith('HP'):
+    elif mixed_order_scheme.upper().startswith("HP"):
         ch_mask = channel_mask_HP(sh_l, sh_m, h_order, v_order)
     else:
         raise ValueError("Unknown mixed order scheme, should be 'HV' or 'HP'")
@@ -339,17 +339,26 @@ class ChannelsAmbisonic(Channels):
     "This class fills in defaults and does sanity checks"
 
     mixed_order_scheme = attrib()
+    ordering_type = attrib()
+    normalization_type = attrib()
 
-    def __init__(self, h_order, v_order,
-                 sh_l, sh_m,
-                 normalization,
-                 cs_phase=None,
-                 mixed_order_scheme=None,
-                 name=None):
+    def __init__(
+        self,
+        h_order,
+        v_order,
+        sh_l,
+        sh_m,
+        ordering_type,
+        normalization,
+        normalization_type,
+        cs_phase=None,
+        mixed_order_scheme=None,
+        name=None,
+    ):
 
         # defaults
         if mixed_order_scheme is None:
-            mixed_order_scheme = 'HV'
+            mixed_order_scheme = "HV"
 
         # Sanity checks
         if v_order > h_order:
@@ -364,51 +373,65 @@ class ChannelsAmbisonic(Channels):
             sh_m = np.asarray(sh_m)
             normalization = np.asarray(normalization)
         else:
-            raise ValueError("sh_l, sh_m, normalization must be same length, "
-                             f"not {len(sh_l), len(sh_m), len(normalization)}")
+            raise ValueError(
+                "sh_l, sh_m, normalization must be same length, "
+                f"not {len(sh_l), len(sh_m), len(normalization)}"
+            )
 
         if cs_phase:
             pass  # FIXME check that it is the same length as sh_l
         else:
             cs_phase = np.ones_like(sh_l)
 
-        ch_mask = channel_mask(sh_l, sh_m, h_order, v_order,
-                               mixed_order_scheme)
+        ch_mask = channel_mask(sh_l, sh_m, h_order, v_order, mixed_order_scheme)
+
+        # slots only in this class
+        self.mixed_order_scheme = mixed_order_scheme.upper()
+        self.ordering_type = ordering_type
+        self.normalization_type = normalization_type
 
         super().__init__(
-            h_order, v_order,
-            sh_l[ch_mask], sh_m[ch_mask],
+            h_order,
+            v_order,
+            sh_l[ch_mask],
+            sh_m[ch_mask],
             normalization[ch_mask],
             cs_phase[ch_mask],
             ch_mask,
             ambisonic_channel_names(sh_l[ch_mask], sh_m[ch_mask]),
-            name)
-        self.mixed_order_scheme = mixed_order_scheme.upper()
+            name,
+        )
 
     def id_string(self):
         return channels_id_string(self)
 
     def __str__(self):
-        return f"<{channels_id_string(self)}>"
+        return f"<Signal Set: {channels_id_string(self)}>"
+
 
 def channels_id_string(channel_object):
     c = channel_object
     s = c.mixed_order_scheme
-    return (f"{c.name} " +
-            f"{c.h_order}{s[0]}" +
-            f"{c.v_order}{s[1]}")
+    return (
+        f"{c.h_order}{s[0]}"
+        f"{c.v_order}{s[1]}"
+        f" {c.ordering_type} "
+        f"{c.normalization_type}"
+    )
 
 
 _id_string_re = re.compile(r"(AMBIX|FUMA)?\s*(\d+)(\D)(\d+)(\D)\s*$")
+
 
 def parse_channels_id_string(id_str):
     match = _id_string_re.match(id_str.upper())
     if match:
         convention, l_str, h, m_str, vp = match.groups()
-        return int(l_str), int(m_str), h+vp, convention
+        return int(l_str), int(m_str), h + vp, convention
 
     else:
         raise ValueError(f"Cannot parse '{id_str}'")
+
 
 class ChannelsAmbiX(ChannelsAmbisonic):
     def __init__(self, h_order, v_order=None, mixed_order_scheme=None):
@@ -419,14 +442,45 @@ class ChannelsAmbiX(ChannelsAmbisonic):
         v_order = int(v_order)
 
         sh_l, sh_m = zip(*ambisonic_channels_acn(h_order))
-        sh_l = np.array(sh_l)
-        sh_m = np.array(sh_m)
+        sh_l = np.asarray(sh_l)
+        sh_m = np.asarray(sh_m)
         norm = normalization_semi(sh_l, sh_m)
         super().__init__(
-            h_order, v_order,
-            sh_l, sh_m, norm,
+            h_order,
+            v_order,
+            sh_l,
+            sh_m,
+            "ACN",
+            norm,
+            "SN3D",
             mixed_order_scheme=mixed_order_scheme,
-            name="AmbiX")
+            name="AmbiX",
+        )
+
+
+class ChannelsN3D(ChannelsAmbisonic):
+    def __init__(self, h_order, v_order=None, mixed_order_scheme=None):
+        if v_order is None:
+            v_order = h_order
+
+        h_order = int(h_order)
+        v_order = int(v_order)
+
+        sh_l, sh_m = zip(*ambisonic_channels_acn(h_order))
+        sh_l = np.asarray(sh_l)
+        sh_m = np.asarray(sh_m)
+        norm = normalization_full(sh_l, sh_m)
+        super().__init__(
+            h_order,
+            v_order,
+            sh_l,
+            sh_m,
+            "ACN",
+            norm,
+            "N3D",
+            mixed_order_scheme=mixed_order_scheme,
+            name="N3D",
+        )
 
 
 """
@@ -476,14 +530,19 @@ class ChannelsFuMa(ChannelsAmbisonic):
             raise ValueError(f"v_order should be <= h_order {h_order, v_order}")
 
         if mixed_order_scheme is None:
-            mixed_order_scheme = 'HP'
+            mixed_order_scheme = "HP"
 
         super().__init__(
-            h_order, v_order,
-            _FuMa_sh_l, _FuMa_sh_m,
+            h_order,
+            v_order,
+            _FuMa_sh_l,
+            _FuMa_sh_m,
+            "FuMa",
             _FuMa_channel_normalization,
+            "FuMa",
             mixed_order_scheme=mixed_order_scheme,
-            name="FuMa")
+            name="FuMa",
+        )
 
 
 #
@@ -506,21 +565,27 @@ def ambisonic_channels(C, convention=None, **kwargs):
             h_order, v_order = int(C), int(C)
         except ValueError:
             # is it a string?
-            h_order, v_order, mixed_order_scheme, convention = \
-                parse_channels_id_string(C)
-            kwargs['mixed_order_scheme'] = mixed_order_scheme
-        except ValueError:
-            raise ValueError(f"Can't make sense of C = {C}")
+            try:
+                (
+                    h_order,
+                    v_order,
+                    mixed_order_scheme,
+                    convention,
+                ) = parse_channels_id_string(C)
+                kwargs["mixed_order_scheme"] = mixed_order_scheme
+            except ValueError:
+                raise ValueError(f"Can't make sense of C = {C}")
 
     if convention is None:
-        convention = 'FuMa' if h_order <= 3 else 'AmbiX'
+        convention = "FuMa" if h_order <= 3 else "AmbiX"
 
-    if convention.upper() == 'AMBIX':
+    if convention.upper() == "AMBIX":
         return ambisonic_channels(ChannelsAmbiX(h_order, v_order, **kwargs))
-    elif convention.upper() == 'FUMA':
+    elif convention.upper() == "FUMA":
         return ambisonic_channels(ChannelsFuMa(h_order, v_order, **kwargs))
     else:
-        raise ValueError('Unknown convention {convention}')
+        raise ValueError("Unknown convention {convention}")
+
 
 #
 # utility functions
@@ -530,11 +595,12 @@ def adapter_matrix(Cin, Cout):
     A = np.zeros((n_Cout, n_Cin))
 
     for i_in in range(n_Cin):
-        i_out = np.flatnonzero((Cout.sh_l == Cin.sh_l[i_in]) &
-                               (Cout.sh_m == Cin.sh_m[i_in]))
-        print(i_in, i_out)
+        i_out = np.flatnonzero(
+            (Cout.sh_l == Cin.sh_l[i_in]) & (Cout.sh_m == Cin.sh_m[i_in])
+        )
+        # print(i_in, i_out)
         if i_out.size > 0:
-            A[i_out, i_in] = Cout.normalization[i_out]/Cin.normalization[i_in]
+            A[i_out, i_in] = Cout.normalization[i_out] / Cin.normalization[i_in]
     return A
 
 
@@ -543,8 +609,9 @@ def mask_matrix(in_sh_l, in_sh_m, out_sh_l, out_sh_m):
     n_out = len(out_sh_l)
     A = np.zeros((n_out, n_out))
     for i_out in range(n_out):
-        i_in = np.flatnonzero((out_sh_l[i_out] == in_sh_l) &
-                              (out_sh_m[i_out] == in_sh_m))
+        i_in = np.flatnonzero(
+            (out_sh_l[i_out] == in_sh_l) & (out_sh_m[i_out] == in_sh_m)
+        )
         if i_in.size > 0:
             A[i_out, i_out] = 1
     return A

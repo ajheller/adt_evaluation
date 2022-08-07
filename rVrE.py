@@ -48,7 +48,7 @@ import adt_scmd
 
 __debug = True
 
-__colormap = 'jet'
+__colormap = "jet"
 
 
 #
@@ -69,7 +69,7 @@ def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
     ax.plot(rEaz, rEel)
     ax.hold(True)
     ax.plot(rEaz.transpose(), rEel.transpose())
-    ax.plot(S['az'], S['el'], '*k')
+    ax.plot(S["az"], S["el"], "*k")
     ax.hold(False)
 
     plotly_fig = tls.mpl_to_plotly(fig)
@@ -79,15 +79,17 @@ def plot_dir_error_grid(rEaz, rEel, az, el, scmd):
 def plot_rX(rX, title, clim=None):
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
-    plt.imshow(np.fliplr(np.flipud(np.reshape(rX, T.shape).transpose())),
-               extent=(180, -180, -90, 90),
-               cmap=__colormap)
+    plt.imshow(
+        np.fliplr(np.flipud(np.reshape(rX, T.shape).transpose())),
+        extent=(180, -180, -90, 90),
+        cmap=__colormap,
+    )
     if clim:
         plt.clim(clim)
     ax.xaxis.set_ticks(np.linspace(180, -180, 9))
     ax.yaxis.set_ticks(np.linspace(-90, 90, 5))
-    plt.xlabel('Azimuth (degrees)')
-    plt.ylabel('Elevation (degrees)')
+    plt.xlabel("Azimuth (degrees)")
+    plt.ylabel("Elevation (degrees)")
     plt.title(title)
     plt.colorbar()
 
@@ -98,10 +100,10 @@ def plot_rX(rX, title, clim=None):
         plt.show()
 
 
-def plot_dir_diff(u1, u2, title='Diff (degrees)', clim=None):
+def plot_dir_diff(u1, u2, title="Diff (degrees)", clim=None):
     # we assume u1 and u2 are unit vectors
     angle_diff = np.arccos(np.sum(u1 * u2, 0))
-    plot_rX(angle_diff * 180/pi, title, clim)
+    plot_rX(angle_diff * 180 / pi, title, clim)
 
 
 def ravel(M):
@@ -118,16 +120,18 @@ def unravel(M):
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
 
-example = 6  # <<<<<---------- change this to change datasets
+example = 2  # <<<<<---------- change this to change datasets
 interior_view = False
 
-scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
-             "SCMD_brh_spring2017.json",
-             "SCMD_stage2017.json",
-             "SCMD_run_dec_itu.json",
-             "SCMD-atk-205-MATLAB.json",
-             "SCMD_gistfile1.json",
-             "SCMD_skatz.json")[example]
+scmd_file = (
+    "SCMD_env_asym_tri_oct_4ceil.json",
+    "SCMD_brh_spring2017.json",
+    "SCMD_stage2017.json",
+    "SCMD_run_dec_itu.json",
+    "SCMD-atk-205-MATLAB.json",
+    "SCMD_gistfile1.json",
+    "SCMD_skatz.json",
+)[example]
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 
@@ -148,15 +152,19 @@ xyz0 = T.u
 
 
 test_dirs_Y = np.array(
-        [np.sqrt(4 * pi) * n * rsh.real_sph_harm(l, m, az0, el0,
-                                                 phi_is_elevation=True)
-         for l, m, n in zip(C['sh_l'], C['sh_m'], C['norm'])])
+    [
+        np.sqrt(4 * pi) * n * rsh.real_sph_harm(l, m, az0, el0, phi_is_elevation=True)
+        for l, m, n in zip(C["sh_l"], C["sh_m"], C["norm"])
+    ]
+)
 
 if False:
     #  plot the first few SH's test plot_rX and the SH's themselvesss
     for i in range(4):
-        plot_rX(np.reshape(test_dirs_Y[i, :], T.shape),
-                'ACN%d %s' % (i, acn.acn2fuma_name(i)))
+        plot_rX(
+            np.reshape(test_dirs_Y[i, :], T.shape),
+            "ACN%d %s" % (i, acn.acn2fuma_name(i)),
+        )
 
 #
 # Note:
@@ -167,9 +175,9 @@ if False:
 # pressure gains, g,  from each test direction to each speaker
 if True:
     # M is the basic solution
-    gamma = np.array(D['hf_gains'])
+    gamma = np.array(D["hf_gains"])
     #  apply gains to tranform to max rE matrix
-    Mhf = np.matmul(M, np.diag(gamma[C['sh_l']]))
+    Mhf = np.matmul(M, np.diag(gamma[C["sh_l"]]))
     g = np.matmul(Mhf, test_dirs_Y)
 else:
     g = np.matmul(M, test_dirs_Y)
@@ -190,24 +198,28 @@ rEaz, rEel, rEr = cart2sph(rExyz[0, :], rExyz[1, :], rExyz[2, :])
 rEu = rExyz / np.array([rEr, rEr, rEr])
 
 # decoder gains
-decoder_gain = np.sqrt(np.sum(E * w0) / (4*pi))
+decoder_gain = np.sqrt(np.sum(E * w0) / (4 * pi))
 
-print("decoder diffuse gain = %f, (%f db)\n"
-      % (decoder_gain, 20 * np.log10(decoder_gain)))
+print(
+    "decoder diffuse gain = %f, (%f db)\n" % (decoder_gain, 20 * np.log10(decoder_gain))
+)
 print("decoder peak gain = %f\n" % np.max(g))
 
 # matplotlib plots
 if False:
-    plot_rX(20*np.log10(E/np.mean(E)), 'Energy gain (dB) vs. test direction',
-            clim=(-6, 6))
+    plot_rX(
+        20 * np.log10(E / np.mean(E)),
+        "Energy gain (dB) vs. test direction",
+        clim=(-6, 6),
+    )
 
-    plot_rX(rVr, 'magnitude of rV vs. test direction', clim=(0.5, 1))
-    plot_rX(rEr, 'magnitude of rE vs. test direction', clim=(0.5, 1))
+    plot_rX(rVr, "magnitude of rV vs. test direction", clim=(0.5, 1))
+    plot_rX(rEr, "magnitude of rE vs. test direction", clim=(0.5, 1))
 
-    plot_dir_diff(rVu, rEu, 'rV rE direction diff (degrees)', clim=(0, 10))
+    plot_dir_diff(rVu, rEu, "rV rE direction diff (degrees)", clim=(0, 10))
 
-    plot_dir_diff(rVu, xyz0, 'rV direction error (degrees)', clim=(0, 10))
-    plot_dir_diff(rEu, xyz0, 'rE direction error (degrees)', clim=(0, 10))
+    plot_dir_diff(rVu, xyz0, "rV direction error (degrees)", clim=(0, 10))
+    plot_dir_diff(rEu, xyz0, "rE direction error (degrees)", clim=(0, 10))
 
 
 if False:
@@ -221,20 +233,20 @@ else:
 c = np.reshape(r, T.shape)
 ca = np.abs(c)
 
-S = scmd['S']
+S = scmd["S"]
 spkr_r = 1.25  # np.squeeze(S['r'])
-spkr_rr = np.squeeze(S['r'])
-spkr_az = np.squeeze(S['az'])
-spkr_el = np.squeeze(S['el'])
-spkr_id = np.squeeze(S['id'])
-spkr_x = spkr_rr * np.squeeze(S['x'])
-spkr_y = spkr_rr * np.squeeze(S['y'])
-spkr_z = spkr_rr * np.squeeze(S['z'])
+spkr_rr = np.squeeze(S["r"])
+spkr_az = np.squeeze(S["az"])
+spkr_el = np.squeeze(S["el"])
+spkr_id = np.squeeze(S["id"])
+spkr_x = spkr_rr * np.squeeze(S["x"])
+spkr_y = spkr_rr * np.squeeze(S["y"])
+spkr_z = spkr_rr * np.squeeze(S["z"])
 spkr_floor = np.min(spkr_z) - 0.5  # 1/2-meter below lowest spkr
 
-spkr_ux = 0.9 * np.min(spkr_rr)*Su[0, :]
-spkr_uy = 0.9 * np.min(spkr_rr)*Su[1, :]
-spkr_uz = 0.9 * np.min(spkr_rr)*Su[2, :]
+spkr_ux = 0.9 * np.min(spkr_rr) * Su[0, :]
+spkr_uy = 0.9 * np.min(spkr_rr) * Su[1, :]
+spkr_uz = 0.9 * np.min(spkr_rr) * Su[2, :]
 
 max_rr = np.max(spkr_rr)
 plt_range = (-max_rr, max_rr)
@@ -246,18 +258,18 @@ plt_range = (-max_rr, max_rr)
 #  https://plot.ly/python/reference/#scatter3d
 #    NaN ends the line
 spkr_stands = go.Scatter3d(
-        name="Speaker Stands",
-        x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN]
-                    for i in range(len(spkr_x))]).ravel(),
-        y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN]
-                    for i in range(len(spkr_y))]).ravel(),
-        z=np.array([[spkr_z[i], spkr_floor, spkr_floor, np.NaN]
-                    for i in range(len(spkr_z))]).ravel(),
-        mode='lines',
-        hoverinfo='none',
-        line=dict(color='black'),
-        visible=True,
-        connectgaps=False)
+    name="Speaker Stands",
+    x=np.array([[spkr_x[i], spkr_x[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
+    y=np.array([[spkr_y[i], spkr_y[i], 0, np.NaN] for i in range(len(spkr_y))]).ravel(),
+    z=np.array(
+        [[spkr_z[i], spkr_floor, spkr_floor, np.NaN] for i in range(len(spkr_z))]
+    ).ravel(),
+    mode="lines",
+    hoverinfo="none",
+    line=dict(color="black"),
+    visible=True,
+    connectgaps=False,
+)
 
 #  https://plot.ly/python/reference/#scatter3d
 #    NaN ends the line
@@ -265,93 +277,100 @@ if False:
     # draw speaker vectors to unit sphere
     spkr_vector = go.Scatter3d(
         name="Speaker Vector",
-        x=np.array([[spkr_x[i], spkr_ux[i], np.NaN]
-                    for i in range(len(spkr_x))]).ravel(),
-        y=np.array([[spkr_y[i], spkr_uy[i], np.NaN]
-                    for i in range(len(spkr_y))]).ravel(),
-        z=np.array([[spkr_z[i], spkr_uz[i], np.NaN]
-                    for i in range(len(spkr_z))]).ravel(),
-        mode='lines',
-        hoverinfo='none',
-        line=dict(color='blue', dash='dot'),
+        x=np.array(
+            [[spkr_x[i], spkr_ux[i], np.NaN] for i in range(len(spkr_x))]
+        ).ravel(),
+        y=np.array(
+            [[spkr_y[i], spkr_uy[i], np.NaN] for i in range(len(spkr_y))]
+        ).ravel(),
+        z=np.array(
+            [[spkr_z[i], spkr_uz[i], np.NaN] for i in range(len(spkr_z))]
+        ).ravel(),
+        mode="lines",
+        hoverinfo="none",
+        line=dict(color="blue", dash="dot"),
         visible=True,
-        connectgaps=False)
+        connectgaps=False,
+    )
 else:
     # draw speaker vectors to the origin
     spkr_vector = go.Scatter3d(
         name="Speaker Vector",
-        x=np.array([[spkr_x[i], 0, np.NaN]
-                    for i in range(len(spkr_x))]).ravel(),
-        y=np.array([[spkr_y[i], 0, np.NaN]
-                    for i in range(len(spkr_y))]).ravel(),
-        z=np.array([[spkr_z[i], 0, np.NaN]
-                    for i in range(len(spkr_z))]).ravel(),
-        mode='lines',
-        hoverinfo='none',
-        line=dict(color='blue', dash='dot'),
+        x=np.array([[spkr_x[i], 0, np.NaN] for i in range(len(spkr_x))]).ravel(),
+        y=np.array([[spkr_y[i], 0, np.NaN] for i in range(len(spkr_y))]).ravel(),
+        z=np.array([[spkr_z[i], 0, np.NaN] for i in range(len(spkr_z))]).ravel(),
+        mode="lines",
+        hoverinfo="none",
+        line=dict(color="blue", dash="dot"),
         visible=True,
-        connectgaps=False)
+        connectgaps=False,
+    )
 
 
 #  https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.spatial.Delaunay.html
 # add a speaker at the top and bottom
 imaginary_speakers = ((0, 0, -1), (0, 0, +1))
 
-SuT_d = (np.append(Su.T, imaginary_speakers, axis=0) if imaginary_speakers
-         else Su.T)
+SuT_d = np.append(Su.T, imaginary_speakers, axis=0) if imaginary_speakers else Su.T
 
 tri = Delaunay(SuT_d)
 
 face_end = np.array(((None, None, None),))
 
 
-cvh_edges = np.concatenate([np.append(tri.points[f[np.array((0, 1, 2, 0))]],
-                                      face_end, axis=0)
-                            for f in tri.convex_hull], axis=0)
+cvh_edges = np.concatenate(
+    [
+        np.append(tri.points[f[np.array((0, 1, 2, 0))]], face_end, axis=0)
+        for f in tri.convex_hull
+    ],
+    axis=0,
+)
 
 #  https://plot.ly/python/reference/#scatter3d
 cvedges = go.Scatter3d(
-        name="Convex Hull edges",
-        x=cvh_edges[:, 0],
-        y=cvh_edges[:, 1],
-        z=cvh_edges[:, 2],
-        mode='lines+markers',
-        hoverinfo='none',
-        # line=dict(color='white', width=6),
-        line=dict(color='yellow', width=4),
-        visible=True,
-        connectgaps=False)
+    name="Convex Hull edges",
+    x=cvh_edges[:, 0],
+    y=cvh_edges[:, 1],
+    z=cvh_edges[:, 2],
+    mode="lines+markers",
+    hoverinfo="none",
+    # line=dict(color='white', width=6),
+    line=dict(color="yellow", width=4),
+    visible=True,
+    connectgaps=False,
+)
 
 # the convex hull of the speakers on the unit sphere
 # https://plot.ly/python/alpha-shapes/
 # https://plot.ly/python/reference/#mesh3d
 spkr_cv_hull = go.Mesh3d(
-        name='Speakers (unit sphere)',
-        #alphahull=0,  # 0 to compute convex hull
-        x=tri.points[:, 0],
-        y=tri.points[:, 1],
-        z=tri.points[:, 2],
-        i=tri.convex_hull[:, 0],
-        j=tri.convex_hull[:, 1],
-        k=tri.convex_hull[:, 2],
-        hoverinfo='text',
-        visible=True,
-        opacity=0.5,
-        color='#1f77b4',
-        # markers=dict(color='orange', size=15),
-        # plot_edges=True,
-        # vertexcolor='red',
-        # showlegend=True,
-        # flatshading=True,
-        text=np.squeeze(S['id'] + ["Imaginary1", "Imaginary2"]))
+    name="Speakers (unit sphere)",
+    # alphahull=0,  # 0 to compute convex hull
+    x=tri.points[:, 0],
+    y=tri.points[:, 1],
+    z=tri.points[:, 2],
+    i=tri.convex_hull[:, 0],
+    j=tri.convex_hull[:, 1],
+    k=tri.convex_hull[:, 2],
+    hoverinfo="text",
+    visible=True,
+    opacity=0.5,
+    color="#1f77b4",
+    # markers=dict(color='orange', size=15),
+    # plot_edges=True,
+    # vertexcolor='red',
+    # showlegend=True,
+    # flatshading=True,
+    text=np.squeeze(S["id"] + ["Imaginary1", "Imaginary2"]),
+)
 
 
 # rE
 # Plotly does not support legend entries for Surface or Mesh (sigh)
 #  https://community.plot.ly/t/how-to-name-axis-and-show-legend-in-mesh3d-and-surface-3d-plots/1819
 #  first figure out the minimum value we want to plot
-v_order = C['v_order']
-h_order = C['h_order']
+v_order = C["v_order"]
+h_order = C["h_order"]
 if v_order > 0:
     effective_order = min(h_order, v_order)
 else:
@@ -363,144 +382,175 @@ else:
     rE_min = 0.7
 
 rE_plot = go.Surface(
-        name='Energy Model Localization Vector (r<sub>E</sub>)',
-        x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], T.shape),
-        y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], T.shape),
-        z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], T.shape),
-        cmin=rE_min,
-        cmax=np.ceil(np.max(rEr)*10)/10,
-        surfacecolor=c,
-        colorscale='Portland',
-        hoverinfo='text',
-        visible=False,
-        opacity=1.0,
-        text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f"
-                          % (c, u, v))
-             (T.az*180/pi, T.el*180/pi, np.reshape(r, T.shape)),
-        contours=dict(z=dict(show=True),
-                      y=dict(show=True),
-                      x=dict(show=True)))
+    name="Energy Model Localization Vector (r<sub>E</sub>)",
+    x=0.9 * np.min(spkr_rr) * np.reshape(xyz[0, :], T.shape),
+    y=0.9 * np.min(spkr_rr) * np.reshape(xyz[1, :], T.shape),
+    z=0.9 * np.min(spkr_rr) * np.reshape(xyz[2, :], T.shape),
+    cmin=rE_min,
+    cmax=np.ceil(np.max(rEr) * 10) / 10,
+    surfacecolor=c,
+    colorscale="Portland",
+    hoverinfo="text",
+    visible=False,
+    opacity=1.0,
+    text=np.vectorize(lambda u, v, c: "rE: %.2f<br>a: %.1f<br>e: %.1f" % (c, u, v))(
+        T.az * 180 / pi, T.el * 180 / pi, np.reshape(r, T.shape)
+    ),
+    contours=dict(z=dict(show=True), y=dict(show=True), x=dict(show=True)),
+)
 
 
 #  https://plot.ly/python/reference/#scatter3d
 spkr_locs = go.Scatter3d(
-        name='Loudspeakers',
-        x=spkr_x,
-        y=spkr_y,
-        z=spkr_z,
-        mode='markers',
-        marker=dict(color='orange', size=10, line=dict(color='gray', width=4)),
-        hoverinfo='text',
-        visible=True,
-        text=np.vectorize(
-                lambda a, e, r, c:
-                     "<b>%s</b><br>az: %.1f&deg;<br>el: %.1f&deg;<br> r: %.1f m"
-                     % (c, a, e, r))
-                     (spkr_az * 180/pi,
-                      spkr_el * 180/pi,
-                      spkr_rr,
-                      spkr_id))
+    name="Loudspeakers",
+    x=spkr_x,
+    y=spkr_y,
+    z=spkr_z,
+    mode="markers",
+    marker=dict(color="orange", size=10, line=dict(color="gray", width=4)),
+    hoverinfo="text",
+    visible=True,
+    text=np.vectorize(
+        lambda a, e, r, c: "<b>%s</b><br>az: %.1f&deg;<br>el: %.1f&deg;<br> r: %.1f m"
+        % (c, a, e, r)
+    )(spkr_az * 180 / pi, spkr_el * 180 / pi, spkr_rr, spkr_id),
+)
 
 
-data = [
-        rE_plot,
-        spkr_cv_hull,
-        cvedges,
-        spkr_locs,
-        spkr_stands,
-        spkr_vector
-        ]
+data = [rE_plot, spkr_cv_hull, cvedges, spkr_locs, spkr_stands, spkr_vector]
 
-name = "Loudspeaker array: " + S['name'] \
-        + "<br>Decoder: AllRAD (%dH%dV)" % (C['h_order'], C['v_order']) \
-        # + "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
+name = (
+    "Loudspeaker array: "
+    + S["name"]
+    + "<br>Decoder: AllRAD (%dH%dV)" % (C["h_order"], C["v_order"])
+)  # + "<br>Energy-Model Localization Vector (r<sub>E</sub>)"
 
 
-updatemenus = list([
-        dict(type="buttons",
-             active=-1,
-             buttons=list([
-                dict(label='Convex Hull',
-                     method='update',
-                     args=[{'visible': [False, True, True,
-                                        True, True, True]},
-                           {'title': name + "<br>-----<br>" +
-                            spkr_cv_hull['name']
-                            # , 'annotations': low_annotations
-                            }]),
-                dict(label='rE vector',
-                     method='update',
-                     args=[{'visible': [True, False, False,
-                                        True, True, True]},
-                           {'title': name + "<br>-----<br>" +
-                            rE_plot['name']
-                            # , 'annotations': high_annotations
-                            }]),
-                dict(label='None',
-                     method='update',
-                     args=[{'visible': [False, False, False,
-                                        True, True, True]},
-                           {'title': name
-                            # , 'annotations': high_annotations
-                            }])
-                    ]))])
+updatemenus = list(
+    [
+        dict(
+            type="buttons",
+            active=-1,
+            buttons=list(
+                [
+                    dict(
+                        label="Convex Hull",
+                        method="update",
+                        args=[
+                            {"visible": [False, True, True, True, True, True]},
+                            {
+                                "title": name
+                                + "<br>-----<br>"
+                                + spkr_cv_hull["name"]
+                                # , 'annotations': low_annotations
+                            },
+                        ],
+                    ),
+                    dict(
+                        label="rE vector",
+                        method="update",
+                        args=[
+                            {"visible": [True, False, False, True, True, True]},
+                            {
+                                "title": name
+                                + "<br>-----<br>"
+                                + rE_plot["name"]
+                                # , 'annotations': high_annotations
+                            },
+                        ],
+                    ),
+                    dict(
+                        label="None",
+                        method="update",
+                        args=[
+                            {"visible": [False, False, False, True, True, True]},
+                            {
+                                "title": name
+                                # , 'annotations': high_annotations
+                            },
+                        ],
+                    ),
+                ]
+            ),
+        )
+    ]
+)
 
 
 #  https://plot.ly/python/user-guide/#layout
 layout = go.Layout(
-        title=name + "<br>-----<br>" + spkr_cv_hull['name'],
-        showlegend=True,
-        legend=dict(orientation="h"),
-        updatemenus=updatemenus,
-        scene=dict(
-                aspectratio=dict(x=1, y=1, z=1),
-
-                xaxis=dict(title='front/back', range=plt_range,
-                           showbackground=True,
-                           backgroundcolor='rgb(230, 230,230)'),
-                yaxis=dict(title='left/right', range=plt_range,
-                           showbackground=True,
-                           backgroundcolor='rgb(230, 230,230)'),
-                zaxis=dict(title='up/down', range=plt_range,
-                           showbackground=True,
-                           backgroundcolor='rgb(230, 230,230)'),
-
-                annotations=[dict(showarrow=False,
-                                  xanchor='center',
-                                  font=dict(color="black", size=16),
-                                  x=xx, y=yy, z=zz, text=tt)
-                             for xx, yy, zz, tt in
-                             ((max_rr, 0, 0, 'front'),
-                              (-max_rr, 0, 0, 'back'),
-                              (0, max_rr, 0, 'left'),
-                              (0, -max_rr, 0, 'right'),
-                              (0, 0, max_rr, 'top'),
-                              (0, 0, -max_rr, 'bottom'))]))
+    title=name + "<br>-----<br>" + spkr_cv_hull["name"],
+    showlegend=True,
+    legend=dict(orientation="h"),
+    updatemenus=updatemenus,
+    scene=dict(
+        aspectratio=dict(x=1, y=1, z=1),
+        xaxis=dict(
+            title="front/back",
+            range=plt_range,
+            showbackground=True,
+            backgroundcolor="rgb(230, 230,230)",
+        ),
+        yaxis=dict(
+            title="left/right",
+            range=plt_range,
+            showbackground=True,
+            backgroundcolor="rgb(230, 230,230)",
+        ),
+        zaxis=dict(
+            title="up/down",
+            range=plt_range,
+            showbackground=True,
+            backgroundcolor="rgb(230, 230,230)",
+        ),
+        annotations=[
+            dict(
+                showarrow=False,
+                xanchor="center",
+                font=dict(color="black", size=16),
+                x=xx,
+                y=yy,
+                z=zz,
+                text=tt,
+            )
+            for xx, yy, zz, tt in (
+                (max_rr, 0, 0, "front"),
+                (-max_rr, 0, 0, "back"),
+                (0, max_rr, 0, "left"),
+                (0, -max_rr, 0, "right"),
+                (0, 0, max_rr, "top"),
+                (0, 0, -max_rr, "bottom"),
+            )
+        ],
+    ),
+)
 
 if False:
-    layout['scene']['camera'] = \
-        dict(up=dict(x=0, y=0, z=1),
-             center=dict(x=0, y=0, z=0),
-             eye=(dict(x=0, y=0, z=0.5) if interior_view
-                  else
-                  dict(x=1.25, y=1.25, z=1.25)))
+    layout["scene"]["camera"] = dict(
+        up=dict(x=0, y=0, z=1),
+        center=dict(x=0, y=0, z=0),
+        eye=(dict(x=0, y=0, z=0.5) if interior_view else dict(x=1.25, y=1.25, z=1.25)),
+    )
 
 #  https://plot.ly/python/user-guide/#figure
 fig = go.Figure(data=data, layout=layout)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     #  https://plot.ly/python/getting-started/#initialization-for-offline-plotting
     if True:
-        plotly.offline.plot(fig,
-                            filename='plotly/%s-speaker-array-rE.html' % S['name'],
-                            include_plotlyjs=True,
-                            output_type='file')
+        plotly.offline.plot(
+            fig,
+            filename="plotly/%s-speaker-array-rE.html" % S["name"],
+            include_plotlyjs=True,
+            output_type="file",
+        )
     else:
-        div = plotly.offline.plot(fig,
-                                  filename='plotly/%s-speaker-array.html' % S['name'],
-                                  include_plotlyjs=False,
-                                  output_type='div')
+        div = plotly.offline.plot(
+            fig,
+            filename="plotly/%s-speaker-array.html" % S["name"],
+            include_plotlyjs=False,
+            output_type="div",
+        )
 
-        with open("plotly/div" + S['name'] + ".html", 'w') as f:
+        with open("plotly/div" + S["name"] + ".html", "w") as f:
             f.write(div)
-

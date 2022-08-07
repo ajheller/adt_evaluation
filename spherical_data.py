@@ -21,9 +21,12 @@ Created on Tue Oct  6 17:13:07 2020
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from dataclasses import dataclass, field
-import numpy as np
 import warnings
+from dataclasses import dataclass, field
+
+import numpy as np
+
+from scipy import interpolate
 
 # cached_property is only in 3.8+
 #  backport available at https://pypi.org/project/backports.cached-property/
@@ -34,7 +37,7 @@ except ImportError:
         from backports.cached_property import cached_property
     except ModuleNotFoundError as ie:
         print("run 'pip install backports.cached-property' and try again")
-        raise(ie)
+        raise ie
 
 from numpy import pi
 from numpy import pi as π
@@ -121,14 +124,13 @@ def cart2sphz(x, y, z):
     az, el, r = cart2sph(x, y, z)
     return (pi / 2 - el), az, r
 
+
 # --------------- Spherical Cap -------------------
 #   http://mathworld.wolfram.com/SphericalCap.html
 #   https://en.wikipedia.org/wiki/Spherical_cap
 
 
-axis_names = dict(x=(1.0, 0.0, 0.0),
-                  y=(0.0, 1.0, 0.0),
-                  z=(0.0, 0.0, 1.0))
+axis_names = dict(x=(1.0, 0.0, 0.0), y=(0.0, 1.0, 0.0), z=(0.0, 0.0, 1.0))
 
 
 def spherical_cap(T, u, angle, min_angle=0):
@@ -172,7 +174,7 @@ def spherical_cap(T, u, angle, min_angle=0):
     except AttributeError or KeyError:
         pass
 
-    # u needs to be an array of unit vectors, normalize if not
+    # u needs to be a unit vector, normalize if not
     norm = np.sqrt(np.dot(u, u))
     if not np.isclose(norm, 1):
         warnings.warn("u is not a unit vector, normalizing")
@@ -200,18 +202,55 @@ def spherical_cap(T, u, angle, min_angle=0):
     return c, c_max, a_err, 2 * np.arcsin(np.linalg.norm(a_err) / 2)
 
 
+def spherical_interp(T, u, angle, r, **kwargs):
+    """
+    Make a surface of revolution from the curve r(angle) about the axis u.
+    """
+    try:
+        u = axis_names[u.lower()]
+    except AttributeError or KeyError:
+        pass
+
+    # u needs to be an array of unit vectors, normalize if not
+    norm = np.sqrt(np.dot(u, u))
+    if not np.isclose(norm, 1):
+        warnings.warn("u is not a unit vector, normalizing")
+        u = u / norm
+
+    # retrieve unit vectors
+    try:
+        Tu = T.u
+    except AttributeError:
+        Tu = T
+
+    # if Tu is not compatible with u, try its transpose
+    # this still can fail in np.dot()
+    if len(u) != len(Tu):
+        Tu = Tu.transpose()
+
+    # the interpolator
+    f = interpolate.interp1d(angle, r, **kwargs)
+
+    # angle with axis of each point in the t-design
+    p = np.arccos(np.dot(u, Tu).squeeze())
+
+    return f(p)
+
+
+#
 # ---- the class definition ----
 
+
 @dataclass
-class SphericalData():
+class SphericalData:
     """A class to hold spherical data and provide conversions."""
 
     x: np.ndarray = field(default_factory=lambda: np.array(None))
     y: np.ndarray = field(default_factory=lambda: np.array(None))
     z: np.ndarray = field(default_factory=lambda: np.array(None))
-    name: str = 'data'
+    name: str = "data"
 
-    _primary_attrs = ['x', 'y', 'z', 'name']
+    _primary_attrs = ["x", "y", "z", "name"]
 
     # def __init__(self, name="data"):
     #     self.xyz = None
@@ -219,13 +258,14 @@ class SphericalData():
 
     # TODO: How much do we want to keep users from shooting themselves in the
     #  foot? The current implementation raises an AttributeError if the user
-    #  tries to set any attributes other than those explicitly called out.
+    #  tries to set any attributes other than those explicitly called out in
+    #  _primary attrs.
     def __setattr__(self, name, value):
         if name in self._primary_attrs:
             super().__setattr__(name, value)
             # print(f'clearing caches: {name} <-- {value}')
             self._clear_cached_properties()
-        elif name in ('xyz', 'cart'):
+        elif name in ("xyz", "cart"):
             return self.set_from_cart(*value)
         else:
             raise AttributeError
@@ -234,6 +274,7 @@ class SphericalData():
         return f"{__class__.__name__}({self.name})"
 
     def _clear_cached_properties(self):
+        # need a persistant copy because we're deleting keys in the loop
         keys = list(self.__dict__.keys())
         for key in keys:
             if key not in self._primary_attrs:
@@ -241,7 +282,7 @@ class SphericalData():
                 delattr(self, key)
 
     def set_from_cart(self, x, y, z):
-        if not(x.shape == y.shape == z.shape):
+        if not (x.shape == y.shape == z.shape):
             raise ValueError("x, y, z not the same shape.")
         else:
             self.x = x
@@ -252,7 +293,7 @@ class SphericalData():
 
     def set_from_sph(self, theta, phi, rho=1, phi_is_zenith=False):
         if phi_is_zenith:
-            phi = pi/2 - phi
+            phi = pi / 2 - phi
         return self.set_from_cart(*sph2cart(theta, phi, rho))
 
     def set_from_aer(self, az, el, r=1):
@@ -271,16 +312,18 @@ class SphericalData():
 
     @cached_property
     def xyz(self):
-        """Return x, y, z as an iterable of vectors."""
+        """Return x, y, z as an iterable container of vectors."""
         return np.c_[self.x.ravel(), self.y.ravel(), self.z.ravel()]
 
     @cached_property
     def u(self):
-        """unit vectors as an iterable."""
-        return (self.xyz /
-                # this makes a column vector without copying
-                np.linalg.norm(self.xyz, axis=1)[None].T
-                )
+        """unit vectors as an iterable container."""
+        return (
+            self.xyz
+            /
+            # this makes a column vector without copying
+            np.linalg.norm(self.xyz, axis=1)[None].T
+        )
 
     @cached_property
     def sph(self):
@@ -326,8 +369,39 @@ class SphericalData():
     def unravel(self, x):
         return x.reshape(self.shape)
 
+    def angle_from_axis(self, u=(0, 0, 1)):
+        """
+        Return an array with angles from a the specified unit vector.
+
+        Parameters
+        ----------
+        u : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        # allow magic axis names
+        try:
+            u = axis_names[u.lower()]
+        except AttributeError or KeyError:
+            pass
+
+        # make sure u is a unit vector
+        u /= np.linalg.norm(u)
+        # need clip due to round-off error
+        return np.arccos(np.clip(np.dot(self.u, u), -1, 1))
+
     def cap(self, u, angle, **kwargs):
         return spherical_cap(self.u, u, angle, **kwargs)
+
+    def interp_el(self, u, phi, r, *args, **kwargs):
+        f = interpolate.interp1d(phi, r, *args, **kwargs)
+        w = f(self.angle_from_axis(u))
+        return w
 
 
 def from_cart(*args, sd_class=SphericalData, **kwargs):
@@ -341,6 +415,7 @@ def from_sph(*args, sd_class=SphericalData, **kwargs):
 # %%
 def unit_test():
     import spherical_grids
+
     sg240 = spherical_grids.t_design240()
     q = from_sph(sg240.az, sg240.el)
     u = q.u
@@ -349,5 +424,5 @@ def unit_test():
     q.set_from_cart(*np.asarray(((1, 0, 2), (0, 1, 0), (0, 0, 1))).T)
     # cache should be cleared
     if q.u == u:
-        print('FAIL: caches were not cleared!!')
+        print("FAIL: caches were not cleared!!")
     return q, (u, v, w)

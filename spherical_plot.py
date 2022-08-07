@@ -45,27 +45,30 @@ def plot_sph(az_grid, el_grid, r_grid, c_grid, name):
 
     x, y, z = sph2cart(az_grid, el_grid, r_grid)
 
-    data = [go.Surface(name='rE',
-                       x=x, y=y, z=z,
-                       surfacecolor=c_grid,
-                       #cmin=0.7,
-                       #cmax=np.ceil(np.max(rEr)*10)/10,
-                       colorscale='Portland',
-                       hoverinfo='text',
-                       text=np.vectorize(lambda u, v, c: "r: %.2f<br>a: %.1f<br>e: %.1f"
-                                         % (c, u, v))(az_grid*180/np.pi,
-                                                      el_grid*180/np.pi,
-                                                      r_grid),
+    data = [
+        go.Surface(
+            name="rE",
+            x=x,
+            y=y,
+            z=z,
+            surfacecolor=c_grid,
+            # cmin=0.7,
+            # cmax=np.ceil(np.max(rEr)*10)/10,
+            colorscale="Portland",
+            hoverinfo="text",
+            text=np.vectorize(
+                lambda u, v, c: "r: %.2f<br>a: %.1f<br>e: %.1f" % (c, u, v)
+            )(az_grid * 180 / np.pi, el_grid * 180 / np.pi, r_grid),
+            contours=dict(z=dict(show=True), y=dict(show=True), x=dict(show=True)),
+        )
+    ]
 
-                       contours=dict(z=dict(show=True),
-                                     y=dict(show=True),
-                                     x=dict(show=True)))
-            ]
-
-    layout = go.Layout(title=name,
-                       showlegend=True,
-                       legend=dict(orientation="h"),
-                       scene=dict(aspectratio=dict(x=1, y=1, z=1)))
+    layout = go.Layout(
+        title=name,
+        showlegend=True,
+        legend=dict(orientation="h"),
+        scene=dict(aspectratio=dict(x=1, y=1, z=1)),
+    )
 
     fig = go.Figure(data=data, layout=layout)
-    plotly.offline.plot(fig, filename='antenna.html')
+    plotly.offline.plot(fig, filename="antenna.html")

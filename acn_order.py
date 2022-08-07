@@ -31,7 +31,7 @@ def acn(degree, index):
     if abs(index) > degree:
         raise ValueError("abs(index) should be <= degree")
 
-    return degree ** 2 + degree + index
+    return degree**2 + degree + index
 
 
 def acn2lm(channel_number):
@@ -39,14 +39,28 @@ def acn2lm(channel_number):
         raise ValueError("channel_number should be non-negative integer")
 
     degree = floor(sqrt(channel_number)).astype(int)
-    index = channel_number - degree ** 2 - degree
+    index = channel_number - degree**2 - degree
     return (degree, index)
 
 
-__fuma_channel_names = [u'W',
-                        u'Y', u'Z', u'X',
-                        u'V', u'T', u'R', u'S', u'U',
-                        u'Q', u'O', u'M', u'K', u'L', u'N', u'P']
+__fuma_channel_names = [
+    "W",
+    "Y",
+    "Z",
+    "X",
+    "V",
+    "T",
+    "R",
+    "S",
+    "U",
+    "Q",
+    "O",
+    "M",
+    "K",
+    "L",
+    "N",
+    "P",
+]
 
 
 def acn2fuma_name(acn):
@@ -54,9 +68,9 @@ def acn2fuma_name(acn):
         name = __fuma_channel_names[acn]
     except IndexError:
         l, m = acn2lm(acn)
-        name = u'%d.%d' % (l, abs(m))
+        name = "%d.%d" % (l, abs(m))
         if m < 0:
-            name = name + u'S'
+            name = name + "S"
         else:
-            name = name + u'C'
+            name = name + "C"
     return name

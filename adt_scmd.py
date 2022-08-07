@@ -12,19 +12,19 @@ import numpy as np
 
 
 def load(path):
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         scmd = json.load(f)
 
-    S = scmd['S']
-    C = scmd['C']
-    M = scmd['M']
-    D = scmd['D']
+    S = scmd["S"]
+    C = scmd["C"]
+    M = scmd["M"]
+    D = scmd["D"]
 
     try:
-        M_hf = np.array(M['hf'])
+        M_hf = np.array(M["hf"])
     except TypeError:
         M_hf = np.array(M)
 
-    Su = np.squeeze([S['x'], S['y'], S['z']])
+    Su = np.squeeze([S["x"], S["y"], S["z"]])
 
     return Su, C, M_hf, D, scmd

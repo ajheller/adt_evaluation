@@ -20,7 +20,7 @@ import spherical_grids as sg
 
 __debug = True
 
-__colormap = 'jet'
+__colormap = "jet"
 
 smcd_dir = "examples"
 # smcd_dir = "/Users/heller/Documents/adt/examples/"
@@ -28,8 +28,7 @@ smcd_dir = "examples"
 example = 0  # <<<<<---------- change this to change datasets
 interior_view = False
 
-scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json",
-             "SCMD_brh_spring2017.json")[example]
+scmd_file = ("SCMD_env_asym_tri_oct_4ceil.json", "SCMD_brh_spring2017.json")[example]
 
 Su, C, M, D, scmd = adt_scmd.load(path.join(smcd_dir, scmd_file))
 

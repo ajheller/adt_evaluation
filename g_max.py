@@ -32,11 +32,11 @@ import adt_scmd
 Sgg = np.zeros(np.shape(az))
 
 for i in range(28):
-    gi = np.reshape(g[i,:], np.shape(az))
+    gi = np.reshape(g[i, :], np.shape(az))
     ggi = np.abs(gi - np.max(gi)) < 1e-2
     Sgg[ggi] = gi[ggi]
 
-print("max gain for entire array = ", np.max(g), 20*np.log10(np.max(g)))
+print("max gain for entire array = ", np.max(g), 20 * np.log10(np.max(g)))
 
 plot_rX(Sgg, "max gain for each loudspeaker (dB)")
 plt.show()

@@ -41,8 +41,7 @@ def complex_dblquad(func, a, b, gfun, hfun):
 
     real_integral, real_error = dblquad(real_func, a, b, gfun, hfun)
     imag_integral, imag_error = dblquad(imag_func, a, b, gfun, hfun)
-    return (complex(real_integral, imag_integral),
-            complex(real_error, imag_error))
+    return (complex(real_integral, imag_integral), complex(real_error, imag_error))
 
 
 ##
@@ -51,10 +50,13 @@ def check_sph_ortho_c(l1, m1, l2, m2):
         # arguments to lambda need to be reversed from args to dblquad (wtf?)
         lambda phi, theta:
         # scipy sph_harm takes order/degree  (wtf?)
-        special.sph_harm(m1, l1, theta, phi) *
-        conj(special.sph_harm(m2, l2, theta, phi)) * sin(phi),
-        0, 2 * pi,  # range of theta
-        gfun=lambda x: 0, hfun=lambda y: pi  # range of phi
+        special.sph_harm(m1, l1, theta, phi)
+        * conj(special.sph_harm(m2, l2, theta, phi))
+        * sin(phi),
+        0,
+        2 * pi,  # range of theta
+        gfun=lambda x: 0,
+        hfun=lambda y: pi,  # range of phi
     )
 
 
@@ -74,5 +76,13 @@ def ortho_test_complex(max_degree):
             for l2 in range(0, max_degree + 1):
                 for m2 in range(0, l2 + 1):
                     z, e = check_sph_ortho_c(l1, m1, l2, m2)
-                    print(l1, m1, l2, m2, abs(z), abs(e),
-                          "Pass = ", test_ortho(l1, m1, l2, m2, z))
+                    print(
+                        l1,
+                        m1,
+                        l2,
+                        m2,
+                        abs(z),
+                        abs(e),
+                        "Pass = ",
+                        test_ortho(l1, m1, l2, m2, z),
+                    )
