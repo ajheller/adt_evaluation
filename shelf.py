@@ -141,15 +141,19 @@ def cardioid_gamma_3d(sh_l):
     ]
 
 
+_decoder_type_default = "max_rE"
+_decoder_matching_type_default = "rms"
+
+
 # function to match LF and HF perceptual gains
 #  note that gammas here is the set for all the channels
-def gamma0(gammas, matching_type="rms", n_spkrs=None):
+def gamma0(gammas, matching_type=_decoder_matching_type_default, n_spkrs=None):
     E_gain = np.sum(gammas**2)
     if matching_type in ("energy", 1):
         g2 = n_spkrs / E_gain
     elif matching_type in ("rms", 2):
         g2 = len(gammas) / E_gain
-    elif matching_type in ("amp", 3):
+    elif matching_type in ("amp", 3, None):
         g2 = 1
     else:
         raise ValueError(f"Unknown matching_type = {matching_type}")
@@ -195,3 +199,36 @@ def gamma(
         ret = np.diag(list(map(float, ret)))
 
     return ret
+
+
+def shelf_gains(
+    sh_l,
+    decoder_type=_decoder_type_default,
+    matching_type=_decoder_matching_type_default,
+    n_spkrs=None,
+    is_3d=True,
+):
+
+    gamma_hf = gamma(
+        np.unique(sh_l),  # just the set of unique degress in use
+        decoder_type=decoder_type,
+        decoder_3d=is_3d,
+    )
+    gamma_lf = np.ones_like(gamma_hf)
+
+    # split the gain between LF and HF
+    g0 = gamma0(
+        gamma(
+            sh_l,  # we need the degree for sall the components here
+            decoder_type=decoder_type,
+            decoder_3d=is_3d,
+        ),
+        matching_type=matching_type,
+        n_spkrs=n_spkrs,
+    )
+    sqrt_g0 = np.sqrt(g0)
+    print(gamma_lf, gamma_hf, g0)
+    gamma_lf /= sqrt_g0
+    gamma_hf *= sqrt_g0
+
+    return gamma_lf, gamma_hf
