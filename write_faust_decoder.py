@@ -339,29 +339,11 @@ def write_faust_decoder_dual_band(path, name, M, sh_l, r, input_mask, **shelf_kw
             "M.shape != (len(r), len(sh_l))" f"{M.shape} {(len(r), len(sh_l))}"
         )
 
-    # FIXME: this block of code should move to a function in shelf.py
-    if True:
-        order = np.max(sh_l)
-        gamma_hf = shelf.gamma(range(order + 1), **shelf_kw)
-        gamma_lf = np.ones_like(gamma_hf)
-
-        # split the gain between LF and HF
-        g0 = shelf.gamma0(
-            shelf.gamma(sh_l, **gamma_kw),
-            matching_type="rms",
-            n_spkrs=len(r),
-        )
-        g0 = shelf.gamma0(shelf.gamma(sh_l, **shelf_kw), n_spkrs=len(r))
-        sqrt_g0 = np.sqrt(g0)
-        print(f"{gamma_lf=}, {gamma_hf=}, {g0=}")
-        gamma_lf /= sqrt_g0
-        gamma_hf *= sqrt_g0
-    else:
-        gamma_lf, gamma_hf = shelf.shelf_gains(
-            sh_l,
-            n_spkrs=None,
-            **shelf_kw,
-        )
+    gamma_lf, gamma_hf = shelf.shelf_gains(
+        sh_l,
+        n_spkrs=None,
+        **shelf_kw,
+    )
 
     with open(path, "w") as f:
         f.write(faust_decoder_description(path, name, name, None, None))

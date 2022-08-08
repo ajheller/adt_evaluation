@@ -16,6 +16,7 @@ import slugify
 # %% reproducing what G. Senna did
 
 S = esa.polygon(8)
+S.plot3D()
 C = pc.ChannelsN3D(1, 1)
 M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
@@ -28,7 +29,7 @@ wfd.write_faust_decoder_dual_band(
     C.sh_l,
     S.r,
     C.channel_mask,
-    decoder_3d=C.v_order > 0,
+    is_3d=C.v_order > 0,
 )
 
 # %%  array is actually 2D, so this is a better decoder
@@ -46,12 +47,13 @@ wfd.write_faust_decoder_dual_band(
     C.sh_l,
     S.r,
     C.channel_mask,
-    decoder_3d=C.v_order > 0,
+    is_3d=C.v_order > 0,
 )
 
 # %% four speaker array
 
 S = esa.polygon(4)
+S.plot3D()
 C = pc.ChannelsN3D(1, 0)
 M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
@@ -64,5 +66,5 @@ wfd.write_faust_decoder_dual_band(
     C.sh_l,
     S.r,
     C.channel_mask,
-    decoder_3d=C.v_order > 0,
+    is_3d=C.v_order > 0,
 )
