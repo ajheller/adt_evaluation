@@ -144,7 +144,7 @@ def constant_energy_inversion(
     elif alpha == 1:
         Sinv = np.ones_like(S)
     else:
-        raise NotADirectoryError("Sorry, mixing not implemented yet!")
+        raise NotImplementedError("Sorry, mixing not implemented yet!")
 
     M = np.matmul(V.T, np.diag(Sinv), U.T)
 
