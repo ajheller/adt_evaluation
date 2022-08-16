@@ -125,17 +125,22 @@ _FuMa_sh_lm = list(zip(_FuMa_sh_l, _FuMa_sh_m))
 _FuMa_sh_acn = [l**2 + l + m for l, m in _FuMa_sh_lm]
 _FuMa_channel_names = np.array(tuple("W" + "XYZ" + "RSTUV" + "KLMNOPQ"))
 
+
 _FuMa_channel_normalization = 1 / np.sqrt(
     np.array(
         (
-            (2,)
-            + (3,) * 3  # W
-            + (5,)  # X Y Z
-            + (5 * 3 / 4,) * 4  # R
-            + (7,)  # S T U V
-            + (7 * 32 / 45,) * 2  # K
-            + (7 * 5 / 9,) * 2  # L M
-            + (7 * 5 / 8,) * 2  # N O  # P Q
+            # degree 0
+            (2,)  # W
+            # degree 1
+            + (3,) * 3  # X Y Z
+            # degree 2
+            + (5,)  # R
+            + (5 * 3 / 4,) * 4  # S T U V
+            # degree 3
+            + (7,)  # K
+            + (7 * 32 / 45,) * 2  # L M
+            + (7 * 5 / 9,) * 2  # N O
+            + (7 * 5 / 8,) * 2  # P Q
         )
     )
 )
