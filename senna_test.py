@@ -10,6 +10,7 @@ import program_channels as pc
 import example_speaker_arrays as esa
 import basic_decoders as bd
 import write_faust_decoder as wfd
+import localization_models as lm
 
 import slugify
 
@@ -21,6 +22,8 @@ C = pc.ChannelsN3D(1, 1)
 M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
 name = slugify.slugify(f"{S.name}_{C.id_string()}")
+
+lm.plot_performance(M, S.u.T, C.sh_l, C.sh_m, title=name)
 
 wfd.write_faust_decoder_dual_band(
     f"{name}.dsp",
@@ -40,6 +43,8 @@ M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
 name = slugify.slugify(f"{S.name}_{C.id_string()}")
 
+lm.plot_performance(M, S.u.T, C.sh_l, C.sh_m, title=name)
+
 wfd.write_faust_decoder_dual_band(
     f"{name}.dsp",
     name,
@@ -50,6 +55,44 @@ wfd.write_faust_decoder_dual_band(
     is_3d=C.v_order > 0,
 )
 
+# %%  array is actually 2D, so this is a better decoder
+
+S = esa.polygon(8)
+C = pc.ChannelsN3D(3, 0)
+M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
+
+name = slugify.slugify(f"{S.name}_{C.id_string()}")
+
+lm.plot_performance(M, S.u.T, C.sh_l, C.sh_m, title=name)
+
+wfd.write_faust_decoder_dual_band(
+    f"{name}.dsp",
+    name,
+    M,
+    C.sh_l,
+    S.r,
+    C.channel_mask,
+    is_3d=C.v_order > 0,
+)
+# %%  array is actually 2D, so this is a better decoder
+
+S = esa.polygon(8)
+C = pc.ChannelsN3D(3, 3)
+M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
+
+name = slugify.slugify(f"{S.name}_{C.id_string()}")
+
+lm.plot_performance(M, S.u.T, C.sh_l, C.sh_m, title=name)
+
+wfd.write_faust_decoder_dual_band(
+    f"{name}.dsp",
+    name,
+    M,
+    C.sh_l,
+    S.r,
+    C.channel_mask,
+    is_3d=C.v_order > 0,
+)
 # %% four speaker array
 
 S = esa.polygon(4)
