@@ -202,20 +202,32 @@ def allrad(
     V2R, Vtri, Vxyz = allrad_v2rp(Su, Vu, vbap_norm=vbap_norm)
 
     Mv = inversion(degree, order, v_az, v_el)
+
     M = np.matmul(V2R, Mv)
 
-    if allrad2:
-        M_sign = np.sign(M)
-        M = M_sign * np.sqrt(V2R**2 @ Mv**2)
-
-    if speaker_is_real is not None:
+    if speaker_is_real is None:
+        pass
+    else:
         # get rid of rows corresponding to imaginary speakers
         M = M[speaker_is_real]
 
-    return M
+    if allrad2:
+        return M, V2R, Mv
+    else:
+        return M
 
 
-def allrad2(degree, order, spkrs_az, spkrs_el, v_az=None, v_el=None, vbap_norm=True):
+def allrad2(
+    degree,
+    order,
+    spkrs_az,
+    spkrs_el,
+    spkr_is_real=None,
+    v_az=None,
+    v_el=None,
+    vbap_norm=True,
+    debug=False,
+):
     """
     Compute decoder by AllRAD2 method.  Not implemented.
 
@@ -242,21 +254,28 @@ def allrad2(degree, order, spkrs_az, spkrs_el, v_az=None, v_el=None, vbap_norm=T
         DESCRIPTION.
 
     """
-    raise NotImplementedError("Sorry... AllRAD2 not implemented yet.")
-    # defaults
-    if v_az is None:
-        td = sg.t_design5200()
-        v_az = td.az
-        v_el = td.el
+    if not debug:
+        raise NotImplementedError("Sorry... AllRAD2 not implemented yet.")
 
     # TODO understand and implement allrad2 :) :)
-    M_allrad = allrad(
-        degree, order, spkrs_az, spkrs_el, v_az=v_az, v_el=v_el, vbap_norm=vbap_norm
+    M_allrad, V2R, Mv = allrad(
+        degree,
+        order,
+        spkrs_az,
+        spkrs_el,
+        v_az=v_az,
+        v_el=v_el,
+        vbap_norm=vbap_norm,
+        allrad2=True,
     )
 
     # TODO rest of AllRAD2 method
 
-    return M_allrad
+    # FIXME: this is not correct
+    M_sign = np.sign(M_allrad)
+    M = M_sign * np.sqrt(V2R**2 @ Mv**2)
+
+    return M
 
 
 def allrad_v2rp(Su, Vu, vbap_norm=True):
@@ -385,6 +404,18 @@ def allrad_v2r(Su, Vu):
     return V2R, a, tri  # Vtri, Vxyz
 
 
+def check_matrix(a, a_min=-2, a_max=+2, warn_only=True):
+    a_clipped = np.clip(a, a_min, a_max)
+    a_bad = a != a_clipped
+    if np.any(a_bad):
+        msg = f"{np.sum(a_bad)} elements of {a} exceed the range ({a_min} .. {a_max})"
+        if warn_only:
+            print("WARNING:", msg)
+        else:
+            raise ValueError(msg)
+    return a_clipped
+
+
 # unit tests
 def unit_test():
     import loudspeaker_layout as lsl
@@ -449,7 +480,7 @@ def unit_test2(order=3, case=1, debug=True):
     import spherical_grids as sg
 
     if case == 0:
-        # octagon
+        # square with speakers a the zenith and nadir
         s = LSL.from_vectors(
             (45, 135, -135, -45, 0, 0),
             (0, 0, 0, 0, 90, -90),
@@ -461,15 +492,15 @@ def unit_test2(order=3, case=1, debug=True):
     elif case == 1:
         s = sg.t_design240()
     elif case == 2:
-        s = esa.iem_cube().append(esa.nadir())
+        s = esa.iem_cube() + esa.nadir()
     else:
         print("unknown case")
         return None
 
     if debug:
-        print(s.az)
-        print(s.el)
-        print(s.r)
+        print(f"{s.az=}")
+        print(f"{s.el=}")
+        print(f"{s.r=}")
 
     sh_l, sh_m = zip(*[(l, m) for l in range(order + 1) for m in range(-l, l + 1)])
 
@@ -483,14 +514,24 @@ def unit_test2(order=3, case=1, debug=True):
 
     M_allrad = allrad(sh_l, sh_m, s.az, s.el)
 
-    M_allrad2 = allrad2(sh_l, sh_m, s.az, s.el)
+    try:
+        M_allrad2 = allrad2(sh_l, sh_m, s.az, s.el)
+    except NotImplementedError as e:
+        print(e)
+        M_allrad2 = None
 
     rV, rE = compute_rVrE(sh_l, sh_m, M_allrad, np.array(sd.sph2cart(s.az, s.el)))
 
     plot_rX(rV, "rVr", [0.5, 1])
     plot_rX(rE, "rEr", [0.5, 1])
 
-    return M_pinv, M_proj, p, M_allrad, M_allrad2
+    return dict(
+        M_pinv=M_pinv,
+        M_proj=M_proj,
+        p=p,
+        M_allrad=M_allrad,
+        m_allrad2=M_allrad2,
+    )
 
 
 # v2rp, ap, trip = allrad_v2rp(Su, Vu)
