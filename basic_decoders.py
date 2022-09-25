@@ -498,9 +498,9 @@ def unit_test2(order=3, case=1, debug=True):
         return None
 
     if debug:
-        print(f"{s.az=}")
-        print(f"{s.el=}")
-        print(f"{s.r=}")
+        print(f"s.az = {s.az}")
+        print(f"s.el = {s.el}")
+        print(f"s.r  = {s.r}")
 
     sh_l, sh_m = zip(*[(l, m) for l in range(order + 1) for m in range(-l, l + 1)])
 
