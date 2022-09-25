@@ -18,7 +18,8 @@ clean:
 
 git-push:
 	for remote in `git remote`; do \
-	  git push $$remote ; \
+	  git push $$remote --all ; \
+	  git push $$remote --tags; \
 	done
 
 git-pull:
@@ -30,3 +31,6 @@ requirements.txt:
 
 conda-env:
 	conda env export --from-history --no-build
+
+activate:
+	conda activate adt39
