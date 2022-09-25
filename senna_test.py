@@ -14,7 +14,7 @@ import localization_models as lm
 
 import slugify
 
-# %% reproducing what G. Senna did
+# %% 1H1V -- reproducing what G. Senna did
 
 S = esa.polygon(8)
 S.plot3D()
@@ -35,9 +35,9 @@ wfd.write_faust_decoder_dual_band(
     is_3d=C.v_order > 0,
 )
 
-# %%  array is actually 2D, so this is a better decoder
+# %%  1H0V -- array is actually 2D, so this is a better decoder
 
-S = esa.polygon(8)
+S = esa.polygon(8, radius=2.0)
 C = pc.ChannelsN3D(1, 0)
 M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
@@ -53,11 +53,12 @@ wfd.write_faust_decoder_dual_band(
     S.r,
     C.channel_mask,
     is_3d=C.v_order > 0,
+    input_full_set=True,
 )
 
-# %%  array is actually 2D, so this is a better decoder
+# %%  3H0V -- array is actually 2D, so this is a better decoder
 
-S = esa.polygon(8)
+S = esa.polygon(8, radius=2.0)
 C = pc.ChannelsN3D(3, 0)
 M = bd.inversion(C.sh_l, C.sh_m, S.az, S.el)
 
@@ -73,8 +74,9 @@ wfd.write_faust_decoder_dual_band(
     S.r,
     C.channel_mask,
     is_3d=C.v_order > 0,
+    input_full_set=True,
 )
-# %%  array is actually 2D, so this is a better decoder
+# %%  3H3V -- array is actually 2D, so this is a better decoder
 
 S = esa.polygon(8)
 C = pc.ChannelsN3D(3, 3)

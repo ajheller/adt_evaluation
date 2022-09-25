@@ -333,7 +333,9 @@ def write_faust_decoder(path, name, decoder_matrix, sh_l, r, input_mask):
         return f.name
 
 
-def write_faust_decoder_dual_band(path, name, M, sh_l, r, input_mask, **shelf_kw):
+def write_faust_decoder_dual_band(
+    path, name, M, sh_l, r, input_mask, input_full_set=True, **shelf_kw
+):
     if M.shape != (len(r), len(sh_l)):
         raise ValueError(
             "M.shape != (len(r), len(sh_l))" f"{M.shape} {(len(r), len(sh_l))}"
@@ -359,6 +361,7 @@ def write_faust_decoder_dual_band(path, name, M, sh_l, r, input_mask, **shelf_kw
                 input_mask=input_mask,
                 gamma0=gamma_lf,
                 gamma1=gamma_hf,
+                input_full_set=input_full_set,
             )
         )
         f.write(matrix2faust(M, prefix="s(%03d, 0) = "))
