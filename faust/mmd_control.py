@@ -9,16 +9,25 @@ Created on Thu Oct 22 18:35:22 2020
 import requests
 import json
 
+# prodocol, userinfo, subdomain, domain_name, port, path, query, parameters, fragment
+
+host = "localhost"
+port = 5510
+
+def mixer_url(i, j):
+    return f"http://{host}:{port}/matrix_mixer/out-{i}/in-{j}"
+
 
 def get_mixer_value(i, j):
-    r = requests.get(f"http://localhost:5510/matrix_mixer/g-o{i}-i{j}")
+    r = requests.get(mixer_url(i, j))
     c = r.content
+    print(c)
     value = c.split(b" ")
     return float(value[1])
 
 
 def set_mixer_value(i, j, v):
-    r = requests.get(f"http://localhost:5510/matrix_mixer/g-o{i}-i{j}?value={v}")
+    r = requests.get(mixer_url(i, j) + f"?value={v}")
     c = r.content
     value = c.split(b" ")
     try:
