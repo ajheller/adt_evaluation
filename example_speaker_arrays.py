@@ -72,51 +72,31 @@ def polygon(
 
 def home_dome(add_imaginary=True):
     """Nando's home array."""
+    a = np.array(
+        [
+            # fmt: off
+         # a regular octagon (LR) at lower level
+         [  22.5,  0.0, 1.6],
+         [ -22.5,  0.0, 1.6],
+         [  67.5,  0.0, 1.6],
+         [ -67.5,  0.0, 1.6],
+         [ 112.5,  0.0, 1.6],
+         [-112.5,  0.0, 1.6],
+         [ 157.5,  0.0, 1.6],
+         [-157.5,  0.0, 1.6],
+         # a regular pentagon at upper level, rotated
+         # +-72 + 12, +-144 + 12 (L R C SL SR)
+         [  84.0, 45.0, 1.35],
+         [ -60.0, 45.0, 1.35],
+         [  12.0, 45.0, 1.35],
+         [ 156.0, 45.0, 1.35],
+         [-132.0, 45.0, 1.35],
+            # fmt: on
+        ]
+    )
+
     layout = lsl.from_array(
-        a=(
-            # a regular octagon (LR) at lower level
-            22.5,
-            0,
-            1.6,
-            -22.5,
-            0,
-            1.6,
-            67.5,
-            0,
-            1.6,
-            -67.5,
-            0,
-            1.6,
-            112.5,
-            0,
-            1.6,
-            -112.5,
-            0,
-            1.6,
-            157.5,
-            0,
-            1.6,
-            -157.5,
-            0,
-            1.6,
-            # a regular pentagon at upper level, rotated
-            # +-72 + 12, +-144 + 12 (L R C SL SR)
-            84,
-            45,
-            1.35,
-            -60,
-            45,
-            1.35,
-            12,
-            45,
-            1.35,
-            156,
-            45,
-            1.35,
-            -132,
-            45,
-            1.35,
-        ),
+        a=a,
         coord_code="AER",
         unit_code="DDM",
         name="HomeDome",
@@ -134,12 +114,12 @@ def home_dome(add_imaginary=True):
 nando_dome = home_dome
 
 
-def emb_dome(add_imaginary=True):
+def emb_dome(config=1, add_imaginary=True):
     """EMB's home array."""
     # Eric's array is an octagon at ear level and a square 30-deg elevation
     # speakers lie on a 2-meter sphere
     layout = lsl.append_layouts(
-        polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="L"),
+        polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="M"),
         polygon(4, elevation=π / 6, radius=2, unit="M", center_spkr=True, ids="U"),
         name="EMB",
         description="EMB's home array, 8+4",
@@ -149,19 +129,65 @@ def emb_dome(add_imaginary=True):
     return layout
 
 
-def emb_cmap16(add_imaginary=True):
+def emb_cmap484(add_imaginary=True):
     """EMB's home array."""
     # Eric's array is an octagon at ear level and a square 30-deg elevation
     # speakers lie on a 2-meter sphere
     layout = lsl.append_layouts(
-        polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="L"),
+        polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="M"),
         polygon(4, elevation=π / 6, radius=2, unit="M", center_spkr=True, ids="U"),
-        name="CMAP16",
+        name="CMAP-4c8s4c",
         description="EMB's home array, 8+4+4",
     )
 
     layout += polygon(
-        4, elevation=-π / 6, radius=2, unit="M", center_spkr=True, ids="U"
+        4, elevation=-π / 6, radius=2, unit="M", center_spkr=True, ids="L"
+    )
+    if add_imaginary:
+        layout += nadir(radius=2)
+        layout += zenith(radius=2)
+    return layout
+
+
+def emb_cmap888(add_imaginary=True):
+    """EMB's home array."""
+    # Eric's array is an octagon at ear level and a square 30-deg elevation
+    # speakers lie on a 2-meter sphere
+    layout = lsl.append_layouts(
+        polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="M"),
+        polygon(8, elevation=π / 6, radius=2, unit="M", center_spkr=True, ids="U"),
+        name="CMAP-8c8s8c",
+        description="EMB's home array, 8+8+8",
+    )
+
+    layout += polygon(
+        8, elevation=-π / 6, radius=2, unit="M", center_spkr=True, ids="L"
+    )
+    if add_imaginary:
+        layout += nadir(radius=2)
+        layout += zenith(radius=2)
+    return layout
+
+
+def emb_cmap686(add_imaginary=True, bottom_center=False):
+    """EMB's home array."""
+    # Eric's array is an octagon at ear level and a square 30-deg elevation
+    # speakers lie on a 2-meter sphere
+
+    if bottom_center:
+        name = "CMAP-6c8s6c"
+    else:
+        name = "CMAP-6c8s6s"
+
+    layout = lsl.append_layouts(
+        polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="M"),
+        polygon(6, elevation=π / 6, radius=2, unit="M", center_spkr=True, ids="U"),
+        name=name,
+        description="EMB's home array, 8+6+6",
+    )
+
+    layout += polygon(
+        6, elevation=-π / 6, radius=2, unit="M", center_spkr=bottom_center, ids="L"
     )
     if add_imaginary:
         layout += nadir(radius=2)

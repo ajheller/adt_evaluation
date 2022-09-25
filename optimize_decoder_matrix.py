@@ -139,6 +139,7 @@ def optimize(
     uniform_loudness_penalty=0.1,  # 0.01
     rE_goal=1.0,
     rE_W=1.0,
+    rV_W=0.05,
     maxcor=100,  # how accurate is the Hessian, more is better but slower
     raise_error_on_failure=True,
 ):
@@ -159,6 +160,7 @@ def optimize(
     Y_test = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
 
     rExyz_goal = T.u.T * rE_goal
+    rVxyz_goal = T.u.T * 1.0
 
     if M is None:
         # infer M_shape from Su and Y
@@ -178,18 +180,22 @@ def optimize(
         # truncation loss due to finite order
         truncation_loss = np.sum(rE_W * ((rExyz - rExyz_goal) ** 2))
 
+        if True:  # include rV?
+            rVxyz, p = rV(M, Su, Y_test)  # add rV constraint
+            truncation_loss += np.sum(rV_W * ((rVxyz - rVxyz_goal) ** 2))
+
         # uniform loudness loss
         uniform_loudness_loss = (
             np.sum((E - E_goal) ** 2) * uniform_loudness_penalty
         )  # was 10
 
         # Tikhonov regularization term - typical value = 1e-3
-        tikhonov_regularization_term = np.sum(M**2) * tikhonov_lambda
+        tikhonov_regularization_term = np.sum(M ** 2) * tikhonov_lambda
 
         # don't turn off speakers
         # pull diffuse-field gain for each speaker away from zero
         sparsness_term = (
-            np.sum(np.abs(1 - np.sum(M**2, axis=1))) * 100 * sparseness_penalty
+            np.sum(np.abs(1 - np.sum(M ** 2, axis=1))) * 100 * sparseness_penalty
         )
 
         # the entire loss function
@@ -219,7 +225,7 @@ def optimize(
         res = opt.minimize(
             objective_and_gradient,
             x0,
-            # bounds=opt.Bounds(-1, 1),
+            bounds=opt.Bounds(-1, 1),
             method="L-BFGS-B",
             jac=True,
             options=dict(
@@ -227,8 +233,9 @@ def optimize(
                 disp=iprint,
                 maxls=500,
                 # maxcor=30,
-                gtol=1e-8,
-                # ftol=1e-12
+                # gtol=1e-8,
+                gtol=1e-12,
+                # ftol=1e-12,
             ),
             # callback=callback,
         )
@@ -271,7 +278,7 @@ def optimize_LF(M, Su, sh_l, sh_m, W=1, raise_error_on_failure=False):
         df_gain_loss = (g_total - df_gain) ** 2
 
         # Tikhonov regularization term - typical value = 1e-3
-        tikhonov_regularization_term = np.sum(M**2) * 1e-2  # tikhonov_lambda
+        tikhonov_regularization_term = np.sum(M ** 2) * 1e-2  # tikhonov_lambda
 
         # dir loss mag(rVxyz) should be 1
         direction_loss = np.sum(W * ((rVxyz - rEu) ** 2))

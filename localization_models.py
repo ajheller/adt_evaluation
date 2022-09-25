@@ -97,6 +97,8 @@ def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None, return_dict=True):
     #
     if test_dirs is None:
         test_dirs = sg.az_el()
+    shape = test_dirs.shape
+
     Y_test_dirs = rsh.real_sph_harm_transform(
         sh_l, sh_m, test_dirs.az.ravel(), test_dirs.el.ravel()
     )
@@ -108,16 +110,26 @@ def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None, return_dict=True):
     # rVxyz = rVxyz.reshape(3, *test_dirs.shape)
     # rExyz = rExyz.reshape(3, *test_dirs.shape)
 
-    P = P.reshape(test_dirs.shape)
-    E = E.reshape(test_dirs.shape)
+    P = P.reshape(shape)
+    E = E.reshape(shape)
 
     rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
     rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
 
-    rVaz = rVaz.reshape(test_dirs.shape)
-    rVel = rVel.reshape(test_dirs.shape)
-    rEaz = rEaz.reshape(test_dirs.shape)
-    rEel = rEel.reshape(test_dirs.shape)
+    # dot product of the two unit vectors is the cosine of direction error
+    rE_dir_err = np.arccos(np.clip(np.sum(rEu * test_dirs.u.T, axis=0), -1, 1))
+    rV_dir_err = np.arccos(np.clip(np.sum(rVu * test_dirs.u.T, axis=0), -1, 1))
+
+    rVaz = rVaz.reshape(shape)
+    rVel = rVel.reshape(shape)
+    rEaz = rEaz.reshape(shape)
+    rEel = rEel.reshape(shape)
+    rEr = rEr.reshape(shape)
+    rVr = rVr.reshape(shape)
+    rV_dir_err = rV_dir_err.reshape(shape)
+    rE_dir_err = rE_dir_err.reshape(shape)
+
+    ambisonic_order = shelf.rE_to_ambisonic_order_3d(rEr)
 
     return dict(
         P=P,
@@ -126,20 +138,30 @@ def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None, return_dict=True):
         rVel=rVel,
         rVr=rVr,
         rVu=rVu,
+        rV_dir_err=rV_dir_err,
         E=E,
         rExyz=rExyz,
         rEaz=rEaz,
         rEel=rEel,
         rEr=rEr,
         rEu=rEu,
+        rE_dir_err=rE_dir_err,
+        ambisonic_order=ambisonic_order,
         M=M,
         sh_l=sh_l,
         sh_m=sh_m,
         test_dirs=test_dirs,
+        shape=shape,
     )
 
 
-def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π / 4, title=None, show=True):
+def plot_az_el_grid(
+    sh_l, sh_m, M, Su, el_lim=-π / 4, az_lim=(200, -200), title=None, show=True,
+):
+    # defaults
+    if np.isscalar(el_lim):
+        el_lim = np.array((el_lim, np.inf))
+
     p = compute_rVrE_dict(sh_l, sh_m, M, Su)
     az = p["rEaz"]
     el = p["rEel"]
@@ -156,20 +178,22 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π / 4, title=None, show=True):
 
     taz = p["test_dirs"].az  # not used currently
     tel = p["test_dirs"].el
+    # rEr = p["rEr"]
 
     # magic incantation to flip the x-axis of the plot
     plt.gca().invert_xaxis()
+    plt.xlim(az_lim)
 
     # plot lines of constant elevation
     for iy in range(0, 180, 10):
-        if tel[0, iy] > el_lim:
+        if (tel[0, iy] >= el_lim[0]) & (tel[0, iy] <= el_lim[1]):
             plt.plot(
                 az[1:-1, iy] * 180 / np.pi, el[1:-1, iy] * 180 / np.pi, zorder=1000
             )
 
     # plot lines of constant azimuth
     for ix in range(0, 361, 10):
-        el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π / 2)
+        el_plot_range = (tel[0, :] > el_lim[0]) & (tel[0, :] <= el_lim[1])
         # NOTE: use the following line to get plots identical to AES150 paper
         # el_plot_range = slice(85, -1)
         # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
@@ -183,7 +207,7 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π / 4, title=None, show=True):
         line_color = "xkcd:light gray"
         # plot lines of constant azimuth
         for iy in range(0, 180, 10):
-            if tel[0, iy] > el_lim:
+            if (tel[0, iy] > el_lim[0]) & (tel[0, iy] <= el_lim[1]):
                 plt.plot(
                     taz[1:-1, iy] * 180 / np.pi,
                     tel[1:-1, iy] * 180 / np.pi,
@@ -191,9 +215,9 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π / 4, title=None, show=True):
                     zorder=0,
                 )
 
-        # plot lines of constant azimuth
+        # plot lines of constant elevation
         for ix in range(0, 361, 10):
-            el_plot_range = (tel[0, :] > el_lim) & (tel[0, :] < π / 2)
+            el_plot_range = (tel[0, :] > el_lim[0]) & (tel[0, :] < el_lim[1])
             # NOTE: use the following to get plots identical to AES150 paper
             # el_plot_range = slice(85, -1)
             # plt.plot(az[ix, 85:-1]*180/np.pi, el[ix, 85:-1]*180/np.pi)
@@ -210,6 +234,86 @@ def plot_az_el_grid(sh_l, sh_m, M, Su, el_lim=-π / 4, title=None, show=True):
         plt.title(title)
     if show:
         plt.show()
+
+
+def pmesh_test():
+    fig, ax = plt.subplots(1, 1, figsize=(10, 4))
+    td = sg.az_el()
+    x = td.az * 180 / np.pi
+    y = td.el * 180 / np.pi
+    v = td.az
+
+    p = ax.pcolormesh(x, y, v, shading="auto")
+    plt.colorbar(p, ax=ax)
+
+    # without explicit limits
+    plt.gca().invert_xaxis()
+    # with explicit limits
+    ax.set_xlim((250, -250))
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    plt.text(100, 25, "Hello!")
+    ax.scatter(100, 25, c="w", marker="D")
+    plt.show()
+    return fig, ax, p
+
+
+def plot_az_el_rX(
+    sh_l,
+    sh_m,
+    M,
+    Su,
+    x_key="rEr",
+    x_fn=lambda x: x,
+    x_cmap="jet",
+    x_lim=None,
+    el_lim=-π / 4,
+    sinusoidal_projection=False,
+    title=None,
+    show=True,
+):
+    # defaults
+    if np.isscalar(el_lim):
+        el_lim = np.array((el_lim, np.inf))
+
+    p = compute_rVrE_dict(sh_l, sh_m, M, Su)
+    az = p["rEaz"]
+    el = p["rEel"]
+    el = np.unwrap(el, axis=0)
+    az = np.unwrap(az, axis=1)
+
+    el = np.unwrap(el, axis=1)
+    az = np.unwrap(az, axis=0)
+
+    while np.mean(az) > np.pi:
+        az -= 2 * np.pi
+    while np.mean(az) < -np.pi:
+        az += 2 * np.pi
+
+    # not used currently
+    # taz = p["test_dirs"].az
+    # tel = p["test_dirs"].el
+    x = p[x_key].reshape(p["shape"])
+
+    plt.pcolormesh(
+        az * 180 / np.pi * (np.cos(el) if sinusoidal_projection else 1),
+        el * 180 / np.pi,
+        x_fn(x),
+        vmin=x_lim[0],
+        vmax=x_lim[1],
+        shading="gouraud",
+        cmap=x_cmap,
+    )
+    # magic incantation to flip the x-axis of the plot
+    plt.gca().invert_xaxis()
+    plt.xlim((200, -200))
+
+    plt.colorbar()
+
+    if title:
+        plt.title(title)
+
+    return
 
 
 def diffuse_field_gain(M):
@@ -247,7 +351,8 @@ def plot_rX(rX, title, clim=None, cmap="jet", show=True):
     if clim:
         plt.clim(clim)
     ax.xaxis.set_ticks(np.linspace(180, -180, 9))
-    ax.yaxis.set_ticks(np.linspace(-90, 90, 5))
+    # ax.yaxis.set_ticks(np.linspace(-90, 90, 5))
+    ax.yaxis.set_ticks(np.linspace(-90, 90, 13))
     plt.xlabel("Azimuth (degrees)")
     plt.ylabel("Elevation (degrees)")
     plt.title(title)
@@ -263,11 +368,15 @@ def plot_rX(rX, title, clim=None, cmap="jet", show=True):
     return fig
 
 
-def plot_loudspeakers(Su: np.ndarray, **plot_args) -> None:
+def plot_loudspeakers(
+    Su: np.ndarray, sinusoidal_projection=False, **plot_args,
+) -> None:
     """Overlay loudspeaker positions on an existing figure."""
     #
     # unit vector to az-el
     S_az, S_el, *_ = sg.cart2sph(*Su)
+    if sinusoidal_projection:
+        S_az *= np.cos(S_el)
     # a white diamond with a black dot in the center
     plt.scatter(S_az * 180 / π, S_el * 180 / π, c="w", marker="D", **plot_args)
     plt.scatter(S_az * 180 / π, S_el * 180 / π, c="k", marker=".", **plot_args)
@@ -283,6 +392,7 @@ def plot_performance(
     plot_spkrs=True,
     test_dirs=None,
     el_lim=-π / 4,
+    quiet=False,
 ):
     """Compute and plot basic performance metrics of a decoder matrix."""
     # fill in defaults
@@ -312,11 +422,13 @@ def plot_performance(
         np.arccos(np.clip(np.sum(rEu * test_dirs.u.T, axis=0), -1, 1)) * 180 / π
     )
 
+    new_plots = True
+
     # magnitude of rE
-    if True:
+    if not new_plots:
         fig = plot_rX(
             rEr.reshape(test_dirs.shape),
-            title=(f"{title}\n" + "magnitude of rE vs. test direction"),
+            title=(f"{title}\n" + "magnitude of$r_E$vs. test direction"),
             clim=(0.5, 1),
             show=False,
         )
@@ -324,7 +436,7 @@ def plot_performance(
         plt.show()
 
     # plot of ambisonic order
-    if True:
+    if not new_plots:
         fig = plot_rX(
             (
                 shelf.rE_to_ambisonic_order_3d(rEr.reshape(test_dirs.shape))
@@ -347,7 +459,7 @@ def plot_performance(
         plt.show()
 
     # E vs td
-    if True:
+    if not new_plots:
         E_dB = 10 * np.log10(E.reshape(test_dirs.shape))
         E_dB_ceil = np.ceil(E_dB.max())
         fig = plot_rX(
@@ -360,7 +472,7 @@ def plot_performance(
         plt.show()
 
     # direction error
-    if True:
+    if not new_plots:
         fig = plot_rX(
             rE_dir_err.reshape(test_dirs.shape),
             title=f"{title}\n" + "direction error (deg)",
@@ -384,6 +496,7 @@ def plot_performance(
         out_figs.append(fig)
         plt.show()
 
+    # grid plot
     if True:
         fig = plt.figure(figsize=(10, 4))
         plot_az_el_grid(
@@ -391,7 +504,7 @@ def plot_performance(
             sh_m,
             M,
             Su,
-            title=f"{title}\nrE directions",
+            title=f"{title}\ndirection of $r_E$",
             el_lim=el_lim,
             show=False,
         )
@@ -399,18 +512,135 @@ def plot_performance(
             plot_loudspeakers(Su, zorder=1500)
 
         out_figs.append(fig)
+        if not quiet:
+            plt.show()
+
+    # new plots by perceived direction
+    # r_E
+    if True:
+        fig = plt.figure(figsize=(12, 4))
+        plot_az_el_rX(
+            sh_l,
+            sh_m,
+            M,
+            Su,
+            x_key="rEr",
+            x_lim=(0.5, 1.0),
+            title=f"{title}\nmagnitude of $r_E$ vs. direction of $r_E$",
+            el_lim=el_lim,
+            show=False,
+            sinusoidal_projection=False,
+        )
+        if plot_spkrs:
+            plot_loudspeakers(Su, zorder=1500)
+
+        out_figs.append(fig)
+        if not quiet:
+            plt.show()
+
+    # angular error
+    if True:
+        fig = plt.figure(figsize=(12, 4))
+        plot_az_el_rX(
+            sh_l,
+            sh_m,
+            M,
+            Su,
+            x_key="rE_dir_err",
+            x_fn=lambda x: x * 180 / np.pi,
+            x_lim=(0, 20),
+            title=f"{title}\ndirection error of $r_E$ vs. direction of $r_E$",
+            el_lim=el_lim,
+            show=False,
+            sinusoidal_projection=False,
+        )
+        if plot_spkrs:
+            plot_loudspeakers(Su, zorder=1500)
+
+        out_figs.append(fig)
+        if not quiet:
+            plt.show()
+
+    # relative ambisonic order
+    if True:
+        fig = plt.figure(figsize=(12, 4))
+        plot_az_el_rX(
+            sh_l,
+            sh_m,
+            M,
+            Su,
+            x_key="ambisonic_order",
+            x_fn=lambda x: x - ambisonic_order,
+            x_lim=(-3, 3),
+            title=f"{title}\nrelative ambisonic order ({ambisonic_order}) vs. direction of $r_E$",
+            el_lim=el_lim,
+            x_cmap="Spectral_r",
+            show=False,
+            sinusoidal_projection=False,
+        )
+        if plot_spkrs:
+            plot_loudspeakers(Su, zorder=1500)
+
+        out_figs.append(fig)
+        if not quiet:
+            plt.show()
+
+    # above, but quantized
+    if True:
+        fig = plt.figure(figsize=(12, 4))
+        plot_az_el_rX(
+            sh_l,
+            sh_m,
+            M,
+            Su,
+            x_key="ambisonic_order",
+            x_fn=lambda x: np.round(x - ambisonic_order),
+            x_lim=(-3, 3),
+            title=(
+                f"{title}\nrelative ambisonic order ({ambisonic_order}) "
+                "vs. direction of $r_E$"
+            ),
+            el_lim=el_lim,
+            x_cmap="Spectral_r",
+            show=False,
+            sinusoidal_projection=False,
+        )
+        if plot_spkrs:
+            plot_loudspeakers(Su, zorder=1500)
+
+        out_figs.append(fig)
+        if not quiet:
+            plt.show()
+
+    if False:
+        fig = plt.figure(figsize=(12, 4))
+        plot_az_el_rX(
+            sh_l,
+            sh_m,
+            M,
+            Su,
+            title=f"{title}\nrE directions",
+            el_lim=el_lim,
+            show=False,
+            sinusoidal_projection=True,
+        )
+        if plot_spkrs:
+            plot_loudspeakers(Su, sinusoidal_projection=True, zorder=1500)
+
+        out_figs.append(fig)
         plt.show()
 
     if True:
         fig = plot_rX(
             rVr.reshape(test_dirs.shape),
-            title=(f"{title}\n" + "magnitude of rV vs. test direction"),
+            title=(f"{title}\n" + "magnitude of $r_V$ vs. test direction"),
             # clim=(0.5, 1),
             clim=(0.5, 1.5),
             show=False,
         )
         out_figs.append(fig)
-        plt.show()
+        if not quiet:
+            plt.show()
 
     if True:
         fig = plot_matrix(M, title=f"{title}")
@@ -458,7 +688,7 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π / 4, title=""):
     return out_figs
 
 
-def plot_matrix(M, title="", min_dB=-60):
+def plot_matrix(M, title="", min_dB=-60, show=True):
     """Display the matrix as an image."""
     fig = plt.figure()
     M_clipped = np.clip(np.abs(M), 10 ** (min_dB / 20), np.inf)
@@ -468,7 +698,8 @@ def plot_matrix(M, title="", min_dB=-60):
     plt.title("%s\nMatrix element gains (dB)" % title)
     plt.ylabel("Program channels (ACN order)")
     plt.xlabel("Loudspeakers")
-    plt.show()
+    if show:
+        plt.show()
     return fig
 
 
@@ -480,7 +711,7 @@ def write_plot_performance_LF(M_lf, M_hf, S_real, sh_l, sh_m, id_string, title):
     figs = []
     figs.append(plot_performance_LF(M_lf, M_hf, S_real.u.T, sh_l, sh_m, title=title))
     with io.StringIO() as f:
-        print(f"LF optimization report\n", file=f)
+        print("LF optimization report\n", file=f)
         report = f.getvalue()
         print(report)
     spkr_array_name = S_real.name
@@ -540,10 +771,7 @@ if __name__ == "__main__":
         else:
             raise ValueError("Unknown decoder type: %d" % decoder)
 
-        (
-            rVr,
-            rEr,
-        ) = compute_rVrE(sh_l, sh_m, M, np.array(sg.sph2cart(s_az, s_el)))
+        (rVr, rEr,) = compute_rVrE(sh_l, sh_m, M, np.array(sg.sph2cart(s_az, s_el)))
 
         plot_rX(rVr, "rVr", (0.5, 1))
         plot_rX(rEr, "rEr", (0.5, 1))

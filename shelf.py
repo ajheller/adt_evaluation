@@ -148,7 +148,7 @@ _decoder_matching_type_default = "rms"
 # function to match LF and HF perceptual gains
 #  note that gammas here is the set for all the channels
 def gamma0(gammas, matching_type=_decoder_matching_type_default, n_spkrs=None):
-    E_gain = np.sum(gammas**2)
+    E_gain = np.sum(gammas ** 2)
     if matching_type in ("energy", 1):
         g2 = n_spkrs / E_gain
     elif matching_type in ("rms", 2):

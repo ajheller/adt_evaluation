@@ -6,6 +6,7 @@ Created on Sat May  8 10:59:36 2021
 @author: heller
 """
 import io
+import datetime
 
 import jax.numpy as np  # jax overloads numpy
 from numpy import pi as π  # I get tired of typing np.pi
@@ -71,11 +72,19 @@ def optimize_dome(
     do_report=False,
     rE_goal="auto",
     eval_order=None,
+    eval_el_lim=None,
     random_start=False,
+    quiet=False,
 ):
     """Optimize a dome array."""
     #
     #
+    if np.isscalar(el_lim):
+        el_lim = np.array((el_lim, np.inf))
+
+    if eval_el_lim is None:
+        eval_el_lim = el_lim
+
     (order_h, order_v, sh_l, sh_m, id_string) = pc.ambisonic_channels(ambisonic_order)
     order = max(order_h, order_v)  # FIXME
     is_3D = order_v > 0
@@ -119,7 +128,7 @@ def optimize_dome(
         M_allrad_hf = M_allrad @ gamma
 
         # performance plots
-        plot_title = "AllRAD, "
+        plot_title = f"{spkr_array_name} - AllRAD - "
         if eval_order_given:
             plot_title += f"Design: {id_string}, Test: {eval_id_string}"
         else:
@@ -133,12 +142,14 @@ def optimize_dome(
                 sh_m,
                 mask_matrix=mask_matrix,
                 title=plot_title,
-                el_lim=el_lim,
+                # el_lim=(-np.pi / 2, +np.pi / 2),
+                el_lim=eval_el_lim,
+                quiet=quiet,
             )
         )
 
         print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
-        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_allrad**2, axis=1))):
+        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
             print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}")
 
     else:
@@ -153,7 +164,9 @@ def optimize_dome(
 
     # Objective for E
     T = sg.t_design5200()
-    cap, *_ = sg.spherical_cap(T.u, (0, 0, 1), π / 2 - el_lim)  # apex
+    cap, *_ = sg.spherical_cap(
+        T.u, (0, 0, 1), angle=π / 2 - el_lim[0], min_angle=π / 2 - el_lim[1],
+    )  # apex
     E0 = np.where(cap, 1.0, 0.1)  # inside, outside
 
     # np.array([0.1, 1.0])[cap.astype(np.int8)]
@@ -181,9 +194,11 @@ def optimize_dome(
         sparseness_penalty=sparseness_penalty,
         rE_goal=rE_goal,
         rE_W=rE_W,
+        rV_W=0.01,
     )
 
-    plot_title = f"Optimized {M_start}, "
+    # plot_title = f"Optimized {M_start}, "
+    plot_title = f"{spkr_array_name} - Optimized - "
     if eval_order_given:
         plot_title += f"Design: {id_string}, Test: {eval_id_string}"
     else:
@@ -197,25 +212,27 @@ def optimize_dome(
             sh_m,
             mask_matrix=mask_matrix,
             title=plot_title,
-            el_lim=el_lim,
+            el_lim=eval_el_lim,
+            quiet=quiet,
         )
     )
 
     with io.StringIO() as f:
         print(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n",
             f"ambisonic_order = {order}\n"
-            + f"el_lim = {el_lim * 180 / π}\n"
-            + f"tikhonov_lambda = {tikhonov_lambda}\n"
-            + f"sparseness_penalty = {sparseness_penalty}\n",
+            f"el_lim = {el_lim[0] * 180 / π:0.4f} .. {el_lim[1] * 180 / π:0.4f}\n"
+            f"tikhonov_lambda = {tikhonov_lambda}\n"
+            f"sparseness_penalty = {sparseness_penalty}\n",
             file=f,
         )
 
-        off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
+        off = np.isclose(np.sum(M_opt ** 2, axis=1), 0, rtol=1e-6)  # 60dB down
         print("Using:\n", Sr.ids[~off.copy()], file=f)
         print("Turned off:\n", Sr.ids[off.copy()], file=f)
 
         print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
-        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_opt**2, axis=1))):
+        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_opt ** 2, axis=1))):
             print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}", file=f)
         report = f.getvalue()
         print(report)
