@@ -92,6 +92,37 @@ res = od.optimize_dome(
     quiet=quiet,
 )
 
+# %%
+
+S = esa.amb_10_8_4()
+
+res = od.optimize_dome(
+    S,
+    ambisonic_order=pc.ChannelsAmbiX(4, 4),
+    # eval_order=C,
+    sparseness_penalty=0,
+    el_lim=el_lim,
+    do_report=True,
+    random_start=False,
+    eval_el_lim=eval_el_lim,
+    quiet=quiet,
+)
+
+
+# %%
+
+res = od.optimize_dome(
+    S,
+    ambisonic_order=pc.ChannelsAmbiX(3, 3),
+    # eval_order=C,
+    sparseness_penalty=0,
+    el_lim=el_lim,
+    do_report=True,
+    random_start=False,
+    eval_el_lim=eval_el_lim,
+    quiet=quiet,
+)
+
 # %% rsync to dreamhosters
 import subprocess as sp
 
