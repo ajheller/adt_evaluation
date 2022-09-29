@@ -195,6 +195,23 @@ def emb_cmap686(add_imaginary=True, bottom_center=False):
     return layout
 
 
+def amb_10_8_4(add_imaginary=True):
+    layout = lsl.append_layouts(
+        polygon(10, elevation=0, radius=2, unit="M", center_spkr=False, ids="M"),
+        polygon(8, elevation=π / 6, radius=2, unit="M", center_spkr=True, ids="U"),
+        name="Dome 10+8+4",
+        description="Dome-10+8+4",
+    )
+
+    layout += polygon(
+        4, elevation=π / 3, radius=2, unit="M", center_spkr=False, ids="L"
+    )
+    if add_imaginary:
+        layout += nadir(radius=2)
+        layout += zenith(radius=2)
+    return layout
+
+
 def stage2017(add_imaginary=True):
     """CCRMA Stage array."""
     layout = lsl.from_array(

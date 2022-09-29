@@ -258,6 +258,71 @@ def pmesh_test():
     return fig, ax, p
 
 
+def plot_az_el_q_rX(
+    sh_l,
+    sh_m,
+    M,
+    Su,
+    x_key="rEr",
+    x_fn=lambda x: x,
+    x_cmap="jet",
+    x_lim=None,
+    el_lim=-π / 4,
+    sinusoidal_projection=False,
+    title=None,
+    show=True,
+):
+    # defaults
+    if np.isscalar(el_lim):
+        el_lim = np.array((el_lim, np.inf))
+
+    p = compute_rVrE_dict(sh_l, sh_m, M, Su)
+    az = p["rEaz"]
+    el = p["rEel"]
+    el = np.unwrap(el, axis=0)
+    az = np.unwrap(az, axis=1)
+
+    el = np.unwrap(el, axis=1)
+    az = np.unwrap(az, axis=0)
+
+    while np.mean(az) > np.pi:
+        az -= 2 * np.pi
+    while np.mean(az) < -np.pi:
+        az += 2 * np.pi
+
+    # not used currently
+    # taz = p["test_dirs"].az
+    # tel = p["test_dirs"].el
+
+    taz = p["test_dirs"].az
+    tel = p["test_dirs"].el
+
+    i = 45
+    d = 180 / np.pi
+    dd = d / 10
+    plt.quiver(
+        d * taz[::i],
+        d * tel[::i],
+        dd * (az - taz)[::i],
+        dd * (el - tel)[::i],
+        angles="xy",
+    )
+    print(
+        d * taz[::i], d * tel[::i], (az - taz)[::i], (el - tel)[::i],
+    )
+
+    # magic incantation to flip the x-axis of the plot
+    plt.gca().invert_xaxis()
+    plt.xlim((200, -200))
+
+    plt.colorbar()
+
+    if title:
+        plt.title(title)
+
+    return
+
+
 def plot_az_el_rX(
     sh_l,
     sh_m,
@@ -295,6 +360,15 @@ def plot_az_el_rX(
     # tel = p["test_dirs"].el
     x = p[x_key].reshape(p["shape"])
 
+    if True:
+        print(az.shape, el.shape, p["test_dirs"].el.shape)
+        plot_els = (p["test_dirs"].el[0, :] >= el_lim[0]) & (
+            p["test_dirs"].el[0, :] <= el_lim[1]
+        )
+        az = az[:, plot_els]
+        el = el[:, plot_els]
+        x = x[:, plot_els]
+
     plt.pcolormesh(
         az * 180 / np.pi * (np.cos(el) if sinusoidal_projection else 1),
         el * 180 / np.pi,
@@ -307,6 +381,7 @@ def plot_az_el_rX(
     # magic incantation to flip the x-axis of the plot
     plt.gca().invert_xaxis()
     plt.xlim((200, -200))
+    plt.ylim((el_lim[0] * 180 / np.pi, el_lim[1] * 180 / np.pi))
 
     plt.colorbar()
 
@@ -380,6 +455,15 @@ def plot_loudspeakers(
     # a white diamond with a black dot in the center
     plt.scatter(S_az * 180 / π, S_el * 180 / π, c="w", marker="D", **plot_args)
     plt.scatter(S_az * 180 / π, S_el * 180 / π, c="k", marker=".", **plot_args)
+
+    plot_args["horizontalalignment"] = "center"
+    plot_args["verticalalignment"] = "center"
+
+    plt.text(0, 0, "Front", **plot_args)
+    plt.text(-90, 0, "Right", **plot_args)
+    plt.text(+90, 0, "Left", **plot_args)
+    plt.text(-180, 0, "Back", **plot_args)
+    plt.text(+180, 0, "Back", **plot_args)
 
 
 def plot_performance(
@@ -472,7 +556,7 @@ def plot_performance(
         plt.show()
 
     # direction error
-    if not new_plots:
+    if True:
         fig = plot_rX(
             rE_dir_err.reshape(test_dirs.shape),
             title=f"{title}\n" + "direction error (deg)",
@@ -589,6 +673,33 @@ def plot_performance(
     if True:
         fig = plt.figure(figsize=(12, 4))
         plot_az_el_rX(
+            sh_l,
+            sh_m,
+            M,
+            Su,
+            x_key="ambisonic_order",
+            x_fn=lambda x: np.round(x - ambisonic_order),
+            x_lim=(-3, 3),
+            title=(
+                f"{title}\nrelative ambisonic order ({ambisonic_order}) "
+                "vs. direction of $r_E$"
+            ),
+            el_lim=el_lim,
+            x_cmap="Spectral_r",
+            show=False,
+            sinusoidal_projection=False,
+        )
+        if plot_spkrs:
+            plot_loudspeakers(Su, zorder=1500)
+
+        out_figs.append(fig)
+        if not quiet:
+            plt.show()
+
+    # quiver plot
+    if True:
+        fig = plt.figure(figsize=(12, 4))
+        plot_az_el_q_rX(
             sh_l,
             sh_m,
             M,

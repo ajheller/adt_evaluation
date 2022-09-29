@@ -22,12 +22,12 @@ _here = Path(__file__).parent
 
 el_lim = np.array((-60, 60)) * np.pi / 180
 eval_el_lim = np.array((-89, 89)) * np.pi / 180
-quiet = True
+quiet = False
 
-if __name__ == "__main__":
-    import matplotlib
+# if __name__ == "__main__":
+#     import matplotlib
 
-    matplotlib.use("Agg")
+#     matplotlib.use("Agg")
 
 # %%
 S = esa.emb_cmap484()
