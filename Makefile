@@ -3,6 +3,10 @@
 rsync:
 	rsync --delete-after -avurP  plotly "ajh-dh:ambisonics/"
 
+
+rsync-reports:
+	rsync --delete-after -avurP  reports "ajh-dh:ambisonics/reports"
+
 adt-pull:
 	rsync --delete-after -avurP  \
 		--include 'SCMD*.json' --exclude '*' \
