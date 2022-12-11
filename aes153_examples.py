@@ -94,6 +94,8 @@ res = od.optimize_dome(
 
 # %%
 
+el_lim = np.array((-60, 90)) * np.pi / 180
+eval_el_lim = np.array((-60, 89)) * np.pi / 180
 S = esa.amb_10_8_4()
 
 res = od.optimize_dome(

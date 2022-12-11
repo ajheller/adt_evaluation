@@ -75,7 +75,7 @@ def home_dome(add_imaginary=True):
     a = np.array(
         [
             # fmt: off
-         # a regular octagon (LR) at lower level
+            # a regular octagon (LR) at lower level
          [  22.5,  0.0, 1.6],
          [ -22.5,  0.0, 1.6],
          [  67.5,  0.0, 1.6],
@@ -168,6 +168,25 @@ def emb_cmap888(add_imaginary=True):
         layout += zenith(radius=2)
     return layout
 
+def emb_cmap884(add_imaginary=True):
+    """EMB's home array."""
+    # Eric's array is an octagon at ear level and a square 30-deg elevation
+    # speakers lie on a 2-meter sphere
+    layout = lsl.append_layouts(
+        polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="M"),
+        polygon(8, elevation=π / 6, radius=2, unit="M", center_spkr=True, ids="U"),
+        name="CMAP-8c8s4c",
+        description="EMB's home array, 8+8+4",
+    )
+
+    layout += polygon(
+        4, elevation=-π / 6, radius=2, unit="M", center_spkr=True, ids="L"
+    )
+    if add_imaginary:
+        layout += nadir(radius=2)
+        layout += zenith(radius=2)
+    return layout
+
 
 def emb_cmap686(add_imaginary=True, bottom_center=False):
     """EMB's home array."""
@@ -210,6 +229,44 @@ def amb_10_8_4(add_imaginary=True):
         layout += nadir(radius=2)
         layout += zenith(radius=2)
     return layout
+
+
+# https://en.wikipedia.org/wiki/Cuboctahedron
+def cubeoctahedron(size=9):
+    a = (
+        np.array(
+            # fmt: off
+        (( 1,  1,  0),
+         (-1,  1,  0),
+         (-1, -1,  0),
+         ( 1, -1,  0),
+
+         ( 1,  0,  1),
+         ( 0,  1,  1),
+         (-1,  0,  1),
+         ( 0, -1,  1),
+
+         ( 1,  0, -1),
+         ( 0,  1, -1),
+         (-1,  0, -1),
+         ( 0, -1, -1))
+        )
+        * size
+        / 2
+    )
+    # fmt: on
+    S = lsl.from_array(
+        a,
+        name="Cubeoctahedron",
+        coord_code="XYZ",
+        unit_code="FFF",
+        # fmt: off
+        ids=("LF", "LB", "RB", "RF",
+             "TF", "TL", "TB", "TR",
+             "BF", "BL", "BB", "BR"),
+        # fmt: on
+    )
+    return S
 
 
 def stage2017(add_imaginary=True):
@@ -570,6 +627,26 @@ def envelop():
     return lsl.from_array(
         yxz, coord_code="YXZ", unit_code="FFF", ids=ids, name="EnvelopSF"
     )
+
+
+def spherical24():
+
+    """Azimuth (°)
+    -34.4 -25.5 -19.3 6.2 12.5 21.3 55.6 64.5 70.7 96.2 102.5 111.3 145.6 154.5 160.7 -173.8 -167.5 -158.7 -124.4 -115.5 -109.3 -83.8 -77.5 -68.7
+    Elevation (°)
+    -25.0 15.5 60.0 -60.0 -15.5 25.0 -25.0 15.5 60.0 -60.0 -15.5 25.0 -25.0 15.5 60.0 -60.0 -15.5 25.0 -25.0 15.5 60.0 -60.0 -15.5 25.0"""
+    az = np.array(
+        "-34.4 -25.5 -19.3 6.2 12.5 21.3 55.6 64.5 70.7 96.2 102.5 111.3 145.6 154.5 160.7 -173.8 -167.5 -158.7 -124.4 -115.5 -109.3 -83.8 -77.5 -68.7".split()
+    )
+
+    el = np.array(
+        "-25.0 15.5 60.0 -60.0 -15.5 25.0 -25.0 15.5 60.0 -60.0 -15.5 25.0 -25.0 15.5 60.0 -60.0 -15.5 25.0 -25.0 15.5 60.0 -60.0 -15.5 25.0".split()
+    )
+
+    r = np.ones_like(el)
+    s = lsl.from_vectors(az, el, r, coord_code="AER", unit_code="DDM")
+
+    return s
 
 
 def uniform240(name="Uniform240"):

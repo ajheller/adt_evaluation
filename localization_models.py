@@ -697,7 +697,7 @@ def plot_performance(
             plt.show()
 
     # quiver plot
-    if True:
+    if False:
         fig = plt.figure(figsize=(12, 4))
         plot_az_el_q_rX(
             sh_l,

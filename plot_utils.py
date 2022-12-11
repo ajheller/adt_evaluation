@@ -71,12 +71,24 @@ def plot_lsl(S, speaker_stands=True, title=None, axis=None, show=True):
 
     z_floor = np.min(S.z) - np.abs(np.min(S.z) / 10)
     for x, y, z, id in zip(*S.xyz.T, S.ids):
-        ax.text(x, y, z, id, zorder=1000)
+        ax.text(x, y, z, id, zorder=1000, weight="bold", size=14)
         plt.plot([x, x], [y, y], [z, z_floor], "-.k")
         plt.plot([0, x], [0, y], [z_floor, z_floor], "-.k")
 
     set_axes_equal(ax)
     ax.set(xlabel="X", ylabel="Y", zlabel="Z")
+
+    ax.text(
+        np.max(S.x)*1.1,
+        0,
+        0,
+        "\n".join("FRONT"),
+        fontstyle="italic",
+        bbox=dict(facecolor="lightblue", alpha=0.4),
+        horizontalalignment="center",
+        verticalalignment="center",
+    )
+
     if title is not None:
         ax.set(title=title)
     if show:
