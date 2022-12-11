@@ -9,71 +9,60 @@ Created on Thu Oct 22 18:35:22 2020
 from dataclasses import dataclass, field
 from loudspeaker_layout import LoudspeakerLayout
 from program_channels import Channels
+import basic_decoders as bd
+import write_faust_decoder as wfd
+
+import numpy as np
+
+from attr import attrs, attrib
 
 
-@dataclass
+@attrs
 class Decoder:
-    C: Channels
-    S: LoudspeakerLayout
+    C = attrib()
+    S = attrib()
+    M_basic = attrib()
 
-    name: str = ""
-    description: str = ""
+    name = attrib()
+    description = attrib()
 
+    def __init__(
+        self,
+        C,
+        S,
+        bands=2,
+        f_xover=380,  # Hz
+        nfc=True,
+        name=None,
+        description=None,
+    ):
+        self.C = C
+        self.S = S
+        self.bands = bands
+        self.f_xover = f_xover
+        self.nfc = nfc
 
-import requests
-import json
+    def __str__(self):
+        pass
 
+    def description(self):
+        return self._description or self.C.id_string()
 
-def get_mixer_value(i, j):
-    r = requests.get(f"http://localhost:5510/matrix_mixer/g-o{i}-i{j}")
-    c = r.content
-    value = c.split(b" ")
-    return float(value[1])
+    def long_name(self, suffix="") -> str:
+        return f"{self.name}-{self.description}{suffix}"
 
+    def compute_inversion(self):
+        M = bd.inversion(self.C.sh_l, self.C.sh_m, self.S.az, self.S.el)
+        self.M_lf = M
+        return M
 
-def set_mixer_value(i, j, v):
-    r = requests.get(f"http://localhost:5510/matrix_mixer/g-o{i}-i{j}?value={v}")
-    c = r.content
-    value = c.split(b" ")
-    try:
-        v = float(value[1])
-    except IndexError:
-        v = None
-    return v
+    def compute_allrad(self):
+        M = bd.allrad(self.C.sh_l, self.C.sh_m, self.S.az, self.S.el)
+        self.M_lf = M
+        return M
 
+    def write_ambdec(filename=None):
+        pass
 
-def get_mixer_schema():
-    r = requests.get(f"http://localhost:5510/JSON")
-    c = r.content
-    j = json.loads(c)
-    return j
-
-
-def set_mixer_matrix(M):
-    for i, u in enumerate(M):
-        for j, v in enumerate(u):
-            w = set_mixer_value(i, j, v)
-            if w is None:
-                print("v != w", w, v)
-
-
-import http.client
-
-# %timeit set_mixer_matrix2(np.random.rand(49,64))
-# 33.7 s ± 2.73 s per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-# %timeit -n 1 -r 1 set_mixer_matrix2(np.random.rand(49,64))
-# 30 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
-
-
-def set_mixer_matrix2(M, host="localhost", port=5510):
-    try:
-        c = http.client.HTTPConnection(host, port, timeout=10)
-        for i, u in enumerate(M):
-            for j, v in enumerate(u):
-                c.request("GET", f"/matrix_mixer/out{j}/g-o{i}-i{j}?value={v}")
-                res = c.getresponse()
-                if not res.status == 200:
-                    print(i, j, res.status)
-    finally:
-        c.close()
+    def write_faust(filename=None):
+        pass
