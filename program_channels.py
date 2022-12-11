@@ -28,6 +28,8 @@ from attr import attrs, attrib
 
 import re
 
+import slugify as slug
+
 """
  NOTE:
   Ambisonics traditionally calls degree "order", and order "channel". A&S
@@ -407,22 +409,25 @@ class ChannelsAmbisonic(Channels):
             name,
         )
 
-    def id_string(self):
-        return channels_id_string(self)
+    def id_string(self, slugify=False):
+        return channels_id_string(self, slugify=True)
 
     def __str__(self):
         return f"<Signal Set: {channels_id_string(self)}>"
 
 
-def channels_id_string(channel_object):
+def channels_id_string(channel_object, slugify=False):
     c = channel_object
     s = c.mixed_order_scheme
-    return (
+    r = (
         f"{c.h_order}{s[0]}"
         f"{c.v_order}{s[1]}"
         f" {c.ordering_type} "
         f"{c.normalization_type}"
     )
+    if slugify:
+        r = slug.slugify(r)
+    return r
 
 
 _id_string_re = re.compile(r"(AMBIX|FUMA)?\s*(\d+)(\D)(\d+)(\D)\s*$")
