@@ -10,13 +10,14 @@ Created on Sun Dec 11 12:07:00 2022
 from gtts import gTTS  # pip install gtts
 
 import os
-
 import numpy as np
-from matplotlib import pyplot as plt
+
+# from matplotlib import pyplot as plt
 from scipy.io import wavfile as wav
 
 from functools import lru_cache
 
+# adt modules
 import program_channels as pc
 import real_spherical_harmonics as rsh
 
@@ -53,14 +54,16 @@ def robojo(
     if path is None:
         path = f"robojo-{C.id_string(slugify=True)}-el{elevation:+03d}-{language}.wav"
 
+    ho, vo, sh_l, sh_m, id_str, normalization = pc.ambisonic_channels(C)
+
     gains = rsh.real_sph_harm_transform(
-        C.sh_l, C.sh_m, np.array(azd) * np.pi / 180, np.array(eld) * np.pi / 180
+        sh_l, sh_m, np.array(azd) * np.pi / 180, np.array(eld) * np.pi / 180
     )
     x = np.zeros((gains.shape[0], len(text), dt * fs), dtype=np.int16)
 
     for i, t in enumerate(text):
         tw = text2speech(t, fs=fs, language=language)
-        for j, gain in enumerate(gains[:, i] / C.normalization * np.sqrt(4 * np.pi)):
+        for j, gain in enumerate(gains[:, i] * normalization * np.sqrt(4 * np.pi)):
             x[j, i, : len(tw)] = np.floor((tw * gain) + np.random.random(len(tw)))
 
     y = x.reshape(gains.shape[0], -1)
@@ -69,22 +72,28 @@ def robojo(
 
 
 def test(o, e):
-    C = pc.ChannelsAmbiX(o)
-    s = (
-        (0, e, "front"),
-        (-45, e, "front, right"),
-        (-90, e, "right"),
-        (-135, e, "back, right"),
-        (-180, e, "back"),
-        (135, e, "back, left"),
-        (90, e, "left"),
-        (45, e, "front, left"),
-        (0, 90, "top"),
-        (0, -90, "bottom"),
-    )
+    try:
+        # C = pc.ChannelsAmbiX(o)
+        # C = pc.ChannelsFuMa(o)
+        C = pc.ChannelsN3D(o)
+    except ValueError as ve:
+        print(ve)
+    else:
+        s = (
+            (0, e, "front"),
+            (-45, e, "front, right"),
+            (-90, e, "right"),
+            (-135, e, "back, right"),
+            (-180, e, "back"),
+            (135, e, "back, left"),
+            (90, e, "left"),
+            (45, e, "front, left"),
+            (0, 90, "top"),
+            (0, -90, "bottom"),
+        )
 
-    azd, eld, text = zip(*s)
-    return robojo(C, text, azd, eld)
+        azd, eld, text = zip(*s)
+        return robojo(C, text, azd, eld)
 
 
 def test2(o, es):

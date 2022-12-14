@@ -81,16 +81,22 @@ import slugify as slug
 # I assume that the underlying real spherical harmonic code produces
 # full orthonormal values, hence these functions give the gains needed
 # to produce the target normalization from those
-# FIXME: this is the inverse of the normaliztion in the MATLAB ADT.
 
 
 def normalization_semi(sh_l, sh_m=None):
-    """gains to produce schmidt semi-normalized values from full orthronormal"""
-    return np.sqrt(2 * sh_l + 1)
+    """gains to produce schmidt semi-normalized (SN3D) values from full orthronormal (N3D)"""
+    return 1 / np.sqrt(2 * sh_l + 1)
 
 
 def normalization_full(sh_l, sh_m=None):
     return np.ones_like(sh_l, dtype=type(np.sqrt(1)))
+
+
+# real_spherical_harmonics produces fullly orthonormal values,
+#  i.e., the square integral over the full unit sphere is 1
+#  AmbiX specifies the square integral is 4pi, N3D doesn't say
+def normalization_unity_to_fourpi(sh_l, sh_m=None):
+    return np.full_like(sh_l, np.sqrt(4 * np.pi), dtype=type(np.sqrt(1)))
 
 
 # mixed-order sets
@@ -128,6 +134,7 @@ _FuMa_sh_acn = [l**2 + l + m for l, m in _FuMa_sh_lm]
 _FuMa_channel_names = np.array(tuple("W" + "XYZ" + "RSTUV" + "KLMNOPQ"))
 
 
+# these are the gains to produce FuMa from N3D
 _FuMa_channel_normalization = 1 / np.sqrt(
     np.array(
         (
@@ -410,7 +417,7 @@ class ChannelsAmbisonic(Channels):
         )
 
     def id_string(self, slugify=False):
-        return channels_id_string(self, slugify=True)
+        return channels_id_string(self, slugify=slugify)
 
     def __str__(self):
         return f"<Signal Set: {channels_id_string(self)}>"
@@ -562,7 +569,7 @@ def ambisonic_channels(C, convention=None, **kwargs):
     # use duck typing
     # does it behave like a ProgramChannels object?
     try:
-        return C.h_order, C.v_order, C.sh_l, C.sh_m, C.id_string()
+        return C.h_order, C.v_order, C.sh_l, C.sh_m, C.id_string(), C.normalization
     except AttributeError:
         pass
 
