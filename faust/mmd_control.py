@@ -67,7 +67,7 @@ def set_mixer_matrix2(M, host="localhost", port=5510):
         c = http.client.HTTPConnection(host, port, timeout=10)
         for i, u in enumerate(M):
             for j, v in enumerate(u):
-                c.request("GET", f"/matrix_mixer/out{j}/g-o{i}-i{j}?value={v}")
+                c.request("GET", f"/matrix_mixer/out{i}/in{j}?value={v}")
                 res = c.getresponse()
                 if not res.status == 200:
                     print(i, j, res.status)
