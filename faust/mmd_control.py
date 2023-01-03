@@ -59,7 +59,7 @@ import http.client
 
 # %timeit -n 1 -r 1 set_mixer_matrix2(np.random.rand(49,64))
 # 30 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
-# 30/(49*64) = 100 ms/element, is this the timing of the "slow" loop?
+# 30/(49*64) = 10 ms/element, is this the timing of the "slow" loop?
 
 
 def set_mixer_matrix2(M, host="localhost", port=5510):
