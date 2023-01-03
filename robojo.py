@@ -6,6 +6,8 @@ Created on Sun Dec 11 12:07:00 2022
 @author: heller
 """
 
+from pathlib import Path
+
 # Google translate text-to-speech service
 from gtts import gTTS  # pip install gtts
 
@@ -20,6 +22,10 @@ from functools import lru_cache
 # adt modules
 import program_channels as pc
 import real_spherical_harmonics as rsh
+
+_here = Path(__file__).parent
+_outdir = _here / "test-files" / "robojo"
+
 
 _fs = 48000
 
@@ -46,7 +52,10 @@ def robojo(
     fs=_fs,
     elevation=None,
     language="en",
+    outdir=_outdir,
 ):
+
+    os.makedirs(_outdir, exist_ok=True)
 
     if elevation is None:
         elevation = eld[0]
@@ -54,7 +63,8 @@ def robojo(
     if path is None:
         path = f"robojo-{C.id_string(slugify=True)}-el{elevation:+03d}-{language}.wav"
 
-    ho, vo, sh_l, sh_m, id_str, normalization = pc.ambisonic_channels(C)
+    ho, vo, sh_l, sh_m, id_str = pc.ambisonic_channels(C)
+    normalization = C.normalization
 
     gains = rsh.real_sph_harm_transform(
         sh_l, sh_m, np.array(azd) * np.pi / 180, np.array(eld) * np.pi / 180
@@ -64,18 +74,24 @@ def robojo(
     for i, t in enumerate(text):
         tw = text2speech(t, fs=fs, language=language)
         for j, gain in enumerate(gains[:, i] * normalization * np.sqrt(4 * np.pi)):
-            x[j, i, : len(tw)] = np.floor((tw * gain) + np.random.random(len(tw)))
+            xx = np.floor((tw * gain) + np.random.random(len(tw)))
+            # check for clipping
+            nclipp = np.sum((np.max(xx) >= np.iinfo(x.dtype).max))
+            nclipn = np.sum((np.min(xx) <= np.iinfo(x.dtype).min))
+            print(f"Clipped sample count {nclipp} pos; {nclipn} neg")
+
+            x[j, i, : len(tw)] = xx
 
     y = x.reshape(gains.shape[0], -1)
-    wav.write(path, fs, y.T)
+    wav.write(outdir / path, fs, y.T)
     return path
 
 
 def test(o, e):
     try:
-        # C = pc.ChannelsAmbiX(o)
+        C = pc.ChannelsAmbiX(o)
         # C = pc.ChannelsFuMa(o)
-        C = pc.ChannelsN3D(o)
+        # C = pc.ChannelsN3D(o)
     except ValueError as ve:
         print(ve)
     else:
