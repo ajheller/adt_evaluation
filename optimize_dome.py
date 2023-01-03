@@ -149,7 +149,7 @@ def optimize_dome(
         )
 
         print(f"\n\n{plot_title}\nDiffuse field gain of each loudspeaker (dB)")
-        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_allrad ** 2, axis=1))):
+        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_allrad**2, axis=1))):
             print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}")
 
     else:
@@ -165,7 +165,10 @@ def optimize_dome(
     # Objective for E
     T = sg.t_design5200()
     cap, *_ = sg.spherical_cap(
-        T.u, (0, 0, 1), angle=π / 2 - el_lim[0], min_angle=π / 2 - el_lim[1],
+        T.u,
+        (0, 0, 1),
+        angle=π / 2 - el_lim[0],
+        min_angle=π / 2 - el_lim[1],
     )  # apex
     E0 = np.where(cap, 1.0, 0.1)  # inside, outside
 
@@ -227,19 +230,19 @@ def optimize_dome(
             file=f,
         )
 
-        off = np.isclose(np.sum(M_opt ** 2, axis=1), 0, rtol=1e-6)  # 60dB down
+        off = np.isclose(np.sum(M_opt**2, axis=1), 0, rtol=1e-6)  # 60dB down
         print("Using:\n", Sr.ids[~off.copy()], file=f)
         print("Turned off:\n", Sr.ids[off.copy()], file=f)
 
         print("\n\nDiffuse field gain of each loudspeaker (dB)", file=f)
-        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_opt ** 2, axis=1))):
+        for n, g in zip(Sr.ids, 10 * np.log10(np.sum(M_opt**2, axis=1))):
             print(f"{n:3}:{g:8.2f} |{'=' * int(60 + g)}", file=f)
         report = f.getvalue()
         print(report)
 
     if do_report not in (None, False):
         report_name = f"{spkr_array_name}-{id_string}"
-        if do_report != True:
+        if do_report is not True:
             report_name += f"-{do_report}"
 
         reports.html_report(
