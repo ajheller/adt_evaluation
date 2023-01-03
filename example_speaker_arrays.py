@@ -168,20 +168,31 @@ def emb_cmap888(add_imaginary=True):
         layout += zenith(radius=2)
     return layout
 
-def emb_cmap884(add_imaginary=True):
+
+def emb_cmap884(add_imaginary=True, bottom_ring=True):
     """EMB's home array."""
     # Eric's array is an octagon at ear level and a square 30-deg elevation
     # speakers lie on a 2-meter sphere
+
+    if bottom_ring:
+        name = "CMAP-8c8s4c"
+        description = "EMB's home array, 8+8+4"
+
+    else:
+        name = "CMAP-8c8s0c"
+        description = "EMB's home array, 8+8+0"
+
     layout = lsl.append_layouts(
         polygon(8, elevation=0, radius=2, unit="M", center_spkr=False, ids="M"),
         polygon(8, elevation=π / 6, radius=2, unit="M", center_spkr=True, ids="U"),
-        name="CMAP-8c8s4c",
-        description="EMB's home array, 8+8+4",
+        name=name,
+        description=description,
     )
 
-    layout += polygon(
-        4, elevation=-π / 6, radius=2, unit="M", center_spkr=True, ids="L"
-    )
+    if bottom_ring:
+        layout += polygon(
+            4, elevation=-π / 6, radius=2, unit="M", center_spkr=True, ids="L"
+        )
     if add_imaginary:
         layout += nadir(radius=2)
         layout += zenith(radius=2)
