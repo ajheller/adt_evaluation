@@ -433,7 +433,7 @@ def channels_id_string(channel_object, slugify=False):
         f"{c.normalization_type}"
     )
     if slugify:
-        r = slug.slugify(r)
+        r = slug.slugify(r, separator="_")
     return r
 
 
@@ -569,7 +569,7 @@ def ambisonic_channels(C, convention=None, **kwargs):
     # use duck typing
     # does it behave like a ProgramChannels object?
     try:
-        return C.h_order, C.v_order, C.sh_l, C.sh_m, C.id_string(), C.normalization
+        return C.h_order, C.v_order, C.sh_l, C.sh_m, C.id_string()  # , C.normalization
     except AttributeError:
         pass
 
