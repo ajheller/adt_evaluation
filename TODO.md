@@ -66,12 +66,22 @@ Uninstalling Apple XCode IDE and installing the lastest Command Line Tools for X
 	    - googling ... this can have many causes, often missing dlls.
 	    - I have used depends.exe to find these problems in the
         distant past
+	- DLLs made with FAUST online compiler are fine
 
-- For Windows, maybe I need the VC Redistributable
+- For Windows, maybe I need the VC Redistributable (TL;DR -- Nope)
     - https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170
 	- Nope... they're already installed in the developer VM,
 	- VSTs compiled with the online Faust compiler are recognized by
-      Bidule, so something is wrong with the MingGW toolchain I have on the Mac
+      Bidule, so something is wrong with the MingGW toolchain I have
+      on the Mac
+	- Using https://github.com/lucasg/Dependencies
+	    - libwinpthread-1.dll is missing from the cross-compiled
+        version, *not used by the FAUST online compiler* WHY?
+		- dependancy checker stops at first missing file, so there may
+        be others
+		- Mac ports is MinGW64 version 10.0.0, Ubuntu 22.04 LTS (jammy) uses 8.0.0
+		    - dllwrap used by faust2w64vst is deprecated
+
 
 # Faust to jack with gui
 - needs gtk+-2.0. fix with sudo port install gtk2
