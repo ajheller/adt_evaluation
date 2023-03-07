@@ -156,6 +156,13 @@ _FuMa_channel_normalization = 1 / np.sqrt(
 
 
 #
+# %% Mixed-order ambisonics support. There are two conventions HP [8] an HV [9].
+
+#    [8] http://www.rwdobson.com/bformat.html
+#    [9] Travis, C. A New Mixed-Order Scheme for Ambisonic Signals. Proc. 1st Ambisonics
+#        Symposium, June 25-27 2009. Graz.
+
+
 def is_zonal_sh(sh_l, sh_m):
     """
     Return True for zonal spherical harmonics.
@@ -270,6 +277,10 @@ def channel_mask(sh_l, sh_m, h_order, v_order, mixed_order_scheme="HV"):
     return ch_mask
 
 
+# %%  Generators for channel lists
+#
+
+
 def ambisonic_channels_acn(ambisonic_order):
     for l in range(ambisonic_order + 1):
         for m in range(-l, l + 1):
@@ -319,6 +330,9 @@ def h_order_validator(self, attribute, value):
 def v_order_validator(self, attribute, value):
     if not (int(value) == value and 0 <= value):
         raise ValueError("v_order must a non-negative integer no greater than h_order")
+
+
+# %% the basic channels object -- it has no constaints, no checking
 
 
 @attrs
