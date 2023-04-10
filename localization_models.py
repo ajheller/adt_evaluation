@@ -156,7 +156,14 @@ def compute_rVrE_dict(sh_l, sh_m, M, Su, *, test_dirs=None, return_dict=True):
 
 
 def plot_az_el_grid(
-    sh_l, sh_m, M, Su, el_lim=-π / 4, az_lim=(200, -200), title=None, show=True,
+    sh_l,
+    sh_m,
+    M,
+    Su,
+    el_lim=-π / 4,
+    az_lim=(200, -200),
+    title=None,
+    show=True,
 ):
     # defaults
     if np.isscalar(el_lim):
@@ -308,7 +315,10 @@ def plot_az_el_q_rX(
         angles="xy",
     )
     print(
-        d * taz[::i], d * tel[::i], (az - taz)[::i], (el - tel)[::i],
+        d * taz[::i],
+        d * tel[::i],
+        (az - taz)[::i],
+        (el - tel)[::i],
     )
 
     # magic incantation to flip the x-axis of the plot
@@ -444,7 +454,9 @@ def plot_rX(rX, title, clim=None, cmap="jet", show=True):
 
 
 def plot_loudspeakers(
-    Su: np.ndarray, sinusoidal_projection=False, **plot_args,
+    Su: np.ndarray,
+    sinusoidal_projection=False,
+    **plot_args,
 ) -> None:
     """Overlay loudspeaker positions on an existing figure."""
     #
@@ -761,14 +773,13 @@ def plot_performance(
 
 
 def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π / 4, title=""):
-
     T = sg.az_el()
     Y_test_dirs = rsh.real_sph_harm_transform(sh_l, sh_m, T.az, T.el)
 
     P, rVxyz, _, _ = compute_rVrE_fast(M_lf, Su, Y_test_dirs)
     rVaz, rVel, rVr, rVu = xyz2aeru(rVxyz)
 
-    print("mean rV", np.mean(rVr))
+    print(f"mean rV = {np.mean(rVr):0.4f}")
 
     _, _, E, rExyz = compute_rVrE_fast(M_hf, Su, Y_test_dirs)
     rEaz, rEel, rEr, rEu = xyz2aeru(rExyz)
@@ -785,10 +796,10 @@ def plot_performance_LF(M_lf, M_hf, Su, sh_l, sh_m, el_lim=-π / 4, title=""):
     plt.show()
 
     ev_dot = np.sum(rEu * rVu, axis=0)
-    dir_diff = np.arccos(np.clip(ev_dot, -1, 1)) * 180 / np.pi
-    print("mean rV/rE direction error", np.mean(dir_diff))
+    dir_diff_deg = np.arccos(np.clip(ev_dot, -1, 1)) * 180 / np.pi
+    print(f"mean rV/rE direction error = {np.mean(dir_diff_deg):0.4f} degrees")
     fig = plot_rX(
-        dir_diff.reshape(T.shape),
+        dir_diff_deg.reshape(T.shape),
         title=f"{title}\nrE vs. rV direction difference (degrees)",
         clim=(0, 20),
         show=False,
@@ -882,7 +893,10 @@ if __name__ == "__main__":
         else:
             raise ValueError("Unknown decoder type: %d" % decoder)
 
-        (rVr, rEr,) = compute_rVrE(sh_l, sh_m, M, np.array(sg.sph2cart(s_az, s_el)))
+        (
+            rVr,
+            rEr,
+        ) = compute_rVrE(sh_l, sh_m, M, np.array(sg.sph2cart(s_az, s_el)))
 
         plot_rX(rVr, "rVr", (0.5, 1))
         plot_rX(rEr, "rEr", (0.5, 1))
