@@ -12,6 +12,8 @@ from program_channels import Channels
 import basic_decoders as bd
 import write_faust_decoder as wfd
 
+import optimize_dome as od
+
 import numpy as np
 
 from attr import attrs, attrib
@@ -19,6 +21,12 @@ from attr import attrs, attrib
 
 @attrs
 class Decoder:
+    """A class to bundle everything for making decoders under a single API
+
+    Returns:
+        _type_: _description_
+    """
+
     C = attrib()
     S = attrib()
     M_basic = attrib()
@@ -66,3 +74,27 @@ class Decoder:
 
     def write_faust(filename=None):
         pass
+
+
+# A quick and dirty function to make decoders for dome arrays
+
+
+def make_decoder(C, S, el_lim, eval_el_lim, quiet=False):
+    M_hf, result_dict_hf = od.optimize_dome(
+        S,
+        ambisonic_order=C,
+        # eval_order=C,
+        sparseness_penalty=1,
+        el_lim=el_lim,
+        do_report=True,
+        random_start=False,
+        eval_el_lim=eval_el_lim,
+        quiet=quiet,
+    )
+    M_lf, result_dict_lf = od.optimize_dome_LF(
+        M_hf,
+        S.real_only(),
+        ambisonic_order=C,
+        el_lim=el_lim,
+    )
+    return M_hf, M_lf, result_dict_hf, result_dict_lf
