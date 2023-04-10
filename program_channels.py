@@ -23,6 +23,7 @@ Created on Mon Aug 27 13:07:28 2018
 
 
 import numpy as np
+import scipy.special as spec
 
 from attr import attrs, attrib
 
@@ -89,7 +90,21 @@ def normalization_semi(sh_l, sh_m=None):
 
 
 def normalization_full(sh_l, sh_m=None):
+    """gains to produce fully orthonormalized (N3D) value"""
     return np.ones_like(sh_l, dtype=type(np.sqrt(1)))
+
+# 2D normalizations
+
+def normalization_full_2D(sh_l, sh_m=None):
+    """gains to produce 2D orthonormalized (N2D) values"""
+    n2 = 2 ** (2*sh_l) * spec.factorial(sh_l)**2
+    d2 = spec.factorial(2*sh_l + 1)
+    return np.sqrt(n2 / d2)
+
+def normalization_semi_2D(sh_l, sh_m=None):
+    norm = normalization_full_2D(sh_l)
+    norm[1:] /= np.sqrt(2)
+    return norm
 
 
 # real_spherical_harmonics produces fullly orthonormal values,
