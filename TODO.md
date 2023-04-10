@@ -6,6 +6,9 @@
 print("Using:\n", Sr.ids[~off.copy()], file=f)
      ```
 
+# requests:
+- implement N2D and SN2D (Nando)
+
 # Look at:
 - Streaming audio processing
 	- https://spaudiopy.readthedocs.io/en/latest/index.html
@@ -94,8 +97,27 @@ Uninstalling Apple XCode IDE and installing the lastest Command Line Tools for X
 - needs gtk+-2.0. fix with sudo port install gtk2
 	- this trigger a massive package update that took about 30 minutes
 	- clean up with sudo port unstall inactive
+- faustvst2vst needs header files at ~/VSTK3
 
 
 # Python
 - Conda Forge: https://conda-forge.org/#about
 - Intel Python:
+
+# with new M2max machine
+
+install mambaforge
+  https://github.com/conda-forge/miniforge#mambaforge
+  
+  
+curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+bash Mambaforge-$(uname)-$(uname -m).sh
+
+conda create -n p311 python=3.11 pip numpy scipy sympy jax jaxlib matplotlib pandas dominate 
+conda activate p311
+
+# for use with Jupyter Lab
+conda install jupyter jupyterlab ipympl mplcursors
+
+# for use with Spyder IDE
+conda install spyder
