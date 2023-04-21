@@ -90,6 +90,9 @@ BSD 3-Clause License, so that it may be combined with other code
 without restriction. If these terms are an impediment to your use of
 the toolbox, please contact me with details of your application.
 
+## Code style
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 ## Notation
 
 I've been trying to clean up the notation I used in the MATLAB
